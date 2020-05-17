@@ -1,6 +1,7 @@
 from time import time, sleep
 import threading
 import atexit
+import cv2
 
 
 def keep_rps(ts, fps=1.):
@@ -20,3 +21,7 @@ def run_as_thread(an_action):
 
     a_thread.start()
     atexit.register(stop_me)
+
+
+def bgr8_to_jpeg(value):
+    return bytes(cv2.imencode('.jpg', value)[1])

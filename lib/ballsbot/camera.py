@@ -6,7 +6,7 @@ import atexit
 import threading
 import numpy as np
 
-from ballsbot.utils import keep_rps
+from ballsbot.utils import keep_rps, bgr8_to_jpeg
 
 
 def get_captures(cameras_count):
@@ -53,10 +53,6 @@ class Camera(SingletonConfigurable):
             self.cap.release()
         if hasattr(self, 'thread'):
             self.thread.join()
-
-
-def bgr8_to_jpeg(value):
-    return bytes(cv2.imencode('.jpg', value)[1])
 
 
 def get_images_and_cameras(image_width=640, image_height=360):

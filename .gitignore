@@ -1,2 +1,3 @@
 .idea
-melodic-libs
+*-libs
+**/__pycache__
