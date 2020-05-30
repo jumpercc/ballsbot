@@ -1,3 +1,5 @@
 .idea
 *-libs
 **/__pycache__
+test*
+tmp*

@@ -26,7 +26,13 @@ class Lidar:
         self.angle_max = pi
 
     def _default_calibration(self):
-        return {}  # FIXME
+        return {
+            'angle_fix': 1.536169514991343,
+            'fl_x': -0.10497770004314007,
+            'fl_y': 0.1489790001089045,
+            'rr_x': 0.09358033254947921,
+            'rr_y': -0.1276157715282091,
+        }
 
     def _get_raw_lidar_points(self):
         data = None
@@ -111,10 +117,10 @@ class Lidar:
         canvas.print_jpg(jpeg)
         image.value = jpeg.getvalue()
 
-    def show_lidar_cloud(self, image, only_nearby_meters=4):
+    def show_lidar_cloud(self, image, only_nearby_meters=4, fps=4):
         ts = None
         while True:
-            ts = keep_rps(ts, fps=2)
+            ts = keep_rps(ts, fps=fps)
             x_points, y_points = self._get_lidar_points()
             if x_points is None:
                 break

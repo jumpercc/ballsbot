@@ -41,7 +41,7 @@ class Camera(SingletonConfigurable):
     def _capture_frames(self):
         ts = None
         while True:
-            ts = keep_rps(ts, fps=25)
+            ts = keep_rps(ts, fps=5)
 
             ret, frame = self.cap.read()
             if not ret:
@@ -59,6 +59,7 @@ def get_images_and_cameras(image_width=640, image_height=360):
     capture_sizes = [  # FIXME
         {'width': 1280, 'height': 720},
         {'width': 640, 'height': 360},
+        #{'width': 1280, 'height': 720},
     ]
 
     images = []
