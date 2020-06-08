@@ -58,15 +58,18 @@ class Camera(SingletonConfigurable):
 def get_images_and_cameras(image_width=640, image_height=360):
     capture_sizes = [  # FIXME
         {'width': 1280, 'height': 720},
-        {'width': 640, 'height': 360},
-        #{'width': 1280, 'height': 720},
+        # {'width': 640, 'height': 360},
+        # {'width': 1280, 'height': 720},
     ]
 
     images = []
     for _ in range(len(capture_sizes)):
         image = widgets.Image(format='jpeg', width=image_width, height=image_height)
         images.append(image)
-    sidebyside = widgets.HBox(images)
+    if len(images) > 1:
+        sidebyside = widgets.HBox(images)
+    else:
+        sidebyside = images[0]
 
     caps = get_captures(len(capture_sizes))
     cameras = []

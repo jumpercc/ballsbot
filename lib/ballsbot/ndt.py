@@ -1,6 +1,6 @@
 import numpy as np
 from math import floor
-from math import cos, sin, pi, exp
+from math import cos, sin, pi, exp, atan2
 from scipy.optimize import minimize
 from scipy.linalg import eigvals, eig
 
@@ -113,7 +113,7 @@ class NDT:
             for i in range(len(x_points)):
                 x = x_points[i]
                 y = y_points[i]
-                x, y = self.apply_transformation(x, y, tr, cos_fi, sin_fi)
+                x, y = self.apply_transformation(x, y, tr, cos_fi, sin_fi)  # TODO inline for optimization
                 result_x.append(x)
                 result_y.append(y)
             self.transformed_cache[tr_key] = [result_x, result_y]
@@ -242,3 +242,95 @@ class NDT:
                 # 'maxiter': 1,
             }
         ).x
+
+    @staticmethod
+    def angle_axis_to_rotation_matrix(m_angle, m_axis):
+        sin_axis = sin(m_angle) * m_axis
+        c = cos(m_angle)
+        cos1_axis = (1. - c) * m_axis
+
+        res = np.zeros((3, 3))
+
+        tmp = cos1_axis[0] * m_axis[1]
+        res[0, 1] = tmp - sin_axis[2]
+        res[1, 0] = tmp + sin_axis[2]
+
+        tmp = cos1_axis[0] * m_axis[2]
+        res[0, 2] = tmp + sin_axis[1]
+        res[2, 0] = tmp - sin_axis[1]
+
+        tmp = cos1_axis[1] * m_axis[2]
+        res[1, 2] = tmp - sin_axis[0]
+        res[2, 1] = tmp + sin_axis[0]
+
+        tmp = cos1_axis * m_axis + c
+        for i in range(3):
+            res[i, i] = tmp[i]
+
+        return res
+
+    def get_my_optimal_transformation(self, cloud_one, cloud_two, start_point=(0., 0., 0.)):
+        self.transformed_cache = {}
+        self.score_cache = {}
+        self.grad_cache = {}
+        self.grad2_cache = {}
+        self.steps = []
+        grids = self.cell_cloud(cloud_one)
+        for it in grids:
+            it['cov'] = self.inv_cov(it['cov'])
+
+        init_rotation = self.angle_axis_to_rotation_matrix(start_point[-1], np.array([0., 0., 1.]))
+        init_translation = np.array([start_point[0], start_point[1], 0.])
+        init_guess = init_translation @ init_rotation
+
+        guess = np.eye(4)  # FIXME
+        transformation = guess
+        # work with x translation, y translation and z rotation: extending to 3D
+        # would be some tricky maths, but not impossible.
+        initial_rot = transformation[:3, :3]
+        rot_x = initial_rot @ np.array([1., 0., 0.])
+        z_rotation = atan2(rot_x[1], rot_x[0])
+        xytheta_transformation = np.array([
+            transformation[0, 3],
+            transformation[1, 3],
+            z_rotation
+        ])
+
+        newton_lambda = np.array([1., 1., 1.])  # (0.4,0.4,0.1)?
+        transformation_epsilon = 0.1
+        max_iterations = 35
+        nr_iterations = 0
+        converged = False
+        while not converged:
+            previous_transformation = transformation
+
+            score_value, score_grad, score_hessian = self._get_score_and_gradients(
+                xytheta_transformation, cloud_two, grids
+            )
+
+            delta_transformation = -np.linalg.inv(score_hessian) @ score_grad
+            new_transformation = xytheta_transformation + newton_lambda * delta_transformation
+            xytheta_transformation = new_transformation
+
+            """
+            # update transformation matrix from x, y, theta:
+            transformation.block<3,3> (0,0).matrix () = Eigen::Matrix3f (Eigen::AngleAxisf (static_cast<float> (xytheta_transformation[2]), Eigen::Vector3f::UnitZ ()));
+            transformation.block<3,1> (0,3).matrix () = Eigen::Vector3f (static_cast<float> (xytheta_transformation[0]), static_cast<float> (xytheta_transformation[1]), 0.0f);
+            """
+
+            nr_iterations += 1
+
+            transformation_delta = np.linalg.inv(transformation) * previous_transformation
+            """
+            double cos_angle = 0.5 * (transformation_delta.coeff (0, 0) + transformation_delta.coeff (1, 1) + transformation_delta.coeff (2, 2) - 1);
+            double translation_sqr = transformation_delta.coeff (0, 3) * transformation_delta.coeff (0, 3) +
+                                       transformation_delta.coeff (1, 3) * transformation_delta.coeff (1, 3) +
+                                       transformation_delta.coeff (2, 3) * transformation_delta.coeff (2, 3);
+
+            if (nr_iterations_ >= max_iterations_ ||
+                ((transformation_epsilon_ > 0 && translation_sqr <= transformation_epsilon_) && (transformation_rotation_epsilon_ > 0 && cos_angle >= transformation_rotation_epsilon_)) ||
+                ((transformation_epsilon_ <= 0)                                             && (transformation_rotation_epsilon_ > 0 && cos_angle >= transformation_rotation_epsilon_)) ||
+                ((transformation_epsilon_ > 0 && translation_sqr <= transformation_epsilon_) && (transformation_rotation_epsilon_ <= 0)))
+              converged_ = true;
+            final_transformation_ = transformation;
+            """
