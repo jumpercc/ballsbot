@@ -12,38 +12,27 @@ class NDT:
         self.eps = eps
 
     @staticmethod
-    def apply_transformation(x, y, tr, cos_fi, sin_fi):
+    def apply_transformation_to_cloud(a_cloud, tr):
+        result = []
+
         tx, ty, fi = tr
         rotate_m = np.array([
-            [cos_fi, -sin_fi],
-            [sin_fi, cos_fi]
+            [cos(fi), -sin(fi)],
+            [sin(fi), cos(fi)]
         ])
-        move_m = np.array([[tx], [ty]])
-        point = np.array([[x], [y]])
-        result = rotate_m @ point + move_m
-        return result[:, 0]
+        move_m = np.array([tx, ty]).reshape((2, 1))
 
-    def apply_transformation_to_cloud(self, a_cloud, tr):
-        result_x = []
-        result_y = []
-        x_points, y_points = a_cloud
-        cos_fi = cos(tr[-1])
-        sin_fi = sin(tr[-1])
-        for i in range(len(x_points)):
-            x = x_points[i]
-            y = y_points[i]
-            x, y = self.apply_transformation(x, y, tr, cos_fi, sin_fi)  # TODO inline for optimization
-            result_x.append(x)
-            result_y.append(y)
-        return [result_x, result_y]  # FIXME
+        for point in a_cloud:
+            point = np.array(point).reshape((2, 1))
+            point = rotate_m @ point + move_m
+            result.append(point[:, 0].tolist())
+
+        return result
 
     def get_optimal_transformation(self, cloud_one, cloud_two, start_point=(0., 0., 0.)):
-        cloud_one_points = list(zip(cloud_one[0], cloud_one[1]))  # FIXME
-        cloud_two_points = list(zip(cloud_two[0], cloud_two[1]))  # FIXME
-
         return python_pcl_ndt.get_transformation_vector_wrapper(
-            cloud_one_points,
-            cloud_two_points,
+            cloud_one,
+            cloud_two,
             self.iterations_count,  # iter
             self.box_size,  # grid_step
             self.grid_size,  # grid_extent

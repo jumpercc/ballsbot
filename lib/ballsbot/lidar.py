@@ -4,6 +4,7 @@ from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from io import BytesIO
 import sys
+from time import time
 
 from ballsbot.utils import keep_rps
 
@@ -16,7 +17,7 @@ from sensor_msgs.msg import LaserScan
 def radial_to_cartesian(magnitude, angle):
     x = magnitude * cos(angle)
     y = magnitude * sin(angle)
-    return x, y
+    return [x, y]
 
 
 class Lidar:
@@ -24,6 +25,8 @@ class Lidar:
         self.calibration = self._default_calibration()
         self.angle_min = -pi
         self.angle_max = pi
+        self.points = []
+        self.points_ts = time()
 
     def _default_calibration(self):
         return {
@@ -59,18 +62,17 @@ class Lidar:
 
     def _get_lidar_points(self, range_limit=None):
         data = self._get_raw_lidar_points()
+        self.points_ts = time()
         if data is None:
             return None, None
-        x_points = []
-        y_points = []
+        points = []
         angle = data.angle_min
         for i in range(len(data.intensities)):
             if data.intensities[i] > 0 and (range_limit is None or data.ranges[i] <= range_limit):
-                x, y = radial_to_cartesian(data.ranges[i], self._fix_angle(angle))
-                x_points.append(x)
-                y_points.append(y)
+                a_point = radial_to_cartesian(data.ranges[i], self._fix_angle(angle))
+                points.append(a_point)
             angle += data.angle_increment
-        return x_points, y_points
+        return points
 
     @staticmethod
     def _calibration_to_xywh(calibration):
@@ -90,11 +92,13 @@ class Lidar:
 
         return (x, y), w, h
 
-    def _update_picture(self, image, x_points, y_points, only_nearby_meters=4, additional_points=None):
+    def _update_picture(self, image, points, only_nearby_meters=4, additional_points=None):
         fig = Figure(figsize=(6, 5))
         canvas = FigureCanvas(fig)
         ax = fig.gca()
 
+        x_points = [x[0] for x in points]
+        y_points = [x[1] for x in points]
         ax.scatter(x_points, y_points, marker='o', s=5, c='b')
 
         if self.calibration is None:
@@ -117,24 +121,33 @@ class Lidar:
         canvas.print_jpg(jpeg)
         image.value = jpeg.getvalue()
 
-    def show_lidar_cloud(self, image, only_nearby_meters=4, fps=4):
+    def show_lidar_cloud(self, image, **kwargs):
+        self.auto_update_lidar_cloud(
+            cb=lambda points, only_nearby_meters: self._update_picture(
+                image, points, only_nearby_meters=only_nearby_meters
+            ),
+            **kwargs
+        )
+
+    def auto_update_lidar_cloud(self, only_nearby_meters=4, fps=2, cb=None):
         ts = None
         while True:
             ts = keep_rps(ts, fps=fps)
-            x_points, y_points = self._get_lidar_points()
-            if x_points is None:
+            points = self._get_lidar_points()
+            if points is None:
+                self.points = []
                 break
-            self._update_picture(
-                image, x_points, y_points, only_nearby_meters=only_nearby_meters
-            )
+            else:
+                self.points = points
+
+            if cb is not None:
+                cb(points, only_nearby_meters=only_nearby_meters)
 
     def _get_my_corners(self):
         range_limit = 0.3
 
         while True:
             data = self._get_raw_lidar_points()
-            x_points = []
-            y_points = []
             candidates = []
             distance_up = False
             wait_for_max = True
@@ -145,8 +158,6 @@ class Lidar:
                 if data.intensities[i] > 0 and (range_limit is None or data.ranges[i] <= range_limit):
                     if prev_range is not None and abs(data.ranges[i] - prev_range) <= 0.03:  # denoise
                         x, y = radial_to_cartesian(data.ranges[i], angle)
-                        x_points.append(x)
-                        y_points.append(y)
                         if data.ranges[i] > prev_range:
                             distance_up = True
                             c = {

@@ -1,6 +1,5 @@
 import RTIMU
-import time
-import json
+from time import time, sleep
 import numpy as np
 from math import pi
 import atexit
@@ -23,6 +22,7 @@ class IMU:
         self.poll_interval = imu.IMUGetPollInterval()
         self.initial_position = np.zeros((3,))
         self.teta = 0.
+        self.teta_ts = time()
 
     def calibrate(self):
         iterations = 0
@@ -35,7 +35,7 @@ class IMU:
                     iterations += 1
                     if iterations == 10:
                         break
-            time.sleep(self.poll_interval * 1.0 / 1000.0)
+            sleep(self.poll_interval * 1.0 / 1000.0)
         self.initial_position = my_sum / iterations
 
     def main_loop(self):
@@ -48,7 +48,8 @@ class IMU:
                     if teta > pi:
                         teta -= 2 * pi
                     self.teta = teta
-                time.sleep(self.poll_interval * 1.0 / 1000.0)
+                    self.teta_ts = time()
+                sleep(self.poll_interval * 1.0 / 1000.0)
 
     def start(self):
         self.calibrate()
