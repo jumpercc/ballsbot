@@ -107,7 +107,7 @@ class PWMThrottle:
 
     def __init__(self,
                  controller=None,
-                 max_pulse=395,
+                 max_pulse=390,
                  min_pulse=330,
                  zero_pulse=360):
 
@@ -130,9 +130,15 @@ class PWMThrottle:
         if abs(throttle) < 0.5:
             self.pulse = self.zero_pulse
         elif throttle > 0:
-            self.pulse = self.max_pulse
+            if throttle > 0.9:
+                self.pulse = self.max_pulse + 5
+            else:
+                self.pulse = self.max_pulse
         else:
-            self.pulse = self.min_pulse
+            if throttle < -0.9:
+                self.pulse = self.min_pulse - 5
+            else:
+                self.pulse = self.min_pulse
 
     def run(self, throttle):
         self.run_threaded(throttle)
