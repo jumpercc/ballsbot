@@ -30,11 +30,11 @@ class Lidar:
 
     def _default_calibration(self):
         return {
-            'angle_fix': -1.660291627049446,
-            'fl_x': -0.1086444572707752,
-            'fl_y': 0.14257259585251014,
-            'rr_x': 0.10419355369523223,
-            'rr_y': -0.14585700720960665,
+            'angle_fix': -0.06172084156423807,
+            'fl_x': 0.1479704817364377,
+            'fl_y': 0.10639453235238647,
+            'rr_x': -0.1458021542843855,
+            'rr_y': -0.10079332093624943,
         }
 
     def _get_raw_lidar_points(self):
@@ -230,8 +230,8 @@ class Lidar:
         front_right_index = (front_left_index + 3) % 4
 
         fr_angle = corners[front_right_index]['angle']
-        rr_angle = corners[rear_right_index]['angle']
-        angle_fix = (fr_angle + rr_angle) / 2
+        fl_angle = corners[front_left_index]['angle']
+        angle_fix = (fl_angle + fr_angle) / 2
 
         fl_x, fl_y = radial_to_cartesian(
             corners[front_left_index]['range'],

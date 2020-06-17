@@ -46,6 +46,7 @@ class Tracker:
                     current['points'],
                     start_point=[0., 0., dteta_raw]
                 )
+                # print('dx = {:0.04f}, dy = {:0.04f}, dteta = {:0.04f}, '.format(dx, dy, dteta))  # FIXME
 
                 steps = ceil(dt / self.fps)
 
@@ -57,12 +58,12 @@ class Tracker:
                     continue
 
                 prev_pose = self.poses[-1]
-                max_dxy = dt * 0.5  # m/s
+                max_dxy = dt * 2.  # m/s
                 if dx > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
-                    # print('x: {} > {}'.format(dx, max_dxy))  # FIXME
+                    print('x: {} > {}'.format(dx, max_dxy))  # FIXME
                     continue
                 if dy > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
-                    # print('y: {} > {}'.format(dy, max_dxy))  # FIXME
+                    print('y: {} > {}'.format(dy, max_dxy))  # FIXME
                     continue
 
                 teta = prev_pose['teta'] + dteta
@@ -75,7 +76,7 @@ class Tracker:
                     'y': prev_pose['y'] + dy,
                     'teta': teta,
                 })
-                # print(self.poses[-1])  # FIXME
+                # print('x = {:0.04f}, y = {:0.04f}, teta = {:0.04f}, '.format(self.poses[-1]['x'], self.poses[-1]['y'], self.poses[-1]['teta']))  # FIXME
 
             previous = current
 
