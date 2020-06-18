@@ -127,7 +127,7 @@ class PWMThrottle:
             self.controller.set_pulse(self.pulse)
 
     def run_threaded(self, throttle):
-        if abs(throttle) < 0.5:
+        if abs(throttle) < 0.25:
             self.pulse = self.zero_pulse
         elif throttle > 0:
             if throttle > 0.9:
