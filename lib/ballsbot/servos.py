@@ -116,6 +116,7 @@ class PWMThrottle:
         self.min_pulse = min_pulse
         self.zero_pulse = zero_pulse
         self.pulse = zero_pulse
+        self.throttle = 0.
 
         # send zero pulse to calibrate ESC
         self.controller.set_pulse(self.zero_pulse)
@@ -128,13 +129,16 @@ class PWMThrottle:
 
     def run_threaded(self, throttle):
         if abs(throttle) < 0.25:
+            self.throttle = 0.
             self.pulse = self.zero_pulse
         elif throttle > 0:
+            self.throttle = throttle
             if throttle > 0.9:
                 self.pulse = self.max_pulse + 5
             else:
                 self.pulse = self.max_pulse
         else:
+            self.throttle = throttle
             if throttle < -0.9:
                 self.pulse = self.min_pulse - 5
             else:
