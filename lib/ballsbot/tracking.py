@@ -5,16 +5,18 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from io import BytesIO
+import sys
 
 
 class Tracker:
-    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15.):
+    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., with_lidar=True):
         self.imu = imu
         self.lidar = lidar
         self.odometry = odometry
         self.fps = fps
         self.max_distance = max_distance
         self.poses = []
+        self.with_lidar = with_lidar
         self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
         self.readings = []
         self.errors = []
@@ -55,7 +57,12 @@ class Tracker:
                     self.errors.append('odometry: {}'.format(e))
                     raise
 
-                dx, dy, teta = self._get_transformation(dt, current, previous)
+                try:
+                    dx, dy, teta = self._get_transformation(dt, current, previous)
+                except Exception as e:
+                    print('_get_transformation failed with {}'.format(e), file=sys.stderr)
+                    raise
+
                 prev_pose = self.poses[-1]
                 self.poses.append({
                     'x': prev_pose['x'] + dx,
@@ -71,48 +78,50 @@ class Tracker:
         dx_raw = current['odometry_dx']
         dy_raw = current['odometry_dy']
         raw_result = (dx_raw, dy_raw, current['teta'])
-        return raw_result  # FIXME
-        # dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
-        #     previous['points'],
-        #     current['points'],
-        #     start_point=[dx_raw, dy_raw, dteta_raw]
-        # )
-        # # print('dx = {:+0.04f}, dy = {:+0.04f}, dteta = {:+0.04f}, converged = {:0.0f}, score = {:0.04f}'.format(
-        # #     dx, dy, dteta, converged, score))  # FIXME
-        #
-        # if converged != 1.:
-        #     # print('not converged')  # FIXME
-        #     return raw_result
-        #
-        # if score > 0.5:
-        #     # print('score > 0.1 ({:0.04f})'.format(score))  # FIXME
-        #     return raw_result
-        #
-        # steps = ceil(dt / self.fps)
-        #
-        # max_dteta = steps * pi / 8
-        # if max_dteta > 2 * pi:
-        #     max_dteta = 2 * pi
-        # if abs(dteta - dteta_raw) > max_dteta:
-        #     # print('teta: {} - {} > {}'.format(dteta, dteta_raw, max_dteta))  # FIXME
-        #     return raw_result
-        #
-        # prev_pose = self.poses[-1]
-        # max_dxy = dt * 0.2  # m/s
-        # if abs(dx_raw - dx) > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
-        #     # print('x: {} > {}'.format(dx, max_dxy))  # FIXME
-        #     return raw_result
-        # if abs(dy_raw - dy) > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
-        #     # print('y: {} > {}'.format(dy, max_dxy))  # FIXME
-        #     return raw_result
-        #
-        # teta = prev_pose['teta'] + dteta
-        # if teta >= 2 * pi:
-        #     teta -= 2 * pi
-        # elif teta <= -2 * pi:
-        #     teta += 2 * pi
-        #
-        # return dx, dy, teta
+        if not self.with_lidar:
+            return raw_result
+
+        dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
+            previous['points'],
+            current['points'],
+            start_point=[dx_raw, dy_raw, dteta_raw]
+        )
+        # print('dx = {:+0.04f}, dy = {:+0.04f}, dteta = {:+0.04f}, converged = {:0.0f}, score = {:0.04f}'.format(
+        #     dx, dy, dteta, converged, score))  # FIXME
+
+        if converged != 1.:
+            # print('not converged')  # FIXME
+            return raw_result
+
+        if score > 0.5:
+            # print('score > 0.1 ({:0.04f})'.format(score))  # FIXME
+            return raw_result
+
+        steps = ceil(dt / self.fps)
+
+        max_dteta = steps * pi / 8
+        if max_dteta > 2 * pi:
+            max_dteta = 2 * pi
+        if abs(dteta - dteta_raw) > max_dteta:
+            # print('teta: {} - {} > {}'.format(dteta, dteta_raw, max_dteta))  # FIXME
+            return raw_result
+
+        prev_pose = self.poses[-1]
+        max_dxy = dt * 0.2  # m/s
+        if abs(dx_raw - dx) > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
+            # print('x: {} > {}'.format(dx, max_dxy))  # FIXME
+            return raw_result
+        if abs(dy_raw - dy) > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
+            # print('y: {} > {}'.format(dy, max_dxy))  # FIXME
+            return raw_result
+
+        teta = prev_pose['teta'] + dteta
+        if teta >= 2 * pi:
+            teta -= 2 * pi
+        elif teta <= -2 * pi:
+            teta += 2 * pi
+
+        return dx, dy, teta
 
     def update_picture(self, image, only_nearby_meters=10):
         poses_x_points = [x['x'] for x in self.poses]

@@ -1,8 +1,7 @@
 from math import sin, cos, pi
 import RPi.GPIO as GPIO
 from time import time
-import threading
-import atexit
+from ballsbot.utils import run_as_thread
 
 
 class Odometry:
@@ -18,9 +17,7 @@ class Odometry:
         self.odometry_meters_per_rotation = 3.5 / 39.
         self.odometry_counter = 0
         self.odometry_last_interval = None
-        self.thread = threading.Thread(target=self.update_odometry_cycle)
-        self.thread.start()
-        atexit.register(self.thread.join)
+        run_as_thread(self.update_odometry_cycle)
 
     def get_dx_dy(self, dt, teta, keep_readings=False):
         current = {

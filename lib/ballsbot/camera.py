@@ -2,8 +2,7 @@ import cv2
 import ipywidgets.widgets as widgets
 import traitlets
 from traitlets.config.configurable import SingletonConfigurable
-import atexit
-import threading
+from ballsbot.utils import run_as_thread
 import numpy as np
 
 from ballsbot.utils import keep_rps, bgr8_to_jpeg
@@ -20,9 +19,7 @@ class CSICamera(SingletonConfigurable):
         self.image_height = image_height
         self.fps = fps
         self.value = np.empty((image_width, image_height, 3), dtype=np.uint8)
-        self.thread = threading.Thread(target=self._capture_frames)
-        self.thread.start()
-        atexit.register(self.stop)
+        run_as_thread(self._capture_frames, self.stop)
 
     def _get_csi_gsreamer_str(self):
         result = 'nvarguscamerasrc ! ' \
@@ -52,8 +49,6 @@ class CSICamera(SingletonConfigurable):
     def stop(self):
         if hasattr(self, 'cap'):
             self.cap.release()
-        if hasattr(self, 'thread'):
-            self.thread.join()
 
 
 def get_images_and_cameras(image_width=640, image_height=480, fps=5):

@@ -2,8 +2,7 @@ import RTIMU
 from time import time, sleep
 import numpy as np
 from math import pi
-import atexit
-import threading
+from ballsbot.utils import run_as_thread
 
 
 class IMU:
@@ -60,16 +59,11 @@ class IMU:
 
 class IMU_Threaded:
     def __init__(self):
-        self.thread = threading.Thread(target=self.start)
-        self.thread.start()
-        atexit.register(self.stop)
+        run_as_thread(self.start)
 
     def start(self):
         self.imu = IMU()
         self.imu.start()
-
-    def stop(self):
-        self.thread.join()
 
     def get_teta(self):
         return self.imu.teta

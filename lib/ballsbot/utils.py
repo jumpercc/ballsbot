@@ -19,14 +19,25 @@ def keep_rps(ts, fps=1.):
     return new_ts
 
 
-def run_as_thread(an_action):
+_all_threads = []
+
+
+def run_as_thread(an_action, stop_action=None):
     a_thread = threading.Thread(target=an_action)
 
     def stop_me():
         a_thread.join()
+        if stop_action:
+            stop_action()
 
     a_thread.start()
     atexit.register(stop_me)
+    _all_threads.append(a_thread)
+
+
+def join_all_theads():
+    for a_thread in _all_threads:
+        a_thread.join(timeout=0.1)
 
 
 def bgr8_to_jpeg(value):
