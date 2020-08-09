@@ -1,4 +1,8 @@
 from math import sin, cos, pi
+import RPi.GPIO as GPIO
+from time import time
+import threading
+import atexit
 
 
 class Odometry:
@@ -8,8 +12,15 @@ class Odometry:
         self.prev = None
         self.teta_eps = 0.01
         self.teta_speed = 0.08
-        self.speed = speed
+        self.default_speed = speed
         self.readings = []
+
+        self.odometry_meters_per_rotation = 3.5 / 39.
+        self.odometry_counter = 0
+        self.odometry_last_interval = None
+        self.thread = threading.Thread(target=self.update_odometry_cycle)
+        self.thread.start()
+        atexit.register(self.thread.join)
 
     def get_dx_dy(self, dt, teta, keep_readings=False):
         current = {
@@ -40,23 +51,54 @@ class Odometry:
                 else:
                     direction = -1.
 
-                speed = self.speed
+                speed = direction * self.get_speed()
                 if abs(dteta) < self.teta_eps:
-                    dx = direction * speed * cos(teta) * dt
-                    dy = direction * speed * sin(teta) * dt
+                    dx = speed * cos(teta) * dt
+                    dy = speed * sin(teta) * dt
+                    if keep_readings:
+                        current['speed'] = speed
+                        current['dx'] = dx
+                        current['dy'] = dy
                 else:
-                    if abs(dteta) > self.teta_speed:
+                    if abs(dteta) > self.teta_speed and speed == self.default_speed:
                         speed *= 0.5
                     w_z = current['w_z']
                     prev_teta = self.prev['teta']
-                    dx = abs(speed / w_z) * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
-                    dy = abs(speed / w_z) * (cos(prev_teta) - cos(prev_teta + w_z * dt))
+                    dx = speed / w_z * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
+                    dy = speed / w_z * (cos(prev_teta) - cos(prev_teta + w_z * dt))
                     if keep_readings:
                         dteta_test = w_z * dt
                         current['dteta_test'] = dteta_test
                         current['w_z'] = w_z
-
+                        current['speed'] = speed
+                if keep_readings:
+                    current['dx'] = dx
+                    current['dy'] = dy
                 result = [dx, dy]
 
         self.prev = current
         return result
+
+    def update_odometry_cycle(self):
+        input_pin = 18  # BCM pin 18, BOARD pin 12
+        GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
+        GPIO.setup(input_pin, GPIO.IN)  # set pin as an input pin
+
+        try:
+            prev_ts = time()
+            while True:
+                GPIO.wait_for_edge(input_pin, GPIO.FALLING)
+                self.odometry_counter += 1
+                ts = time()
+                if 0.01 < ts - prev_ts < 10.:
+                    self.odometry_last_interval = ts - prev_ts
+                else:
+                    pass  # TODO warning
+                prev_ts = ts
+        finally:
+            GPIO.cleanup()
+
+    def get_speed(self):
+        if self.odometry_last_interval is not None:
+            return self.odometry_meters_per_rotation / self.odometry_last_interval
+        return self.default_speed
