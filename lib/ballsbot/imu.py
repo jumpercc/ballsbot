@@ -23,6 +23,7 @@ class IMU:
         self.initial_position = np.zeros((3,))
         self.teta = 0.
         self.teta_ts = time()
+        self.w_z = 0.
 
     def calibrate(self):
         iterations = 0
@@ -49,6 +50,7 @@ class IMU:
                         teta -= 2 * pi
                     self.teta = teta
                     self.teta_ts = time()
+                    self.w_z = data['gyro'][2]  # FIXME move axis via quaternions at al
                 sleep(self.poll_interval * 1.0 / 1000.0)
 
     def start(self):
@@ -71,3 +73,6 @@ class IMU_Threaded:
 
     def get_teta(self):
         return self.imu.teta
+
+    def get_w_z(self):
+        return self.imu.w_z

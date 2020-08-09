@@ -15,6 +15,8 @@ class Odometry:
         current = {
             'teta': teta,
             'throttle': self.throttle.throttle,
+            'w_z': self.imu.get_w_z(),
+            'dt': dt,
         }
 
         if keep_readings:
@@ -24,31 +26,37 @@ class Odometry:
             result = [0., 0.]
         else:
             dteta = teta - self.prev['teta']
-            if dteta > 2 * pi:
+            if dteta > pi:
                 dteta -= 2 * pi
-            elif dteta < -2 * pi:
+            elif dteta < -pi:
                 dteta += 2 * pi
             current['dteta'] = dteta
 
-            if self.prev['throttle'] == 0:
-                direction = 0.
-            elif self.prev['throttle'] > 0.:
-                direction = 1.
+            if self.prev['throttle'] == 0.:
+                result = [0., 0.]
             else:
-                direction = -1.
+                if self.prev['throttle'] > 0.:
+                    direction = 1.
+                else:
+                    direction = -1.
 
-            if direction == 0.:
-                dx = 0.
-                dy = 0.
-            else:
                 speed = self.speed
-                if abs(dteta) > self.teta_speed:
-                    speed *= 0.5
-                # TODO w from imu
-                dx = direction * speed * cos(teta + dteta) * dt
-                dy = direction * speed * sin(teta + dteta) * dt
+                if abs(dteta) < self.teta_eps:
+                    dx = direction * speed * cos(teta) * dt
+                    dy = direction * speed * sin(teta) * dt
+                else:
+                    if abs(dteta) > self.teta_speed:
+                        speed *= 0.5
+                    w_z = current['w_z']
+                    prev_teta = self.prev['teta']
+                    dx = abs(speed / w_z) * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
+                    dy = abs(speed / w_z) * (cos(prev_teta) - cos(prev_teta + w_z * dt))
+                    if keep_readings:
+                        dteta_test = w_z * dt
+                        current['dteta_test'] = dteta_test
+                        current['w_z'] = w_z
 
-            result = [dx, dy]
+                result = [dx, dy]
 
         self.prev = current
         return result
