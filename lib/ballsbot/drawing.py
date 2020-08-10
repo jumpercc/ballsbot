@@ -2,17 +2,21 @@ from math import degrees
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
+from matplotlib.transforms import Affine2D
 from io import BytesIO
 
 
-def update_image_abs_coords(image, poses, lidar_points, self_position, only_nearby_meters):
+def update_image_abs_coords(image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5)):
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
     pose = poses[-1]
 
-    fig = Figure(figsize=(6, 5))
+    fig = Figure(figsize=figsize)
     canvas = FigureCanvas(fig)
     ax = fig.gca()
+
+    ax.set_xlim(-only_nearby_meters, only_nearby_meters)
+    ax.set_ylim(-only_nearby_meters, only_nearby_meters)
 
     ax.scatter(poses_x_points, poses_y_points, marker='o', s=10, c='gray')
 
@@ -22,8 +26,19 @@ def update_image_abs_coords(image, poses, lidar_points, self_position, only_near
 
     rect = patches.Rectangle(
         (self_position['x'] + pose['x'], self_position['y'] + pose['y']), self_position['w'], self_position['h'],
-        linewidth=3, edgecolor='r', facecolor='none', angle=degrees(pose['teta'])
+        linewidth=3, edgecolor='r', facecolor='none'
     )
+
+    rotation_center = ax.transData.transform([
+        self_position['x'] + pose['x'] + self_position['w'] / 2,
+        self_position['y'] + pose['y'] + self_position['h'] / 2,
+    ])
+    rotation = Affine2D().rotate_around(
+        rotation_center[0],
+        rotation_center[1],
+        pose['teta']
+    )
+    rect.set_transform(ax.transData + rotation)
     ax.add_patch(rect)
 
     ax.text(
@@ -32,8 +47,6 @@ def update_image_abs_coords(image, poses, lidar_points, self_position, only_near
         fontsize=10
     )
 
-    ax.set_xlim(-only_nearby_meters, only_nearby_meters)
-    ax.set_ylim(-only_nearby_meters, only_nearby_meters)
     ax.grid(which='both', linestyle='--', alpha=0.5)
 
     canvas.draw()
