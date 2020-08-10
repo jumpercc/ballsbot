@@ -1,8 +1,5 @@
 from math import cos, sin, pi
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.patches as patches
-from io import BytesIO
+import ballsbot.drawing as drawing
 import sys
 from time import time
 
@@ -75,7 +72,7 @@ class Lidar:
         return points
 
     @staticmethod
-    def _calibration_to_xywh(calibration):
+    def calibration_to_xywh(calibration):
         if calibration['fl_x'] > calibration['rr_x']:
             x = calibration['rr_x']
             w = calibration['fl_x'] - calibration['rr_x']
@@ -90,36 +87,14 @@ class Lidar:
             y = calibration['fl_y']
             h = calibration['rr_y'] - calibration['fl_y']
 
-        return (x, y), w, h
+        return {'x': x, 'y': y, 'w': w, 'h': h, }
 
     def _update_picture(self, image, points, only_nearby_meters=4, additional_points=None):
-        fig = Figure(figsize=(6, 5))
-        canvas = FigureCanvas(fig)
-        ax = fig.gca()
-
-        x_points = [x[0] for x in points]
-        y_points = [x[1] for x in points]
-        ax.scatter(x_points, y_points, marker='o', s=5, c='b')
-
         if self.calibration is None:
-            ax.scatter([0], [0], marker='o', s=50, c='r')
+            self_position = None
         else:
-            rect = patches.Rectangle(
-                *self._calibration_to_xywh(self.calibration), linewidth=3, edgecolor='r', facecolor='none'
-            )
-            ax.add_patch(rect)
-
-        if additional_points is not None:
-            ax.scatter(additional_points['x'], additional_points['y'], marker='o', s=25, c='g')
-
-        ax.set_xlim(-only_nearby_meters, only_nearby_meters)
-        ax.set_ylim(-only_nearby_meters, only_nearby_meters)
-        ax.grid(which='both', linestyle='--', alpha=0.5)
-
-        canvas.draw()
-        jpeg = BytesIO()
-        canvas.print_jpg(jpeg)
-        image.value = jpeg.getvalue()
+            self_position = self.calibration_to_xywh(self.calibration)
+        drawing.update_picture_self_coords(image, points, self_position, only_nearby_meters, additional_points)
 
     def show_lidar_cloud(self, image, **kwargs):
         self.auto_update_lidar_cloud(

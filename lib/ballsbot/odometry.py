@@ -12,23 +12,19 @@ class Odometry:
         self.teta_eps = 0.01
         self.teta_speed = 0.08
         self.default_speed = speed
-        self.readings = []
 
         self.odometry_meters_per_rotation = 3.5 / 39.
         self.odometry_counter = 0
         self.odometry_last_interval = None
         run_as_thread(self.update_odometry_cycle)
 
-    def get_dx_dy(self, dt, teta, keep_readings=False):
+    def get_dx_dy(self, dt, teta):
         current = {
             'teta': teta,
             'throttle': self.throttle.throttle,
             'w_z': self.imu.get_w_z(),
             'dt': dt,
         }
-
-        if keep_readings:
-            self.readings.append(current)
 
         if self.prev is None:
             result = [0., 0.]
@@ -52,10 +48,6 @@ class Odometry:
                 if abs(dteta) < self.teta_eps:
                     dx = speed * cos(teta) * dt
                     dy = speed * sin(teta) * dt
-                    if keep_readings:
-                        current['speed'] = speed
-                        current['dx'] = dx
-                        current['dy'] = dy
                 else:
                     if abs(dteta) > self.teta_speed and speed == self.default_speed:
                         speed *= 0.5
@@ -63,14 +55,6 @@ class Odometry:
                     prev_teta = self.prev['teta']
                     dx = speed / w_z * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
                     dy = speed / w_z * (cos(prev_teta) - cos(prev_teta + w_z * dt))
-                    if keep_readings:
-                        dteta_test = w_z * dt
-                        current['dteta_test'] = dteta_test
-                        current['w_z'] = w_z
-                        current['speed'] = speed
-                if keep_readings:
-                    current['dx'] = dx
-                    current['dy'] = dy
                 result = [dx, dy]
 
         self.prev = current
