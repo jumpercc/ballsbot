@@ -6,7 +6,8 @@ from io import BytesIO
 
 
 def update_image_abs_coords(
-        image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5), tail_points=None, tail_lines=None
+        image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5),
+        tail_points=None, tail_lines=None, lines=None
 ):
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
@@ -34,6 +35,11 @@ def update_image_abs_coords(
     lidar_x_points = [x[0] for x in lidar_points]
     lidar_y_points = [x[1] for x in lidar_points]
     ax.scatter(lidar_x_points, lidar_y_points, marker='o', s=5, c='blue')
+    if lines:
+        for a_line in lines:
+            x_points = [a_line[0][0], a_line[1][0]]
+            y_points = [a_line[0][1], a_line[1][1]]
+            ax.plot(x_points, y_points, c='y')
 
     rect = patches.Rectangle(
         (self_position['x'] + pose['x'], self_position['y'] + pose['y']), self_position['w'], self_position['h'],
@@ -54,7 +60,7 @@ def update_image_abs_coords(
 
     ax.text(
         -only_nearby_meters, -only_nearby_meters,
-        'x: {:0.02f}, y:{:0.02f}, teta: {:0.02f}'.format(pose['x'], pose['y'], pose['teta']),
+        'x: {:0.02f}, y:{:0.02f}, teta: {:0.02f}, pose {}'.format(pose['x'], pose['y'], pose['teta'], len(poses)),
         fontsize=10
     )
 

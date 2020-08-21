@@ -37,13 +37,11 @@ def point_to_line_distance(p0, a, b, c):
 
 
 def split_walls(point_numbers, all_points):
-    # print('SPLIT {}-{}'.format(point_numbers[0], point_numbers[-1]))
     result = []
 
     start = 0
     end = start + min_cluster_size - 1
     while start < len(point_numbers) - 1:
-        # print('start {} - {} / {}'.format(start, end, len(point_numbers)))
         part_points = [all_points[x] for x in point_numbers[start:end + 1]]
         a, b, c = get_linear_coefs(part_points)
 
@@ -53,39 +51,27 @@ def split_walls(point_numbers, all_points):
             p0 = all_points[point_number]
             d = point_to_line_distance(p0, a, b, c)
             if last_index is not None and distance(p0, all_points[point_numbers[start + last_index]]) > max_wall_gap:
-                # print('too long {}, ({},{})'.format(point_number, start, len(point_numbers) - 1))
                 break
             elif d <= wall_max_distance:
-                # print('ok {}'.format(point_number))
                 a_wall.append(point_number)
                 last_index = local_index
             elif last_index is not None and local_index - last_index > wall_trash_size:
-                old_d = d
-                # print('recalculating from [{}, {}) to [{}, {})'.format(start, end + 1, start, start + last_index))
                 part_points = [all_points[x] for x in point_numbers[start:start + last_index]]
                 an, bn, cn = get_linear_coefs(part_points)
                 d = point_to_line_distance(p0, a, b, c)
                 if d <= wall_max_distance / 2.:
-                    # print('ok {} after recalculation ({:0.3f} -> {:0.3f})'.format(point_number, old_d, d))
                     a_wall.append(point_number)
                     last_index = local_index
                     a, b, c = an, bn, cn
                 else:
-                    # print('skip {}'.format(point_number))
                     break
-            # else:
-            #     print('trash {}'.format(point_number))
         if len(a_wall):
-            # print(a_wall)
             if len(a_wall) >= min_cluster_size:
                 result.append(a_wall)
-            # else:
-            #     print('TRASH {}'.format(len(a_wall)))
             start = start + last_index + 1
             end = start + min_cluster_size - 1
             if end > len(point_numbers) - 1:
                 end = len(point_numbers) - 1
-        # print('end {} - {} / {}'.format(start, end, len(point_numbers)))
 
     return result
 
@@ -121,12 +107,12 @@ def clusterize_cloud(pose_points, walls=False):
             else:
                 cluster_points_list = [cluster_points]
             clusters += cluster_points_list
-        start = end + 1  # TODO intersection
-    return get_cnumber_by_index(clusters, pose_points)
+        start = end + 1
+    return clusters
 
 
 def cnumber_by_index_to_clusters(cnumber_by_index):
-    clusters = {}  # TODO optimize
+    clusters = {}
     for i, cluster_number in cnumber_by_index.items():
         if cluster_number not in clusters:
             clusters[cluster_number] = []
@@ -138,10 +124,9 @@ def flatten_a_list(in_struct):
     return [in_struct[0]] + in_struct[1]
 
 
-def recalculate_walls(cnumber_by_index, all_points):
+def recalculate_walls(clusters, all_points):
     result = {}
-    clusters = cnumber_by_index_to_clusters(cnumber_by_index)
-    for i in cnumber_by_index.keys():
+    for i in sum(clusters, []):
         result[i] = {}
 
     for cluster_number, point_numbers in enumerate(clusters):
@@ -151,7 +136,7 @@ def recalculate_walls(cnumber_by_index, all_points):
 
         if len(clusters) == 1:
             all_point_numbers = point_numbers
-        if len(clusters) == 2:
+        elif len(clusters) == 2:
             all_point_numbers = clusters[0] + clusters[1]
         elif cluster_number == 0:
             all_point_numbers = clusters[-1] + point_numbers + clusters[cluster_number + 1]
@@ -159,11 +144,39 @@ def recalculate_walls(cnumber_by_index, all_points):
             all_point_numbers = clusters[cluster_number - 1] + point_numbers + clusters[0]
         else:
             all_point_numbers = clusters[cluster_number - 1] + point_numbers + clusters[cluster_number + 1]
+        all_point_numbers = list(sorted(all_point_numbers))
 
+        selected = []
         for point_number in all_point_numbers:
             d = point_to_line_distance(all_points[point_number], a, b, c)
-            if d <= wall_max_distance_2nd:  # TODO max_wall_gap
+            if d <= wall_max_distance_2nd:
+                selected.append([point_number, d])
+
+        start = 0
+        end = 0
+        sub_clusters = []
+        for i, it in enumerate(selected):
+            if i == start:
+                continue
+            point_number, _ = it
+            if distance(all_points[point_number], all_points[selected[i - 1][0]]) <= max_wall_gap:
+                end = i
+            else:
+                if end - start + 1 >= min_cluster_size:
+                    sub_clusters.append(selected[start:end + 1])
+                start = end = i
+        if end - start + 1 >= min_cluster_size:
+            sub_clusters.append(selected[start:end + 1])
+
+        if len(sub_clusters) == 1:
+            selected = sub_clusters[0]
+            for point_number, d in selected:
                 result[point_number][cluster_number] = [d, a, b, c]
+        elif len(sub_clusters) > 0:
+            for i, selected in enumerate(sub_clusters):
+                local_cluster_number = 1000 * cluster_number + i
+                for point_number, d in selected:
+                    result[point_number][local_cluster_number] = [d, a, b, c]
 
     agg_result = {
         y[0]: flatten_a_list(sorted(
@@ -174,7 +187,8 @@ def recalculate_walls(cnumber_by_index, all_points):
         )
     }
 
-    return {x[0]: x[1][0] for x in agg_result.items()}, {x[0]: x[1][2:] for x in agg_result.items()}
+    return cnumber_by_index_to_clusters({x[0]: x[1][0] for x in agg_result.items()}), \
+           {x[0]: x[1][2:] for x in agg_result.items()}
 
 
 def point_on_line_projection(p0, a, b, c):
@@ -191,15 +205,23 @@ def cluster_to_line(points, a, b, c):
     corners = [None, None, None, None]
     for i, p in enumerate(points):
         if p[0] < min_x:
+            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+                continue
             min_x = p[0]
             corners[0] = i
         if p[0] > max_x:
+            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+                continue
             max_x = p[0]
             corners[1] = i
         if p[1] < min_y:
+            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+                continue
             min_y = p[1]
             corners[2] = i
         if p[1] > max_y:
+            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+                continue
             max_y = p[1]
             corners[3] = i
     corners = list(set(corners))
@@ -226,19 +248,11 @@ def cluster_to_line(points, a, b, c):
     return list(sorted(ends, key=lambda x: x[sort_index])) + [a, b, c]
 
 
-def cloud_to_lines(pose_points):  # TODO optimize
-    cnumber_by_index = clusterize_cloud(pose_points, walls=False)
-
-    cnumber_by_index = get_cnumber_by_index(
-        split_walls(
-            list(cnumber_by_index.keys()),
-            pose_points
-        ),
-        pose_points
-    )
-    cnumber_by_index, abc_by_index = recalculate_walls(cnumber_by_index, pose_points)
-
-    clusters = cnumber_by_index_to_clusters(cnumber_by_index)
+def cloud_to_lines(pose_points):
+    clusters = clusterize_cloud(pose_points, walls=False)
+    filtered_point_indexes = sum(clusters, [])
+    clusters = split_walls(filtered_point_indexes, pose_points)
+    clusters, abc_by_index = recalculate_walls(clusters, pose_points)
 
     lines = []
     for a_cluster in clusters:

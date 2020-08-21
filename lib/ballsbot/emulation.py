@@ -52,7 +52,7 @@ def rerun_track_lines(image, file_path='/home/jumper/projects/ballsbot/poses.jso
 
     ts = None
     all_lines = []
-    for i in range(0, len(poses) - 1):
+    for i in range(1, len(poses) - 1):
         pose = poses[i]
         if 'points' not in pose:
             continue
@@ -73,7 +73,8 @@ def rerun_track_lines(image, file_path='/home/jumper/projects/ballsbot/poses.jso
         all_lines += lines
 
         drawing.update_image_abs_coords(
-            image, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10), tail_lines=tail_lines
+            image, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10),
+            lines=lines, tail_lines=tail_lines,
         )
 
 
