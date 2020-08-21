@@ -1,5 +1,3 @@
-import numpy as np
-from math import cos, sin
 from python_pcl_ndt import python_pcl_ndt
 
 
@@ -10,24 +8,6 @@ class NDT:
         self.iterations_count = iterations_count
         self.optim_step = optim_step
         self.eps = eps
-
-    @staticmethod
-    def apply_transformation_to_cloud(a_cloud, tr):
-        result = []
-
-        tx, ty, fi = tr
-        rotate_m = np.array([
-            [cos(fi), -sin(fi)],
-            [sin(fi), cos(fi)]
-        ])
-        move_m = np.array([tx, ty]).reshape((2, 1))
-
-        for point in a_cloud:
-            point = np.array(point).reshape((2, 1))
-            point = rotate_m @ point + move_m
-            result.append(point[:, 0].tolist())
-
-        return result
 
     def get_optimal_transformation(self, cloud_one, cloud_two, start_point=(0., 0., 0.)):
         return python_pcl_ndt.get_transformation_vector_wrapper(

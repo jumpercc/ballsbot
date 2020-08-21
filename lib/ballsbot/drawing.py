@@ -6,7 +6,7 @@ from io import BytesIO
 
 
 def update_image_abs_coords(
-        image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5), tail_points=None
+        image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5), tail_points=None, tail_lines=None
 ):
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
@@ -25,6 +25,11 @@ def update_image_abs_coords(
         tail_x_points = [x[0] for x in tail_points]
         tail_y_points = [x[1] for x in tail_points]
         ax.scatter(tail_x_points, tail_y_points, marker='o', s=5, c='lightblue')
+    if tail_lines:
+        for a_line in tail_lines:
+            x_points = [a_line[0][0], a_line[1][0]]
+            y_points = [a_line[0][1], a_line[1][1]]
+            ax.plot(x_points, y_points, c='lightblue')
 
     lidar_x_points = [x[0] for x in lidar_points]
     lidar_y_points = [x[1] for x in lidar_points]

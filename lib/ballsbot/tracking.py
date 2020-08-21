@@ -113,7 +113,7 @@ class Tracker:
 
     def update_picture(self, image, only_nearby_meters=10):
         pose = self.poses[-1]
-        points = self.ndt.apply_transformation_to_cloud(
+        points = self.lidar.apply_transformation_to_cloud(
             self.lidar.points,
             [pose['x'], pose['y'], pose['teta']]
         )
