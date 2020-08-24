@@ -255,7 +255,7 @@ def cloud_to_lines(pose_points):
     clusters, abc_by_index = recalculate_walls(clusters, pose_points)
 
     lines = []
-    for a_cluster in clusters:
+    for a_cluster in sorted(clusters, key=lambda x: x[0]):
         if len(a_cluster) < min_cluster_size:
             continue
         a, b, c = abc_by_index[a_cluster[0]]

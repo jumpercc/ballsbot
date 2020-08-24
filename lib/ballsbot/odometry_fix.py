@@ -1,119 +1,101 @@
-import numpy as np
-import torch
-import torch.nn as nn
-
-image_size = 128
+from math import cos, sin, pi, atan2, sqrt
+from ballsbot.cloud_to_lines import distance, point_to_line_distance
 
 
-# some code from https://github.com/milesial/Pytorch-UNet
-class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
-
-    def __init__(self, in_channels, out_channels, mid_channels=None):
-        super().__init__()
-        if not mid_channels:
-            mid_channels = out_channels
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        return self.double_conv(x)
+def coefs(a, b, c):
+    if b == 0:
+        coef_i = a
+        coef_s = c
+    else:
+        coef_i = a / b
+        coef_s = c / b
+    return coef_i, coef_s
 
 
-class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
+def get_lines_pairs(lines_one, lines_two):
+    pairs = []
+    for i, one in enumerate(lines_one):
+        start_one, end_one, a_one, b_one, c_one = one
+        coef_i_one, coef_s_one = coefs(a_one, b_one, c_one)
+        rev_coef_i_one, rev_coef_s_one = coefs(b_one, a_one, c_one)
 
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
-        )
+        for j, two in enumerate(lines_two):
+            start_two, end_two, a_two, b_two, c_two = two
+            coef_i_two, coef_s_two = coefs(a_two, b_two, c_two)
+            rev_coef_i_two, rev_coef_s_two = coefs(b_two, a_two, c_two)
 
-    def forward(self, x):
-        return self.maxpool_conv(x)
+            diff_i = abs(coef_i_one - coef_i_two)
+            diff_s = abs(coef_s_one - coef_s_two)
+            rev_diff_i = abs(rev_coef_i_one - rev_coef_i_two)
+            rev_diff_s = abs(rev_coef_s_one - rev_coef_s_two)
+            if (diff_i > 15. or diff_s > 30.) and (rev_diff_i > 15. or rev_diff_s > 30.):
+                continue
 
+            dist_start = distance(start_one, start_two)
+            dist_end = distance(end_one, end_two)
+            if dist_start > 0.6 or dist_end > 0.6:
+                continue
 
-class UNetEncoder(nn.Module):
-    def __init__(self, n_channels, bilinear=True):
-        super(UNetEncoder, self).__init__()
-        self.n_channels = n_channels
-        self.bilinear = bilinear
+            pairs.append([i, j, diff_i, diff_s, dist_start, dist_end])
 
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
+    result = []
+    if len(pairs):
+        seen_left = set()
+        seen_right = set()
+        for it in sorted(pairs, key=lambda x: sqrt(x[2] * x[2] + x[3] * x[3])):
+            if it[0] in seen_left:
+                continue
+            seen_left.add(it[0])
+            if it[1] in seen_right:
+                continue
+            seen_right.add(it[1])
+            result.append(it)
 
-    def forward(self, x):
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        return x5
-
-
-class TwoUNetsEval(nn.Module):
-    def __init__(self, n_channels):
-        super(TwoUNetsEval, self).__init__()
-
-        uname_encoder = UNetEncoder(n_channels=n_channels)
-        self.uname_encoder = uname_encoder
-        for param in self.uname_encoder.parameters():
-            param.requires_grad = False
-
-        self.tail = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(65536, 256),
-            nn.Dropout(0.02),
-            nn.Linear(256, 256),
-            nn.Dropout(0.02),
-            nn.Linear(256, 3),
-        )
-        for param in self.tail.parameters():
-            param.requires_grad = False
-
-    def forward(self, x):
-        input_shape = list(x.shape)
-        split_shape = input_shape.copy()
-        split_shape[1] = 1
-        features1 = self.uname_encoder(x[:, 0].reshape(tuple(split_shape)))
-        features2 = self.uname_encoder(x[:, 1].reshape(tuple(split_shape)))
-        two_unets = torch.cat((features1, features2), 1)
-        return self.tail(two_unets)
+    return result
 
 
-def get_model(from_checkpoint='/home/jumper/Documents/lidar-clouds/checkpoints_two_unets/CP_epoch8.pth'):
-    model = TwoUNetsEval(n_channels=1)
-    model.load_state_dict(torch.load(from_checkpoint))
-    return model
+def get_line_position(a_line, self_position):
+    start, end, a, b, c = a_line
+    angle = atan2(a, b)
+    dist = point_to_line_distance(self_position, a, b, c)
+    return angle, dist
 
 
-def clouds_pair_to_tensor(points_a, points_b, only_nearby_meters=8):
-    results = []
-    for points in [points_a, points_b]:
-        result = np.full((image_size, image_size), 50., dtype=np.float)
-        for x, y in points:
-            x_index = int(round(
-                (x / only_nearby_meters + 1) * image_size / 2.
-            ))
-            y_index = int(round(
-                (y / only_nearby_meters + 1.) * image_size / 2.
-            ))
-            if 0 <= x_index < image_size and 0 <= y_index < image_size:
-                result[x_index, y_index] = 200.
-        results.append(result)
-    return torch.as_tensor(
-        np.array(results, dtype=np.float), dtype=torch.float32
-    ).reshape(
-        (1, 2, image_size, image_size)
-    )
+def get_coords_diff(lines_one, lines_two, position):
+    pairs = get_lines_pairs(lines_one, lines_two)
+    if len(pairs) == 0:
+        return None
+    avg_d_angle = 0.
+    avg_dx = 0.
+    avg_dy = 0.
+    ok_pairs_count = 0
+    for it in pairs:
+        angle_one, dist_one = get_line_position(lines_one[it[0]], position)
+        angle_two, dist_two = get_line_position(lines_two[it[1]], position)
+
+        d_angle = angle_two - angle_one
+        if d_angle > pi:
+            d_angle -= 2 * pi
+        elif d_angle < -pi:
+            d_angle += 2 * pi
+        d_dist = dist_two - dist_one
+        dx = d_dist * cos(pi / 2 - angle_one)
+        dy = d_dist * sin(pi / 2 - angle_one)
+        if abs(dx) > 0.5 or abs(dy) > 0.5 or abs(d_angle) > pi / 2:
+            continue
+
+        avg_d_angle += d_angle
+        avg_dx += dx
+        avg_dy += dy
+        ok_pairs_count += 1
+
+    if ok_pairs_count == 0:
+        return None
+    avg_d_angle /= ok_pairs_count
+    avg_dx /= ok_pairs_count
+    avg_dy /= ok_pairs_count
+
+    assert abs(avg_dx) < 0.5 and abs(avg_dy) < 0.5 and abs(avg_d_angle) < pi / 2, \
+        'INVALID ERR: dx={:+0.04f}, dy={:+0.04f}, dteta={:+0.04f}'.format(avg_dx, avg_dy, avg_d_angle)
+
+    return avg_dx, avg_dy, avg_d_angle
