@@ -1,13 +1,14 @@
 from math import sqrt
+import numpy as np
 
-min_cluster_size = 10
-max_trash_size = 5
-max_cluster_hole = 0.1
-wall_max_distance = 0.15
-wall_trash_size = 10
-max_wall_gap = 0.5
-wall_max_distance_2nd = 0.03
-min_line_length = 0.3
+MIN_CLUSTER_SIZE = 10
+MAX_TRASH_SIZE = 5
+MAX_CLUSTER_HOLE = 0.1
+WALL_MAX_DISTANCE = 0.1
+WALL_TRASH_SIZE = 10
+MAX_WALL_GAP = 0.5
+WALL_MAX_DISTANCE_2ND = 0.03
+MIN_LINE_LENGTH = 0.5
 
 
 def distance(one, two):
@@ -15,12 +16,9 @@ def distance(one, two):
 
 
 def avg_point(points):
-    sum_x = 0.
-    sum_y = 0.
-    for p in points:
-        sum_x += p[0]
-        sum_y += p[1]
-    return [sum_x / len(points), sum_y / len(points)]
+    points = np.array(points)
+    result = np.median(np.array(points), axis=0)
+    return result[0], result[1]
 
 
 def get_linear_coefs(part_points):
@@ -40,7 +38,7 @@ def split_walls(point_numbers, all_points):
     result = []
 
     start = 0
-    end = start + min_cluster_size - 1
+    end = start + MIN_CLUSTER_SIZE - 1
     while start < len(point_numbers) - 1:
         part_points = [all_points[x] for x in point_numbers[start:end + 1]]
         a, b, c = get_linear_coefs(part_points)
@@ -50,26 +48,26 @@ def split_walls(point_numbers, all_points):
         for local_index, point_number in enumerate(point_numbers[start:]):
             p0 = all_points[point_number]
             d = point_to_line_distance(p0, a, b, c)
-            if last_index is not None and distance(p0, all_points[point_numbers[start + last_index]]) > max_wall_gap:
+            if last_index is not None and distance(p0, all_points[point_numbers[start + last_index]]) > MAX_WALL_GAP:
                 break
-            elif d <= wall_max_distance:
+            elif d <= WALL_MAX_DISTANCE:
                 a_wall.append(point_number)
                 last_index = local_index
-            elif last_index is not None and local_index - last_index > wall_trash_size:
+            elif last_index is not None and local_index - last_index > WALL_TRASH_SIZE:
                 part_points = [all_points[x] for x in point_numbers[start:start + last_index]]
                 an, bn, cn = get_linear_coefs(part_points)
                 d = point_to_line_distance(p0, a, b, c)
-                if d <= wall_max_distance / 2.:
+                if d <= WALL_MAX_DISTANCE / 2.:
                     a_wall.append(point_number)
                     last_index = local_index
                     a, b, c = an, bn, cn
                 else:
                     break
         if len(a_wall):
-            if len(a_wall) >= min_cluster_size:
+            if len(a_wall) >= MIN_CLUSTER_SIZE:
                 result.append(a_wall)
             start = start + last_index + 1
-            end = start + min_cluster_size - 1
+            end = start + MIN_CLUSTER_SIZE - 1
             if end > len(point_numbers) - 1:
                 end = len(point_numbers) - 1
 
@@ -79,7 +77,7 @@ def split_walls(point_numbers, all_points):
 def get_cnumber_by_index(clusters, pose_points):
     cnumber_by_index = {}
     merge_clusters = (len(clusters) > 1) and (
-            distance(pose_points[clusters[0][0]], pose_points[clusters[-1][-1]]) <= max_cluster_hole)
+            distance(pose_points[clusters[0][0]], pose_points[clusters[-1][-1]]) <= MAX_CLUSTER_HOLE)
     for cnumber, cluster_points in enumerate(clusters):
         if merge_clusters and cnumber == len(clusters) - 1:
             cnumber = 0
@@ -96,13 +94,13 @@ def clusterize_cloud(pose_points, walls=False):
         cluster_points = [start]
         end = start
         for i in range(end + 1, len(pose_points)):
-            if i - end > max_trash_size:
+            if i - end > MAX_TRASH_SIZE:
                 break
-            if distance(pose_points[end], pose_points[i]) <= max_cluster_hole:
+            if distance(pose_points[end], pose_points[i]) <= MAX_CLUSTER_HOLE:
                 end = i
                 cluster_points.append(i)
-        if end - start >= min_cluster_size:
-            if walls and (end - start >= 2 * min_cluster_size):
+        if end - start >= MIN_CLUSTER_SIZE:
+            if walls and (end - start >= 2 * MIN_CLUSTER_SIZE):
                 cluster_points_list = split_walls(cluster_points, pose_points)
             else:
                 cluster_points_list = [cluster_points]
@@ -149,7 +147,7 @@ def recalculate_walls(clusters, all_points):
         selected = []
         for point_number in all_point_numbers:
             d = point_to_line_distance(all_points[point_number], a, b, c)
-            if d <= wall_max_distance_2nd:
+            if d <= WALL_MAX_DISTANCE_2ND:
                 selected.append([point_number, d])
 
         start = 0
@@ -159,13 +157,13 @@ def recalculate_walls(clusters, all_points):
             if i == start:
                 continue
             point_number, _ = it
-            if distance(all_points[point_number], all_points[selected[i - 1][0]]) <= max_wall_gap:
+            if distance(all_points[point_number], all_points[selected[i - 1][0]]) <= MAX_WALL_GAP:
                 end = i
             else:
-                if end - start + 1 >= min_cluster_size:
+                if end - start + 1 >= MIN_CLUSTER_SIZE:
                     sub_clusters.append(selected[start:end + 1])
                 start = end = i
-        if end - start + 1 >= min_cluster_size:
+        if end - start + 1 >= MIN_CLUSTER_SIZE:
             sub_clusters.append(selected[start:end + 1])
 
         if len(sub_clusters) == 1:
@@ -205,22 +203,22 @@ def cluster_to_line(points, a, b, c):
     corners = [None, None, None, None]
     for i, p in enumerate(points):
         if p[0] < min_x:
-            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+            if point_to_line_distance(p, a, b, c) > WALL_MAX_DISTANCE_2ND:
                 continue
             min_x = p[0]
             corners[0] = i
         if p[0] > max_x:
-            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+            if point_to_line_distance(p, a, b, c) > WALL_MAX_DISTANCE_2ND:
                 continue
             max_x = p[0]
             corners[1] = i
         if p[1] < min_y:
-            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+            if point_to_line_distance(p, a, b, c) > WALL_MAX_DISTANCE_2ND:
                 continue
             min_y = p[1]
             corners[2] = i
         if p[1] > max_y:
-            if point_to_line_distance(p, a, b, c) > wall_max_distance_2nd:
+            if point_to_line_distance(p, a, b, c) > WALL_MAX_DISTANCE_2ND:
                 continue
             max_y = p[1]
             corners[3] = i
@@ -256,11 +254,11 @@ def cloud_to_lines(pose_points):
 
     lines = []
     for a_cluster in sorted(clusters, key=lambda x: x[0]):
-        if len(a_cluster) < min_cluster_size:
+        if len(a_cluster) < MIN_CLUSTER_SIZE:
             continue
         a, b, c = abc_by_index[a_cluster[0]]
         ends = cluster_to_line([pose_points[x] for x in a_cluster], a, b, c)
-        if distance(ends[0], ends[1]) >= min_line_length:
+        if distance(ends[0], ends[1]) >= MIN_LINE_LENGTH:
             lines.append(ends)
 
     return lines

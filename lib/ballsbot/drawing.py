@@ -39,7 +39,7 @@ def update_image_abs_coords(
         for a_line in lines:
             x_points = [a_line[0][0], a_line[1][0]]
             y_points = [a_line[0][1], a_line[1][1]]
-            ax.plot(x_points, y_points, c='y')
+            ax.plot(x_points, y_points, c='orange', linewidth=3)
 
     rect = patches.Rectangle(
         (self_position['x'] + pose['x'], self_position['y'] + pose['y']), self_position['w'], self_position['h'],

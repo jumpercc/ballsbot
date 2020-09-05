@@ -4,10 +4,9 @@ from ballsbot.lidar import Lidar
 from ballsbot.utils import keep_rps
 from ballsbot.cloud_to_lines import cloud_to_lines
 import random
-import numpy as np
 from copy import deepcopy
 
-from ballsbot.odometry_fix import get_coords_diff
+from ballsbot.keypoints import KeyPoints
 
 
 def rerun_track(image, file_path='/home/jumper/projects/ballsbot/poses.json', only_nearby_meters=10):
@@ -86,10 +85,11 @@ def fix_and_rerun_track(image_raw, image_fixed, file_path='/home/jumper/projects
 
     lidar = Lidar()
     self_position = lidar.calibration_to_xywh(lidar.calibration)
+    key_points = KeyPoints()
 
     all_points = []
     original_all_points = []
-    pose_err = None
+    pose_fix = None
     ts = None
     for i in range(0, len(poses) - 1):
         pose = poses[i]
@@ -117,37 +117,20 @@ def fix_and_rerun_track(image_raw, image_fixed, file_path='/home/jumper/projects
         )
         original_all_points += raw_points
 
-        prev_distance = 10
-        if i > 0 and i % prev_distance == 0:
-            prev_pose = poses[i - prev_distance]
-            for counter in range(prev_distance // 2):
-                prev_pose = poses[i - prev_distance + counter]
-                if 'points' in prev_pose:
-                    break
-            if 'points' not in prev_pose:
-                continue
-
-            lines = cloud_to_lines(
-                lidar.apply_transformation_to_cloud(
-                    pose['points'], np.array([pose['x'], pose['y'], pose['teta']])
-                )
-            )
-            prev_lines = cloud_to_lines(
-                lidar.apply_transformation_to_cloud(
-                    prev_pose['points'], np.array([prev_pose['x'], prev_pose['y'], prev_pose['teta']])
-                )
-            )
-            pose_err = get_coords_diff(
-                prev_lines, lines,
-                [prev_pose['x'], prev_pose['y']]
-            )
-            # print(pose_err)
-        else:
-            lines = None
-        if pose_err is not None:
-            pose['x'] -= pose_err[0]
-            pose['y'] -= pose_err[1]
-            pose['teta'] -= pose_err[1]
+        fixed_pose = key_points.get_fixed_pose(pose, pose['points'])
+        if fixed_pose is not None:
+            pose_fix = {
+                'x': fixed_pose['x'] - pose['x'],
+                'y': fixed_pose['y'] - pose['y'],
+                'teta': fixed_pose['teta'] - pose['teta'],
+            }
+            pose['x'] = fixed_pose['x']
+            pose['y'] = fixed_pose['y']
+            pose['teta'] = fixed_pose['teta']
+        elif pose_fix is not None:
+            pose['x'] += pose_fix['x']
+            pose['y'] += pose_fix['y']
+            pose['teta'] += pose_fix['teta']
 
         points = lidar.apply_transformation_to_cloud(
             pose['points'],
@@ -157,5 +140,10 @@ def fix_and_rerun_track(image_raw, image_fixed, file_path='/home/jumper/projects
 
         drawing.update_image_abs_coords(
             image_fixed, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10),
-            tail_points=tail_points, lines=lines
+            tail_points=tail_points,
+            lines=cloud_to_lines(
+                key_points.lidar.apply_transformation_to_cloud(
+                    pose['points'], [pose['x'], pose['y'], pose['teta']]
+                )
+            )
         )
