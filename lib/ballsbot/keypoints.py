@@ -1,9 +1,11 @@
 import numpy as np
+from math import pi
 
 from ballsbot.cloud_to_lines import distance
 from ballsbot.lidar import Lidar
 from ballsbot.cloud_to_lines import cloud_to_lines
 from ballsbot.odometry_fix import get_coords_diff
+from ballsbot.ndt import NDT
 
 GRID_STEP = 1.  # meter
 POINT_RADIUS = GRID_STEP / 2
@@ -22,6 +24,7 @@ class KeyPoints:
         self.inside_kp = False
         self.current_kp_id = None
         self.lidar = Lidar()
+        self.ndt = NDT(grid_size=6., box_size=2., iterations_count=10, optim_step=(0.1, 0.1, 0.01), eps=0.01)
 
     def _get_nearby_kp_list(self, kp_id):
         result = []
@@ -33,7 +36,7 @@ class KeyPoints:
                     result.append(cur_kp_id)
         return result
 
-    def _get_pose_fix(self, lines, nearby_kp_list, lidar_points, transformation):
+    def _get_pose_fix_lines(self, lines, nearby_kp_list, lidar_points, transformation):
         transformation = np.array(transformation)
         results = []
         for kp_id in nearby_kp_list:
@@ -69,7 +72,7 @@ class KeyPoints:
             return None
         return np.median(np.array(results), axis=0)
 
-    def get_fixed_pose(self, pose, lidar_points):
+    def get_fixed_pose_lines(self, pose, lidar_points):
         kp_id, inside_kp = get_kp(pose['x'], pose['y'])
         if not inside_kp:
             self.inside_kp = False
@@ -91,7 +94,7 @@ class KeyPoints:
         fixed_pose = np.array([pose['x'], pose['y'], pose['teta']])
         nearby_kp_list = self._get_nearby_kp_list(kp_id)
         if len(nearby_kp_list) > 0:
-            pose_fix = self._get_pose_fix(
+            pose_fix = self._get_pose_fix_lines(
                 lines, nearby_kp_list, lidar_points,
                 [pose['x'], pose['y'], pose['teta']]
             )
@@ -110,6 +113,73 @@ class KeyPoints:
             self.key_points[kp_id] = {
                 'pose': fixed_pose,
                 'lines': lines,
+            }
+
+        self.inside_kp = inside_kp
+        self.current_kp_id = kp_id
+
+        return {
+            'x': fixed_pose[0],
+            'y': fixed_pose[1],
+            'teta': fixed_pose[2],
+        }
+
+    def _get_pose_fix_ndt(self, raw_pose, lidar_points, nearby_kp_list):
+        results = []
+        for kp_id in nearby_kp_list:
+            key_point = self.key_points[kp_id]
+            pose_diff = raw_pose - key_point['pose']
+
+            dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
+                key_point['points'],
+                lidar_points,
+                start_point=pose_diff
+            )
+            if converged != 1.:
+                continue
+            elif score > 0.5:
+                continue
+            elif abs(dx) > 2. or abs(dy) > 2. or abs(dteta) > pi / 4:
+                continue
+
+            print('{}: {}'.format(kp_id, np.array([dx, dy, dteta]) - pose_diff))
+            results.append(
+                np.array([dx, dy, dteta]) - pose_diff
+            )
+        if len(results) == 0:
+            return None
+        return np.median(np.array(results), axis=0)
+
+    def get_fixed_pose_ndt(self, pose, lidar_points):
+        kp_id, inside_kp = get_kp(pose['x'], pose['y'])
+        if not inside_kp:
+            self.inside_kp = False
+            self.current_kp_id = None
+            return
+
+        if self.inside_kp and self.current_kp_id == kp_id:
+            return
+
+        fixed_pose = np.array([pose['x'], pose['y'], pose['teta']])
+        nearby_kp_list = self._get_nearby_kp_list(kp_id)
+        if len(nearby_kp_list) > 0:
+            pose_fix = self._get_pose_fix_ndt(
+                fixed_pose,
+                self.lidar.apply_transformation_to_cloud(
+                    lidar_points, -fixed_pose
+                ),
+                nearby_kp_list
+            )
+            if pose_fix is not None:
+                fixed_pose += pose_fix
+                kp_id, _ = get_kp(fixed_pose[0], fixed_pose[1])
+
+        if kp_id not in self.key_points:
+            self.key_points[kp_id] = {
+                'pose': fixed_pose,
+                'points': self.lidar.apply_transformation_to_cloud(
+                    lidar_points, -fixed_pose
+                ),
             }
 
         self.inside_kp = inside_kp
