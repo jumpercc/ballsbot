@@ -6,6 +6,22 @@ import cv2
 
 # import inspect
 
+class PropagatingThread(threading.Thread):
+    def run(self):
+        self.exc = None
+        try:
+            if self._target:
+                self._target(*self._args, **self._kwargs)
+        except BaseException as e:
+            self.exc = e
+        finally:
+            del self._target, self._args, self._kwargs
+
+    def join(self, timeout=None):
+        super(PropagatingThread, self).join(timeout)
+        if self.exc:
+            raise self.exc
+
 
 def keep_rps(ts, fps=1.):
     new_ts = time()
@@ -23,7 +39,7 @@ _all_threads = []
 
 
 def run_as_thread(an_action, stop_action=None):
-    a_thread = threading.Thread(target=an_action)
+    a_thread = PropagatingThread(target=an_action)
 
     def stop_me():
         a_thread.join()
