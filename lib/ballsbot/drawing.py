@@ -4,11 +4,15 @@ import matplotlib.patches as patches
 from matplotlib.transforms import Affine2D
 from io import BytesIO
 
+from ballsbot.utils import figsize_from_image_size
+
 
 def update_image_abs_coords(
-        image, poses, lidar_points, self_position, only_nearby_meters, figsize=(6, 5),
+        image, poses, lidar_points, self_position, only_nearby_meters, figsize=None,
         tail_points=None, tail_lines=None, lines=None
 ):
+    if figsize is None:
+        figsize = figsize_from_image_size(image)
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
     pose = poses[-1]
@@ -73,7 +77,7 @@ def update_image_abs_coords(
 
 
 def update_picture_self_coords(image, lidar_points, self_position, only_nearby_meters, additional_points):
-    fig = Figure(figsize=(6, 5))
+    fig = Figure(figsize=figsize_from_image_size(image))
     canvas = FigureCanvas(fig)
     ax = fig.gca()
 

@@ -66,8 +66,8 @@ class PWMSteering:
 
     def __init__(self,
                  controller=None,
-                 left_pulse=470,
-                 right_pulse=320):
+                 left_pulse=450,
+                 right_pulse=330):
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse

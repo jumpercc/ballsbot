@@ -3,6 +3,7 @@ import numpy as np
 import ballsbot.drawing as drawing
 import sys
 from time import time
+from random import random
 
 from ballsbot.utils import keep_rps
 
@@ -18,13 +19,24 @@ def radial_to_cartesian(magnitude, angle):
     return [x, y]
 
 
-class Lidar:
+class TestLidarData:
     def __init__(self):
+        self.angle_min = 0.
+        self.angle_max = 2 * pi
+        points_count = 5000
+        self.intensities = [1. for _ in range(points_count)]
+        self.ranges = [random() * 3. for _ in range(points_count)]
+        self.angle_increment = (self.angle_max - self.angle_min) / points_count
+
+
+class Lidar:
+    def __init__(self, test_run=False):
         self.calibration = self._default_calibration()
         self.angle_min = -pi
         self.angle_max = pi
         self.points = []
         self.points_ts = time()
+        self.test_run = test_run
 
     def _default_calibration(self):
         return {
@@ -37,15 +49,21 @@ class Lidar:
 
     def _get_raw_lidar_points(self):
         data = None
-        while data is None:
-            try:
-                data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
-                self.angle_min = data.angle_min
-                self.angle_max = data.angle_max
-            except KeyboardInterrupt:
-                return None
-            except Exception as e:
-                break
+        if not self.test_run:
+            while data is None:
+                try:
+                    data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
+                    self.angle_min = data.angle_min
+                    self.angle_max = data.angle_max
+                except KeyboardInterrupt:
+                    return None
+                except Exception as e:
+                    break
+        else:
+            data = TestLidarData()
+            self.angle_min = data.angle_min
+            self.angle_max = data.angle_max
+
         return data
 
     def _fix_angle(self, my_angle, angle_fix=None):
@@ -58,7 +76,7 @@ class Lidar:
             my_angle = self.angle_min + my_angle - self.angle_max
         return my_angle
 
-    def _get_lidar_points(self, range_limit=None):
+    def get_radial_lidar_points(self, range_limit=None):
         data = self._get_raw_lidar_points()
         self.points_ts = time()
         if data is None:
@@ -67,10 +85,17 @@ class Lidar:
         angle = data.angle_min
         for i in range(len(data.intensities)):
             if data.intensities[i] > 0 and (range_limit is None or data.ranges[i] <= range_limit):
-                a_point = radial_to_cartesian(data.ranges[i], self._fix_angle(angle))
-                points.append(a_point)
+                points.append({'distance': data.ranges[i], 'angle': self._fix_angle(angle)})
             angle += data.angle_increment
         return points
+
+    @staticmethod
+    def radial_points_to_cartesian(points):
+        return [radial_to_cartesian(x['distance'], x['angle']) for x in points]
+
+    def _get_lidar_points(self, range_limit=None):
+        points = self.get_radial_lidar_points(range_limit)
+        return self.radial_points_to_cartesian(points)
 
     @staticmethod
     def calibration_to_xywh(calibration):

@@ -58,3 +58,7 @@ def join_all_theads():
 
 def bgr8_to_jpeg(value):
     return bytes(cv2.imencode('.jpg', value)[1])
+
+
+def figsize_from_image_size(image):
+    return int(image.width) / 100., int(image.height) / 100.

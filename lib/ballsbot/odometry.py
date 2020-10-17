@@ -1,5 +1,4 @@
 from math import sin, cos, pi
-import RPi.GPIO as GPIO
 from time import time
 from ballsbot.utils import run_as_thread
 
@@ -62,6 +61,7 @@ class Odometry:
         return result
 
     def update_odometry_cycle(self):
+        import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
 
         input_pin_speed = 18  # BCM pin 18, BOARD pin 12

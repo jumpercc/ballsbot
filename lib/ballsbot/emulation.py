@@ -7,6 +7,7 @@ import random
 from copy import deepcopy
 
 from ballsbot.keypoints import KeyPoints
+from ballsbot.utils import figsize_from_image_size
 
 
 def rerun_track(image, file_path='/home/jumper/projects/ballsbot/poses.json', only_nearby_meters=10):
@@ -38,7 +39,8 @@ def rerun_track(image, file_path='/home/jumper/projects/ballsbot/poses.json', on
         all_points += points
 
         drawing.update_image_abs_coords(
-            image, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10), tail_points=tail_points
+            image, poses[0:i], points, self_position, only_nearby_meters,
+            figsize=figsize_from_image_size(image), tail_points=tail_points
         )
 
 
@@ -72,7 +74,7 @@ def rerun_track_lines(image, file_path='/home/jumper/projects/ballsbot/poses.jso
         all_lines += lines
 
         drawing.update_image_abs_coords(
-            image, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10),
+            image, poses[0:i], points, self_position, only_nearby_meters, figsize=figsize_from_image_size(image),
             lines=lines, tail_lines=tail_lines,
         )
 
@@ -115,8 +117,8 @@ def fix_and_rerun_track_lines(
             [original_pose['x'], original_pose['y'], original_pose['teta']]
         )
         drawing.update_image_abs_coords(
-            image_raw, original_poses[0:i], raw_points, self_position, only_nearby_meters, figsize=(12, 10),
-            tail_points=original_tail_points
+            image_raw, original_poses[0:i], raw_points, self_position, only_nearby_meters,
+            figsize=figsize_from_image_size(image_raw), tail_points=original_tail_points
         )
         original_all_points += raw_points
 
@@ -142,7 +144,8 @@ def fix_and_rerun_track_lines(
         all_points += points
 
         drawing.update_image_abs_coords(
-            image_fixed, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10),
+            image_fixed, poses[0:i], points, self_position, only_nearby_meters,
+            figsize=figsize_from_image_size(image_fixed),
             tail_points=tail_points,
             lines=cloud_to_lines(
                 key_points.lidar.apply_transformation_to_cloud(
@@ -190,7 +193,8 @@ def fix_and_rerun_track_ndt(
             [original_pose['x'], original_pose['y'], original_pose['teta']]
         )
         drawing.update_image_abs_coords(
-            image_raw, original_poses[0:i], raw_points, self_position, only_nearby_meters, figsize=(12, 10),
+            image_raw, original_poses[0:i], raw_points, self_position, only_nearby_meters,
+            figsize=figsize_from_image_size(image_raw),
             tail_points=original_tail_points
         )
         original_all_points += raw_points
@@ -218,6 +222,7 @@ def fix_and_rerun_track_ndt(
         all_points += points
 
         drawing.update_image_abs_coords(
-            image_fixed, poses[0:i], points, self_position, only_nearby_meters, figsize=(12, 10),
+            image_fixed, poses[0:i], points, self_position, only_nearby_meters,
+            figsize=figsize_from_image_size(image_fixed),
             tail_points=tail_points,
         )
