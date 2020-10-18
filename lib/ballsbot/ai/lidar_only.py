@@ -37,10 +37,13 @@ class LidarOnlyAI:
         ts = None
         direction = self.STOP
         steps_with_direction = 0
+        keep_for = 0
         while True:
             ts = keep_rps(ts, fps=4)
             prev_direction = direction
-            direction = self._get_free_direction(direction, steps_with_direction)
+            if keep_for <= 0:
+                direction, keep_for = self._get_free_direction(direction, steps_with_direction)
+            keep_for -= 1
             print(direction)
             self._follow_direction(direction)
 
@@ -157,12 +160,12 @@ class LidarOnlyAI:
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
             if self.odometry.direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
                     or self.odometry.direction < 0. and prev_direction['throttle'] == self.BACKWARD_BRAKE:
-                return prev_direction
+                return prev_direction, 1
             else:
-                return self.STOP
+                return self.STOP, 1
         elif prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == self.BACKWARD_TROTTLE:
             if self.odometry.direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
-                return self.STOP
+                return self.STOP, 4
 
         nearby_points = self._get_nearby_points()
 
@@ -183,17 +186,17 @@ class LidarOnlyAI:
         if prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == 0.:
             if len(forward):
                 steering = sorted(forward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
-                return {'steering': steering, 'throttle': self.FORWARD_THROTTLE}
+                return {'steering': steering, 'throttle': self.FORWARD_THROTTLE}, 1
             elif prev_direction['throttle'] == self.FORWARD_THROTTLE:
-                return {'steering': 0., 'throttle': self.FORWARD_BRAKE}
+                return {'steering': 0., 'throttle': self.FORWARD_BRAKE}, 1
         if prev_direction['throttle'] == self.BACKWARD_TROTTLE or prev_direction['throttle'] == 0.:
             if len(backward):
                 steering = sorted(backward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
-                return {'steering': steering, 'throttle': self.BACKWARD_TROTTLE}
+                return {'steering': steering, 'throttle': self.BACKWARD_TROTTLE}, 1
             elif prev_direction['throttle'] == self.BACKWARD_TROTTLE:
-                return {'steering': 0., 'throttle': self.BACKWARD_BRAKE}
+                return {'steering': 0., 'throttle': self.BACKWARD_BRAKE}, 1
 
-        return self.STOP
+        return self.STOP, 1
 
     def _get_columns(self):
         return [0., self.TURN_RADIUS], [0., -self.TURN_RADIUS], \
