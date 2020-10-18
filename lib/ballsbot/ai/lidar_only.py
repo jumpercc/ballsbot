@@ -10,7 +10,8 @@ from ballsbot.imu import IMU_Threaded
 
 class LidarOnlyAI:
     TURN_RADIUS = 0.88
-    CHECK_RADIUS = 0.5
+    CHECK_RADIUS = 1.2
+    STOP_DISTANCE = 0.3
     FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
     CAR_WIDTH = 0.18
@@ -22,6 +23,7 @@ class LidarOnlyAI:
     BACKWARD_BRAKE = 0.4
     RIGHT = 1.
     LEFT = -1.
+    INNER_OFFSET = 0.03
 
     def __init__(self, test_run=False):
         self.lidar = Lidar(test_run)
@@ -52,26 +54,34 @@ class LidarOnlyAI:
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
         max_x = min_x + self.CHECK_RADIUS
+        stop_x = min_x + self.STOP_DISTANCE
+        min_x -= self.INNER_OFFSET
 
-        def in_forward_direction(a_point):
+        nearest_x = max_x
+        for a_point in nearby_points:
             if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
-                return True
-            return False
-
-        return len(list(filter(in_forward_direction, nearby_points))) == 0
+                if a_point[0] < stop_x:
+                    return False, 0.
+                elif nearest_x > a_point[0]:
+                    nearest_x = a_point[0]
+        return True, nearest_x
 
     def _can_move_straight_backward(self, nearby_points):
         min_y = self.BODY_POSITION['y'] - self.FEAR_DISTANCE
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         max_x = self.BODY_POSITION['x']
         min_x = max_x - self.CHECK_RADIUS
+        stop_x = max_x - self.STOP_DISTANCE
+        max_x += self.INNER_OFFSET
 
-        def in_backward_direction(a_point):
+        nearest_x = min_x
+        for a_point in nearby_points:
             if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
-                return True
-            return False
-
-        return len(list(filter(in_backward_direction, nearby_points))) == 0
+                if a_point[0] > stop_x:
+                    return False, 0.
+                elif nearest_x < a_point[0]:
+                    nearest_x = a_point[0]
+        return True, -nearest_x
 
     def _filter_right_points(self, nearby_points):
         left_center, right_center, column_radius = self._get_columns()
@@ -91,41 +101,57 @@ class LidarOnlyAI:
 
         return list(filter(on_a_curve, nearby_points))
 
-    def _can_move_right_forward(self, nearby_points):
-        nearby_points = self._filter_right_points(nearby_points)
+    def _can_move_some_forward(self, nearby_points, a_filter):
+        nearby_points = a_filter(nearby_points)
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
+        max_x = min_x + self.CHECK_RADIUS
+        stop_x = min_x + self.STOP_DISTANCE
+        min_x -= self.INNER_OFFSET
 
-        def in_forward_direction(a_point):
-            return min_x < a_point[0]
+        nearest_x = max_x
+        for a_point in nearby_points:
+            if min_x < a_point[0]:
+                if a_point[0] < stop_x:
+                    return False, 0.
+                elif nearest_x > a_point[0]:
+                    nearest_x = a_point[0]
+        return True, nearest_x
 
-        return len(list(filter(in_forward_direction, nearby_points))) == 0
-
-    def _can_move_right_backward(self, nearby_points):
-        nearby_points = self._filter_right_points(nearby_points)
-        max_x = self.BODY_POSITION['x']
-
-        def in_backward_direction(a_point):
-            return a_point[0] < max_x
-
-        return len(list(filter(in_backward_direction, nearby_points))) == 0
+    def _can_move_right_forward(self, nearby_points):
+        return self._can_move_some_forward(nearby_points, self._filter_right_points)
 
     def _can_move_left_forward(self, nearby_points):
-        nearby_points = self._filter_left_points(nearby_points)
-        min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
+        return self._can_move_some_forward(nearby_points, self._filter_left_points)
 
-        def in_forward_direction(a_point):
-            return min_x < a_point[0]
+    def _can_move_some_backward(self, nearby_points, a_filter):
+        nearby_points = a_filter(nearby_points)
+        max_x = self.BODY_POSITION['x']
+        min_x = max_x - self.CHECK_RADIUS
+        stop_x = max_x - self.STOP_DISTANCE
+        max_x += self.INNER_OFFSET
 
-        return len(list(filter(in_forward_direction, nearby_points))) == 0
+        nearest_x = min_x
+        for a_point in nearby_points:
+            if a_point[0] < max_x:
+                if a_point[0] > stop_x:
+                    return False, 0.
+                elif nearest_x < a_point[0]:
+                    nearest_x = a_point[0]
+        return True, -nearest_x
+
+    def _can_move_right_backward(self, nearby_points):
+        return self._can_move_some_backward(nearby_points, self._filter_right_points)
 
     def _can_move_left_backward(self, nearby_points):
-        nearby_points = self._filter_left_points(nearby_points)
-        max_x = self.BODY_POSITION['x']
+        return self._can_move_some_backward(nearby_points, self._filter_left_points)
 
-        def in_backward_direction(a_point):
-            return a_point[0] < max_x
-
-        return len(list(filter(in_backward_direction, nearby_points))) == 0
+    def for_sort(self, direction):
+        if direction == 0.:
+            return 3
+        elif direction == self.LEFT:
+            return 2
+        else:
+            return 1
 
     def _get_free_direction(self, prev_direction, steps_with_direction):
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
@@ -140,30 +166,30 @@ class LidarOnlyAI:
 
         nearby_points = self._get_nearby_points()
 
-        can_move_straight_forward = self._can_move_straight_forward(nearby_points)
-        can_move_right_forward = self._can_move_right_forward(nearby_points)
-        can_move_left_forward = self._can_move_left_forward(nearby_points)
+        forward = {
+            0.: self._can_move_straight_forward(nearby_points),
+            self.RIGHT: self._can_move_right_forward(nearby_points),
+            self.LEFT: self._can_move_left_forward(nearby_points),
+        }
+        forward = list(filter(lambda x: x[1], [[d, t[0], t[1], self.for_sort(d)] for d, t in forward.items()]))
 
-        can_move_straight_backward = self._can_move_straight_backward(nearby_points)
-        can_move_right_backward = self._can_move_right_backward(nearby_points)
-        can_move_left_backward = self._can_move_left_backward(nearby_points)
+        backward = {
+            0.: self._can_move_straight_backward(nearby_points),
+            self.RIGHT: self._can_move_right_backward(nearby_points),
+            self.LEFT: self._can_move_left_backward(nearby_points),
+        }
+        backward = list(filter(lambda x: x[1], [[d, t[0], t[1], self.for_sort(d)] for d, t in backward.items()]))
 
         if prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == 0.:
-            if can_move_straight_forward:
-                return {'steering': 0., 'throttle': self.FORWARD_THROTTLE}
-            elif can_move_right_forward:
-                return {'steering': self.RIGHT, 'throttle': self.FORWARD_THROTTLE}
-            elif can_move_left_forward:
-                return {'steering': self.LEFT, 'throttle': self.FORWARD_THROTTLE}
+            if len(forward):
+                steering = sorted(forward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
+                return {'steering': steering, 'throttle': self.FORWARD_THROTTLE}
             elif prev_direction['throttle'] == self.FORWARD_THROTTLE:
                 return {'steering': 0., 'throttle': self.FORWARD_BRAKE}
         if prev_direction['throttle'] == self.BACKWARD_TROTTLE or prev_direction['throttle'] == 0.:
-            if can_move_straight_backward:
-                return {'steering': 0., 'throttle': self.BACKWARD_TROTTLE}
-            elif can_move_right_backward:
-                return {'steering': self.RIGHT, 'throttle': self.BACKWARD_TROTTLE}
-            elif can_move_left_backward:
-                return {'steering': self.LEFT, 'throttle': self.BACKWARD_TROTTLE}
+            if len(backward):
+                steering = sorted(backward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
+                return {'steering': steering, 'throttle': self.BACKWARD_TROTTLE}
             elif prev_direction['throttle'] == self.BACKWARD_TROTTLE:
                 return {'steering': 0., 'throttle': self.BACKWARD_BRAKE}
 
@@ -191,8 +217,10 @@ class LidarOnlyAI:
                 if distance(right_center, a_point) < column_radius:
                     return False
 
-            if self.BODY_POSITION['x'] <= a_point[0] <= self.BODY_POSITION['x'] + self.BODY_POSITION['w'] \
-                    and self.BODY_POSITION['y'] <= a_point[1] <= self.BODY_POSITION['y'] + self.BODY_POSITION['h']:
+            if self.BODY_POSITION['x'] + self.INNER_OFFSET <= a_point[0] <= \
+                    self.BODY_POSITION['x'] + self.BODY_POSITION['w'] - self.INNER_OFFSET \
+                    and self.BODY_POSITION['y'] + self.INNER_OFFSET <= a_point[1] <= \
+                    self.BODY_POSITION['y'] + self.BODY_POSITION['h'] - self.INNER_OFFSET:
                 return False
 
             return True
