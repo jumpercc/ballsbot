@@ -10,7 +10,8 @@ from ballsbot.imu import IMU_Threaded
 
 class Explorer:
     TURN_RADIUS = 0.88
-    CHECK_RADIUS = 1.2
+    CHECK_RADIUS = 2.
+    A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
     STOP_DISTANCE = 0.3
     FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
@@ -23,6 +24,8 @@ class Explorer:
     BACKWARD_BRAKE = 0.4
     RIGHT = 1.
     LEFT = -1.
+    A_BIT_RIGHT = 0.5
+    A_BIT_LEFT = -0.5
     INNER_OFFSET = 0.03
 
     def __init__(self, test_run=False):
@@ -104,6 +107,28 @@ class Explorer:
 
         return list(filter(on_a_curve, nearby_points))
 
+    def _filter_a_bit_left_points(self, nearby_points):
+        left_center = [0, self.A_BIT_CENTER_Y]
+        center_radius = self.A_BIT_CENTER_Y
+        outer_radius = center_radius + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
+        inner_radius = center_radius - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
+
+        def on_a_curve(a_point):
+            return inner_radius < distance(left_center, a_point) < outer_radius
+
+        return list(filter(on_a_curve, nearby_points))
+
+    def _filter_a_bit_right_points(self, nearby_points):
+        right_center = [0, -self.A_BIT_CENTER_Y]
+        center_radius = self.A_BIT_CENTER_Y
+        outer_radius = center_radius + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
+        inner_radius = center_radius - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
+
+        def on_a_curve(a_point):
+            return inner_radius < distance(right_center, a_point) < outer_radius
+
+        return list(filter(on_a_curve, nearby_points))
+
     def _can_move_some_forward(self, nearby_points, a_filter):
         nearby_points = a_filter(nearby_points)
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
@@ -125,6 +150,12 @@ class Explorer:
 
     def _can_move_left_forward(self, nearby_points):
         return self._can_move_some_forward(nearby_points, self._filter_left_points)
+
+    def _can_move_a_bit_right_forward(self, nearby_points):
+        return self._can_move_some_forward(nearby_points, self._filter_a_bit_right_points)
+
+    def _can_move_a_bit_left_forward(self, nearby_points):
+        return self._can_move_some_forward(nearby_points, self._filter_a_bit_left_points)
 
     def _can_move_some_backward(self, nearby_points, a_filter):
         nearby_points = a_filter(nearby_points)
@@ -148,8 +179,18 @@ class Explorer:
     def _can_move_left_backward(self, nearby_points):
         return self._can_move_some_backward(nearby_points, self._filter_left_points)
 
+    def _can_move_a_bit_right_backward(self, nearby_points):
+        return self._can_move_some_backward(nearby_points, self._filter_a_bit_right_points)
+
+    def _can_move_a_bit_left_backward(self, nearby_points):
+        return self._can_move_some_backward(nearby_points, self._filter_a_bit_left_points)
+
     def for_sort(self, direction):
         if direction == 0.:
+            return 5
+        elif direction == self.A_BIT_LEFT:
+            return 4
+        elif direction == self.A_BIT_RIGHT:
             return 3
         elif direction == self.LEFT:
             return 2
@@ -169,22 +210,27 @@ class Explorer:
 
         nearby_points = self._get_nearby_points()
 
-        forward = {
-            0.: self._can_move_straight_forward(nearby_points),
-            self.RIGHT: self._can_move_right_forward(nearby_points),
-            self.LEFT: self._can_move_left_forward(nearby_points),
-        }
-        forward = list(filter(lambda x: x[1], [[d, t[0], t[1], self.for_sort(d)] for d, t in forward.items()]))
+        forward = [
+            [0.] + list(self._can_move_straight_forward(nearby_points)),
+            [self.RIGHT] + list(self._can_move_right_forward(nearby_points)),
+            [self.LEFT] + list(self._can_move_left_forward(nearby_points)),
+            [self.A_BIT_RIGHT] + list(self._can_move_a_bit_right_forward(nearby_points)),
+            [self.A_BIT_LEFT] + list(self._can_move_a_bit_left_forward(nearby_points)),
+        ]
+        forward = list(filter(lambda x: x[1], [[ft[0], ft[1], ft[2], self.for_sort(ft[0])] for ft in forward]))
 
-        backward = {
-            0.: self._can_move_straight_backward(nearby_points),
-            self.RIGHT: self._can_move_right_backward(nearby_points),
-            self.LEFT: self._can_move_left_backward(nearby_points),
-        }
-        backward = list(filter(lambda x: x[1], [[d, t[0], t[1], self.for_sort(d)] for d, t in backward.items()]))
+        backward = [
+            [0.] + list(self._can_move_straight_backward(nearby_points)),
+            [self.RIGHT] + list(self._can_move_right_backward(nearby_points)),
+            [self.LEFT] + list(self._can_move_left_backward(nearby_points)),
+            [self.A_BIT_RIGHT] + list(self._can_move_a_bit_right_backward(nearby_points)),
+            [self.A_BIT_LEFT] + list(self._can_move_a_bit_left_backward(nearby_points)),
+        ]
+        backward = list(filter(lambda x: x[1], [[ft[0], ft[1], ft[2], self.for_sort(ft[0])] for ft in backward]))
 
         if prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == 0.:
             if len(forward):
+                # TODO sort by distance, not only x distance
                 steering = sorted(forward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
                 return {'steering': steering, 'throttle': self.FORWARD_THROTTLE}, 1
             elif prev_direction['throttle'] == self.FORWARD_THROTTLE:
@@ -216,8 +262,14 @@ class Explorer:
             if a_point[1] > 0.:
                 if distance(left_center, a_point) < column_radius:
                     return False
+                elif a_point[1] > left_center[1] \
+                        and left_center[0] - column_radius < a_point[0] < left_center[0] + column_radius:
+                    return False
             elif a_point[1] < 0.:
                 if distance(right_center, a_point) < column_radius:
+                    return False
+                elif a_point[1] < right_center[1] \
+                        and right_center[0] - column_radius < a_point[0] < right_center[0] + column_radius:
                     return False
 
             if self.BODY_POSITION['x'] + self.INNER_OFFSET <= a_point[0] <= \
