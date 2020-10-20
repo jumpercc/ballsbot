@@ -8,7 +8,7 @@ from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 
 
-class LidarOnlyAI:
+class Explorer:
     TURN_RADIUS = 0.88
     CHECK_RADIUS = 1.2
     STOP_DISTANCE = 0.3
