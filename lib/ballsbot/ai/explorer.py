@@ -13,7 +13,7 @@ class Explorer:
     TURN_RADIUS = 0.88
     CHECK_RADIUS = 2.
     A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
-    STOP_DISTANCE = 0.3
+    STOP_DISTANCE = 0.35
     FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
     CAR_WIDTH = 0.18
@@ -54,7 +54,9 @@ class Explorer:
             if keep_for <= 0:
                 direction, keep_for = self._get_free_direction(direction, steps_with_direction)
             keep_for -= 1
-            print(direction)
+            print('direction: {}, turn: {}, speed {:0.4f}'.format(
+                direction['steering'], direction['throttle'], self.odometry.get_speed()
+            ))
             self._follow_direction(direction)
 
             if prev_direction == direction:
@@ -67,7 +69,7 @@ class Explorer:
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
         max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self.STOP_DISTANCE
+        stop_x = min_x + self.get_stop_distance()
         min_x -= self.INNER_OFFSET
 
         nearest_x = max_x
@@ -84,7 +86,7 @@ class Explorer:
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         max_x = self.BODY_POSITION['x']
         min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self.STOP_DISTANCE
+        stop_x = max_x - self.get_stop_distance()
         max_x += self.INNER_OFFSET
 
         nearest_x = min_x
@@ -140,7 +142,7 @@ class Explorer:
         nearby_points = a_filter(nearby_points)
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
         max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self.STOP_DISTANCE
+        stop_x = min_x + self.get_stop_distance()
         min_x -= self.INNER_OFFSET
 
         nearest_x = max_x
@@ -168,7 +170,7 @@ class Explorer:
         nearby_points = a_filter(nearby_points)
         max_x = self.BODY_POSITION['x']
         min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self.STOP_DISTANCE
+        stop_x = max_x - self.get_stop_distance()
         max_x += self.INNER_OFFSET
 
         nearest_x = min_x
@@ -312,3 +314,10 @@ class Explorer:
     def _follow_direction(self, direction):
         self.car_controls['steering'].run(direction['steering'])
         self.car_controls['throttle'].run(direction['throttle'])
+
+    def get_stop_distance(self):
+        speed = self.odometry.get_speed()
+        if speed > 0.5:
+            return self.STOP_DISTANCE * speed / 0.5
+        else:
+            return self.STOP_DISTANCE
