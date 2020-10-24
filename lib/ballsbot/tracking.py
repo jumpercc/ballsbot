@@ -25,7 +25,7 @@ class Tracker:
             ts = keep_rps(ts, fps=self.fps)
 
             current = {
-                'points': self.lidar.points,
+                'points': self.lidar.get_lidar_points(),
                 'ts': self.lidar.points_ts,
                 'teta': self.imu.get_teta(),
                 'odometry_dx': 0.,
@@ -114,7 +114,7 @@ class Tracker:
     def update_picture(self, image, only_nearby_meters=10):
         pose = self.poses[-1]
         points = self.lidar.apply_transformation_to_cloud(
-            self.lidar.points,
+            self.lidar.get_lidar_points(),
             [pose['x'], pose['y'], pose['teta']]
         )
         self_position = self.lidar.calibration_to_xywh(self.lidar.calibration)

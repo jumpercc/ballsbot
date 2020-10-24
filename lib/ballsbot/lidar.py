@@ -34,6 +34,7 @@ class Lidar:
         self.calibration = self._default_calibration()
         self.angle_min = -pi
         self.angle_max = pi
+        self.radial_points = []
         self.points = []
         self.points_ts = time()
         self.test_run = test_run
@@ -76,26 +77,44 @@ class Lidar:
             my_angle = self.angle_min + my_angle - self.angle_max
         return my_angle
 
-    def get_radial_lidar_points(self, range_limit=None):
+    def get_radial_lidar_points(self, range_limit=None, cached=True):
+        if not cached:
+            self._get_radial_lidar_points()
+        if range_limit is None:
+            return self.radial_points
+        return list(filter(lambda x: x['distance'] <= range_limit, self.radial_points))
+
+    def _get_radial_lidar_points(self):
         data = self._get_raw_lidar_points()
         self.points_ts = time()
         if data is None:
-            return None, None
+            self.radial_points = []
+            return self.radial_points
         points = []
         angle = data.angle_min
         for i in range(len(data.intensities)):
-            if data.intensities[i] > 0 and (range_limit is None or data.ranges[i] <= range_limit):
+            if data.intensities[i] > 0:
                 points.append({'distance': data.ranges[i], 'angle': self._fix_angle(angle)})
             angle += data.angle_increment
+
+        self.radial_points = points
+        self.points = []
         return points
 
     @staticmethod
     def radial_points_to_cartesian(points):
         return [radial_to_cartesian(x['distance'], x['angle']) for x in points]
 
-    def _get_lidar_points(self, range_limit=None):
-        points = self.get_radial_lidar_points(range_limit)
-        return self.radial_points_to_cartesian(points)
+    def get_lidar_points(self):
+        if len(self.points) == 0 and len(self.radial_points) > 0:
+            self.points = self.radial_points_to_cartesian(self.radial_points)  # FIXME race condition?
+        return self.points
+
+    def _get_lidar_points(self):
+        points = self._get_radial_lidar_points()
+        points = self.radial_points_to_cartesian(points)
+        self.points = points
+        return points
 
     @staticmethod
     def calibration_to_xywh(calibration):
@@ -135,11 +154,8 @@ class Lidar:
         while True:
             ts = keep_rps(ts, fps=fps)
             points = self._get_lidar_points()
-            if points is None:
-                self.points = []
+            if len(points) == 0:
                 break
-            else:
-                self.points = points
 
             if cb is not None:
                 cb(points, only_nearby_meters=only_nearby_meters)

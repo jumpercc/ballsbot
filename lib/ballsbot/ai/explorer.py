@@ -2,10 +2,11 @@ from math import pi
 
 from ballsbot.lidar import Lidar
 from ballsbot.servos import get_controls
-from ballsbot.utils import keep_rps
+from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.cloud_to_lines import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
+from ballsbot.tracking import Tracker
 
 
 class Explorer:
@@ -35,8 +36,14 @@ class Explorer:
             self.car_controls = get_controls()
             self.imu = IMU_Threaded()
             self.odometry = Odometry(self.imu, self.car_controls['throttle'])
+            self.tracker = Tracker(self.imu, self.lidar, self.odometry, fps=4, fix_pose_with_lidar=False)
 
     def run(self):
+        def tracker_run():
+            self.tracker.start()
+
+        run_as_thread(tracker_run)
+
         ts = None
         direction = self.STOP
         steps_with_direction = 0
@@ -251,7 +258,7 @@ class Explorer:
     def _get_nearby_points(self):
         range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
         range_limit += abs(self.FROM_LIDAR_TO_CENTER)
-        nearby_points = self.lidar.get_radial_lidar_points(range_limit)
+        nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=False)
 
         nearby_points = list(filter(self._ellipse_like_range_filter, nearby_points))
 
