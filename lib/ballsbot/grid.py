@@ -174,3 +174,10 @@ def _filter_disconnected_cells(cells):
                 queue.append([x + 1, y])
                 queue.append([x + 1, y + 1])
                 queue.append([x, y + 1])
+
+
+def get_car_cell(x, y):
+    cell_x = int(round((x / CELL_SIZE)))
+    cell_y = int(round((y / CELL_SIZE)))
+    inside_a_cell = distance([cell_x, cell_y], [x, y]) <= CELL_SIZE / 2.
+    return cell_x, cell_y, inside_a_cell
