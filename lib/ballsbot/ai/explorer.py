@@ -6,7 +6,7 @@ from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.cloud_to_lines import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
-from ballsbot.tracking import Tracker
+from ballsbot.tracking import TrackerLight
 
 
 class Explorer:
@@ -36,7 +36,7 @@ class Explorer:
             self.car_controls = get_controls()
             self.imu = IMU_Threaded()
             self.odometry = Odometry(self.imu, self.car_controls['throttle'])
-            self.tracker = Tracker(self.imu, self.lidar, self.odometry, fps=4, fix_pose_with_lidar=False)
+            self.tracker = TrackerLight(self.imu, self.odometry)
 
     def run(self):
         def tracker_run():

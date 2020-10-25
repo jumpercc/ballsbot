@@ -70,3 +70,6 @@ class IMU_Threaded:
 
     def get_w_z(self):
         return self.imu.w_z
+
+    def get_teta_ts(self):
+        return self.imu.teta_ts

@@ -15,7 +15,10 @@ def update_image_abs_coords(
         figsize = figsize_from_image_size(image)
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
-    pose = poses[-1]
+    if len(poses) == 0:
+        pose = {'x': 0., 'y': 0., 'teta': 0.}
+    else:
+        pose = poses[-1]
 
     fig = Figure(figsize=figsize)
     canvas = FigureCanvas(fig)
@@ -24,7 +27,7 @@ def update_image_abs_coords(
     ax.set_xlim(-only_nearby_meters, only_nearby_meters)
     ax.set_ylim(-only_nearby_meters, only_nearby_meters)
 
-    ax.scatter(poses_x_points, poses_y_points, marker='o', s=10, c='gray')
+    ax.scatter(poses_x_points, poses_y_points, marker='o', s=1, c='gray')
 
     if tail_points:
         tail_x_points = [x[0] for x in tail_points]
@@ -45,22 +48,25 @@ def update_image_abs_coords(
             y_points = [a_line[0][1], a_line[1][1]]
             ax.plot(x_points, y_points, c='orange', linewidth=3)
 
-    rect = patches.Rectangle(
-        (self_position['x'] + pose['x'], self_position['y'] + pose['y']), self_position['w'], self_position['h'],
-        linewidth=3, edgecolor='r', facecolor='none'
-    )
+    if self_position is not None:
+        rect = patches.Rectangle(
+            (self_position['x'] + pose['x'], self_position['y'] + pose['y']), self_position['w'], self_position['h'],
+            linewidth=3, edgecolor='r', facecolor='none'
+        )
 
-    rotation_center = ax.transData.transform([
-        self_position['x'] + pose['x'] + self_position['w'] / 2,
-        self_position['y'] + pose['y'] + self_position['h'] / 2,
-    ])
-    rotation = Affine2D().rotate_around(
-        rotation_center[0],
-        rotation_center[1],
-        pose['teta']
-    )
-    rect.set_transform(ax.transData + rotation)
-    ax.add_patch(rect)
+        rotation_center = ax.transData.transform([
+            self_position['x'] + pose['x'] + self_position['w'] / 2,
+            self_position['y'] + pose['y'] + self_position['h'] / 2,
+        ])
+        rotation = Affine2D().rotate_around(
+            rotation_center[0],
+            rotation_center[1],
+            pose['teta']
+        )
+        rect.set_transform(ax.transData + rotation)
+        ax.add_patch(rect)
+    else:
+        ax.scatter([pose['x']], [pose['y']], marker='o', s=50, c='r')
 
     ax.text(
         -only_nearby_meters, -only_nearby_meters,

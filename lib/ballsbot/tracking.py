@@ -6,31 +6,21 @@ import sys
 import json
 
 
-class Tracker:
-    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=True):
+class TrackerLight:
+    def __init__(self, imu, odometry, fps=20):
         self.imu = imu
-        self.lidar = lidar
         self.odometry = odometry
         self.fps = fps
-        self.max_distance = max_distance
         self.poses = []
-        self.fix_pose_with_lidar = fix_pose_with_lidar
-        self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
         self.errors = []
 
-    def start(self, keep_readings=False):
+    def start(self):
         previous = None
         ts = None
         while True:
             ts = keep_rps(ts, fps=self.fps)
 
-            current = {
-                'points': self.lidar.get_lidar_points(),
-                'ts': self.lidar.points_ts,
-                'teta': self.imu.get_teta(),
-                'odometry_dx': 0.,
-                'odometry_dy': 0.,
-            }
+            current = self._get_current()
 
             if previous is None:
                 self.poses.append({
@@ -63,18 +53,61 @@ class Tracker:
                     'y': prev_pose['y'] + dy,
                     'teta': teta,
                 })
-                if keep_readings:
-                    self.poses[-1]['points'] = current['points']
+                self._upgrade_current(current)
 
             previous = current
 
+    def _get_current(self):
+        return {
+            'ts': self.imu.get_teta_ts(),
+            'teta': self.imu.get_teta(),
+            'odometry_dx': 0.,
+            'odometry_dy': 0.,
+        }
+
+    def _upgrade_current(self, current):
+        pass
+
     def _get_transformation(self, dt, current, previous):
-        dteta_raw = current['teta'] - previous['teta']
         dx_raw = current['odometry_dx']
         dy_raw = current['odometry_dy']
         raw_result = (dx_raw, dy_raw, current['teta'])
+        return raw_result
+
+    def update_picture(self, image, only_nearby_meters=10):
+        drawing.update_image_abs_coords(image, self.poses, [], None, only_nearby_meters)
+
+    def poses_to_a_file(self, file_path):
+        with open(file_path, 'w') as a_file:
+            a_file.write(json.dumps(self.poses))
+
+
+class Tracker(TrackerLight):
+    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=True, keep_readings=False):
+        super().__init__(imu, odometry, fps)
+        self.lidar = lidar
+        self.max_distance = max_distance
+        self.fix_pose_with_lidar = fix_pose_with_lidar
+        self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
+        self.keep_readings = keep_readings
+
+    def _get_current(self):
+        result = super(TrackerLight, self)._get_current()
+        result['points'] = self.lidar.get_lidar_points()
+        result['ts'] = self.lidar.points_ts
+        return result
+
+    def _upgrade_current(self, current):
+        self.poses[-1]['points'] = current['points']
+
+    def _get_transformation(self, dt, current, previous):
+        raw_result = super(TrackerLight, self)._get_transformation(dt, current, previous)
         if not self.fix_pose_with_lidar:
             return raw_result
+
+        dteta_raw = current['teta'] - previous['teta']
+        dx_raw = current['odometry_dx']
+        dy_raw = current['odometry_dy']
 
         dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
             previous['points'],
@@ -119,7 +152,3 @@ class Tracker:
         )
         self_position = self.lidar.calibration_to_xywh(self.lidar.calibration)
         drawing.update_image_abs_coords(image, self.poses, points, self_position, only_nearby_meters)
-
-    def poses_to_a_file(self, file_path):
-        with open(file_path, 'w') as a_file:
-            a_file.write(json.dumps(self.poses))
