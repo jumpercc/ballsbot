@@ -1,1 +1,0 @@
-copied from https://github.com/xuannianz/EfficientDet
