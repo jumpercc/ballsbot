@@ -3,7 +3,7 @@ from math import pi
 from ballsbot.lidar import Lidar
 from ballsbot.servos import get_controls
 from ballsbot.utils import keep_rps, run_as_thread
-from ballsbot.cloud_to_lines import distance
+from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight

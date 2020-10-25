@@ -1,6 +1,7 @@
 from math import sqrt
 
 from ballsbot.lidar import apply_transformation_to_cloud
+from ballsbot.geometry import get_linear_coefs, distance, point_to_line_distance
 
 VOXEL_SIZE = 0.1
 VOXELS_PER_CELL = 6
@@ -31,21 +32,6 @@ def cloud_to_voxels(points, half_width=8.):
             _mark_hidden_voxels(result, center_shift + i - 1, center_shift + j - 1, center_shift)
 
     return result
-
-
-def get_linear_coefs(p1, p2):
-    a = p1[1] - p2[1]
-    b = p2[0] - p1[0]
-    c = p1[0] * p2[1] - p2[0] * p1[1]
-    return a, b, c
-
-
-def point_to_line_distance(p0, a, b, c):
-    return abs(a * p0[0] + b * p0[1] + c) / sqrt(a * a + b * b)
-
-
-def distance(one, two):
-    return sqrt((one[0] - two[0]) * (one[0] - two[0]) + (one[1] - two[1]) * (one[1] - two[1]))
 
 
 def _mark_hidden_voxels(voxels, start_x, start_y, center_shift):
