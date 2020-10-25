@@ -1,4 +1,4 @@
-from math import ceil, sqrt
+from math import sqrt
 
 from ballsbot.lidar import apply_transformation_to_cloud
 
@@ -8,7 +8,7 @@ CELL_SIZE = VOXELS_PER_CELL * VOXEL_SIZE
 
 
 def cloud_to_voxels(points, half_width=8.):
-    size_in_voxels = 2 * ceil(half_width / VOXEL_SIZE)
+    size_in_voxels = 2 * int(round(half_width / VOXEL_SIZE))
     result = [[0 for _ in range(size_in_voxels)] for _ in range(size_in_voxels)]
     for a_point in points:
         cell_x = int(round((a_point[0] + half_width) / VOXEL_SIZE))
@@ -99,7 +99,7 @@ def _mark_hidden_voxels(voxels, start_x, start_y, center_shift):
 
 
 def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
-    size_in_cells = 2 * ceil(half_width / CELL_SIZE) + 1
+    size_in_cells = 2 * int(round((half_width / CELL_SIZE)))
     result = [[False for _ in range(size_in_cells)] for _ in range(size_in_cells)]
 
     transformation = [-(pose['x'] % CELL_SIZE), -(pose['y'] % CELL_SIZE), -pose['teta']]
@@ -121,7 +121,7 @@ def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
                     voxels_count += 1
                     if voxels[voxel_y][voxel_x] == 0:
                         free_voxels += 1
-            if voxels_count > 0 and float(free_voxels) / voxels_count > 0.5:
+            if voxels_count > 0 and float(free_voxels) / voxels_count >= 0.5:
                 result[cell_y][cell_x] = True
 
     _filter_disconnected_cells(result)
