@@ -1,9 +1,11 @@
-from ballsbot.utils import keep_rps
-from ballsbot.ndt import NDT
 from math import pi, ceil
-import ballsbot.drawing as drawing
 import sys
 import json
+
+from ballsbot.utils import keep_rps
+from ballsbot.ndt import NDT
+import ballsbot.drawing as drawing
+from ballsbot.lidar import apply_transformation_to_cloud
 
 
 class TrackerLight:
@@ -146,7 +148,7 @@ class Tracker(TrackerLight):
 
     def update_picture(self, image, only_nearby_meters=10):
         pose = self.poses[-1]
-        points = self.lidar.apply_transformation_to_cloud(
+        points = apply_transformation_to_cloud(
             self.lidar.get_lidar_points(),
             [pose['x'], pose['y'], pose['teta']]
         )

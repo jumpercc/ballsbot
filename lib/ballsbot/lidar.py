@@ -19,6 +19,24 @@ def radial_to_cartesian(magnitude, angle):
     return [x, y]
 
 
+def apply_transformation_to_cloud(a_cloud, tr):
+    result = []
+
+    tx, ty, fi = tr
+    rotate_m = np.array([
+        [cos(fi), -sin(fi)],
+        [sin(fi), cos(fi)]
+    ])
+    move_m = np.array([tx, ty]).reshape((2, 1))
+
+    for point in a_cloud:
+        point = np.array(point).reshape((2, 1))
+        point = rotate_m @ point + move_m
+        result.append(point[:, 0].tolist())
+
+    return result
+
+
 class TestLidarData:
     def __init__(self):
         self.angle_min = 0.
@@ -270,21 +288,3 @@ class Lidar:
             'rr_x': rr_x,
             'rr_y': rr_y,
         }
-
-    @staticmethod
-    def apply_transformation_to_cloud(a_cloud, tr):
-        result = []
-
-        tx, ty, fi = tr
-        rotate_m = np.array([
-            [cos(fi), -sin(fi)],
-            [sin(fi), cos(fi)]
-        ])
-        move_m = np.array([tx, ty]).reshape((2, 1))
-
-        for point in a_cloud:
-            point = np.array(point).reshape((2, 1))
-            point = rotate_m @ point + move_m
-            result.append(point[:, 0].tolist())
-
-        return result

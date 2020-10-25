@@ -1,6 +1,6 @@
 import json
 import ballsbot.drawing as drawing
-from ballsbot.lidar import Lidar
+from ballsbot.lidar import Lidar, apply_transformation_to_cloud
 from ballsbot.utils import keep_rps
 from ballsbot.cloud_to_lines import cloud_to_lines
 import random
@@ -26,7 +26,7 @@ def rerun_track(image, file_path='/home/jumper/projects/ballsbot/poses.json', on
 
         ts = keep_rps(ts, fps=5)
 
-        points = lidar.apply_transformation_to_cloud(
+        points = apply_transformation_to_cloud(
             pose['points'],
             [pose['x'], pose['y'], pose['teta']]
         )
@@ -60,7 +60,7 @@ def rerun_track_lines(image, file_path='/home/jumper/projects/ballsbot/poses.jso
 
         ts = keep_rps(ts, fps=5)
 
-        points = lidar.apply_transformation_to_cloud(
+        points = apply_transformation_to_cloud(
             pose['points'],
             [pose['x'], pose['y'], pose['teta']]
         )
@@ -112,7 +112,7 @@ def fix_and_rerun_track_lines(
             tail_points = []
             original_tail_points = []
 
-        raw_points = lidar.apply_transformation_to_cloud(
+        raw_points = apply_transformation_to_cloud(
             original_pose['points'],
             [original_pose['x'], original_pose['y'], original_pose['teta']]
         )
@@ -137,7 +137,7 @@ def fix_and_rerun_track_lines(
             pose['y'] += pose_fix['y']
             pose['teta'] += pose_fix['teta']
 
-        points = lidar.apply_transformation_to_cloud(
+        points = apply_transformation_to_cloud(
             pose['points'],
             [pose['x'], pose['y'], pose['teta']]
         )
@@ -148,7 +148,7 @@ def fix_and_rerun_track_lines(
             figsize=figsize_from_image_size(image_fixed),
             tail_points=tail_points,
             lines=cloud_to_lines(
-                key_points.lidar.apply_transformation_to_cloud(
+                apply_transformation_to_cloud(
                     pose['points'], [pose['x'], pose['y'], pose['teta']]
                 )
             )
@@ -188,7 +188,7 @@ def fix_and_rerun_track_ndt(
             tail_points = []
             original_tail_points = []
 
-        raw_points = lidar.apply_transformation_to_cloud(
+        raw_points = apply_transformation_to_cloud(
             original_pose['points'],
             [original_pose['x'], original_pose['y'], original_pose['teta']]
         )
@@ -215,7 +215,7 @@ def fix_and_rerun_track_ndt(
             pose['y'] += pose_fix['y']
             pose['teta'] += pose_fix['teta']
 
-        points = lidar.apply_transformation_to_cloud(
+        points = apply_transformation_to_cloud(
             pose['points'],
             [pose['x'], pose['y'], pose['teta']]
         )

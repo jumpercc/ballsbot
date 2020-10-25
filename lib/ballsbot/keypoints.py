@@ -2,7 +2,7 @@ import numpy as np
 from math import pi
 
 from ballsbot.cloud_to_lines import distance
-from ballsbot.lidar import Lidar
+from ballsbot.lidar import apply_transformation_to_cloud
 from ballsbot.cloud_to_lines import cloud_to_lines
 from ballsbot.odometry_fix import get_coords_diff
 from ballsbot.ndt import NDT
@@ -23,7 +23,6 @@ class KeyPoints:
         self.key_points = {}
         self.inside_kp = False
         self.current_kp_id = None
-        self.lidar = Lidar()
         self.ndt = NDT(grid_size=6., box_size=2., iterations_count=10, optim_step=(0.1, 0.1, 0.01), eps=0.01)
 
     def _get_nearby_kp_list(self, kp_id):
@@ -54,7 +53,7 @@ class KeyPoints:
                 result_diff += np.array(diff)
                 shift += result_diff[:2]
                 new_lines = cloud_to_lines(
-                    self.lidar.apply_transformation_to_cloud(
+                    apply_transformation_to_cloud(
                         lidar_points, np.array(transformation) + result_diff
                     )
                 )
@@ -83,7 +82,7 @@ class KeyPoints:
             return
 
         lines = cloud_to_lines(
-            self.lidar.apply_transformation_to_cloud(
+            apply_transformation_to_cloud(
                 lidar_points, [pose['x'], pose['y'], pose['teta']]
             )
         )
@@ -106,7 +105,7 @@ class KeyPoints:
         if kp_id not in self.key_points:
             if has_fixes:
                 lines = cloud_to_lines(
-                    self.lidar.apply_transformation_to_cloud(
+                    apply_transformation_to_cloud(
                         lidar_points, fixed_pose
                     )
                 )
@@ -165,7 +164,7 @@ class KeyPoints:
         if len(nearby_kp_list) > 0:
             pose_fix = self._get_pose_fix_ndt(
                 fixed_pose,
-                self.lidar.apply_transformation_to_cloud(
+                apply_transformation_to_cloud(
                     lidar_points, -fixed_pose
                 ),
                 nearby_kp_list
@@ -177,7 +176,7 @@ class KeyPoints:
         if kp_id not in self.key_points:
             self.key_points[kp_id] = {
                 'pose': fixed_pose,
-                'points': self.lidar.apply_transformation_to_cloud(
+                'points': apply_transformation_to_cloud(
                     lidar_points, -fixed_pose
                 ),
             }
