@@ -1,10 +1,10 @@
-from math import sqrt
+from math import sqrt, floor
 
 from ballsbot.lidar import apply_transformation_to_cloud
 from ballsbot.geometry import get_linear_coefs, distance, point_to_line_distance
 
 VOXEL_SIZE = 0.1
-VOXELS_PER_CELL = 6
+VOXELS_PER_CELL = 10
 CELL_SIZE = VOXELS_PER_CELL * VOXEL_SIZE
 
 
@@ -88,7 +88,7 @@ def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
     size_in_cells = 2 * int(round((half_width / CELL_SIZE)))
     result = [[False for _ in range(size_in_cells)] for _ in range(size_in_cells)]
 
-    transformation = [-(pose['x'] % CELL_SIZE), -(pose['y'] % CELL_SIZE), -pose['teta']]
+    transformation = [0., 0., pose['teta']]
     points = apply_transformation_to_cloud(points, transformation)
 
     voxels = cloud_to_voxels(points, half_width)
@@ -107,12 +107,14 @@ def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
                     voxels_count += 1
                     if voxels[voxel_y][voxel_x] == 0:
                         free_voxels += 1
-            if voxels_count > 0 and float(free_voxels) / voxels_count >= 0.5:
+            if voxels_count > 0 and float(free_voxels) / voxels_count >= 0.33:
                 result[cell_y][cell_x] = True
 
     _filter_disconnected_cells(result)
 
-    return result
+    half_size_in_cells = int(size_in_cells / 2.)
+    return result, [int(round(pose['x'] / CELL_SIZE)) - half_size_in_cells,
+                    int(round(pose['y'] / CELL_SIZE)) - half_size_in_cells]
 
 
 def _filter_disconnected_cells(cells):
@@ -165,5 +167,65 @@ def _filter_disconnected_cells(cells):
 def get_car_cell(x, y):
     cell_x = int(round((x / CELL_SIZE)))
     cell_y = int(round((y / CELL_SIZE)))
-    inside_a_cell = distance([cell_x, cell_y], [x, y]) <= CELL_SIZE / 2.
-    return cell_x, cell_y, inside_a_cell
+    # inside_a_cell = distance([(cell_x + 0.5) * CELL_SIZE, (cell_y + 0.5) * CELL_SIZE], [x, y]) <= CELL_SIZE / 2.
+    return cell_x, cell_y
+
+
+class Grid:
+    SEEN_MEMORY = 100  # 50 - 12.5 sec when 4 fps
+    WAS_IN_MEMORY = 200
+    MIN_SEEN = -8
+
+    def __init__(self):
+        self.grid = {}
+        self.counter = 0
+
+    def update_grid(self, points, pose):
+        cells, shift_in_cells = cloud_to_free_cells(points, pose)
+        shift_x, shift_y = shift_in_cells
+        for cell_y in range(len(cells)):
+            for cell_x in range(len(cells)):
+                grid_key = (cell_x + shift_x, cell_y + shift_y)
+                if cells[cell_y][cell_x]:
+                    if grid_key not in self.grid:
+                        self.grid[grid_key] = {
+                            'seen': 0,
+                        }
+                    self.grid[grid_key]['seen_at'] = self.counter
+                    self.grid[grid_key]['seen'] += 1
+                elif grid_key in self.grid and 'was_at' not in self.grid[grid_key]:
+                    self.grid[grid_key]['seen'] -= 1
+
+        car_x, car_y = get_car_cell(pose['x'], pose['y'])
+        grid_key = (car_x, car_y)
+        if grid_key not in self.grid:
+            self.grid[grid_key] = {
+                'seen_at': self.counter,
+                'seen': 0,
+            }
+        self.grid[grid_key]['was_at'] = self.counter
+
+        for grid_key, value in list(self.grid.items()):
+            if 'was_at' in value:
+                if value['was_at'] + self.WAS_IN_MEMORY < self.counter:
+                    del self.grid[grid_key]
+            elif value['seen_at'] + self.SEEN_MEMORY < self.counter:
+                del self.grid[grid_key]
+            elif value['seen'] < self.MIN_SEEN:
+                del self.grid[grid_key]
+
+        self.counter += 1
+
+    def get_cell_weight(self, x, y):
+        grid_key = (x, y)
+        if grid_key in self.grid:
+            cell = self.grid[grid_key]
+            if 'was_at' in cell:
+                return (self.counter - cell['was_at']) / (2. * self.SEEN_MEMORY)
+            else:
+                return 1.
+        else:
+            return 0.
+
+    def get_directions_weights(self, pose, direction):
+        pass
