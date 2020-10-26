@@ -10,7 +10,7 @@ from ballsbot.tracking import TrackerLight
 
 
 class Explorer:
-    TURN_RADIUS = 0.88
+    TURN_DIAMETER = 0.88
     CHECK_RADIUS = 2.
     A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
     STOP_DISTANCE = 0.35
@@ -254,8 +254,8 @@ class Explorer:
         return self.STOP, 1
 
     def _get_columns(self):
-        return [0., self.TURN_RADIUS], [0., -self.TURN_RADIUS], \
-               self.TURN_RADIUS - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
+        return [0., self.TURN_DIAMETER], [0., -self.TURN_DIAMETER], \
+               self.TURN_DIAMETER - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
 
     def _get_nearby_points(self):
         range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE

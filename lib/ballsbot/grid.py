@@ -1,7 +1,8 @@
-from math import sqrt, floor
+from math import sqrt, sin, cos
 
 from ballsbot.lidar import apply_transformation_to_cloud
-from ballsbot.geometry import get_linear_coefs, distance, point_to_line_distance
+from ballsbot.geometry import get_linear_coefs, distance, point_to_line_distance, normal_to_line_in_point, \
+    get_45_degrees_lines
 
 VOXEL_SIZE = 0.1
 VOXELS_PER_CELL = 10
@@ -91,6 +92,7 @@ def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
     transformation = [0., 0., pose['teta']]
     points = apply_transformation_to_cloud(points, transformation)
 
+    sqare_part = 0.18 / (CELL_SIZE * CELL_SIZE)
     voxels = cloud_to_voxels(points, half_width)
     for cell_y in range(size_in_cells):
         for cell_x in range(size_in_cells):
@@ -107,7 +109,7 @@ def cloud_to_free_cells(points, pose, half_width=4. * CELL_SIZE):
                     voxels_count += 1
                     if voxels[voxel_y][voxel_x] == 0:
                         free_voxels += 1
-            if voxels_count > 0 and float(free_voxels) / voxels_count >= 0.33:
+            if voxels_count > 0 and float(free_voxels) / voxels_count >= sqare_part:
                 result[cell_y][cell_x] = True
 
     _filter_disconnected_cells(result)
@@ -172,9 +174,9 @@ def get_car_cell(x, y):
 
 
 class Grid:
-    SEEN_MEMORY = 100  # 50 - 12.5 sec when 4 fps
+    SEEN_MEMORY = 100  # 50 -> 12.5 sec when 4 fps
     WAS_IN_MEMORY = 200
-    MIN_SEEN = -8
+    MIN_SEEN = 0
 
     def __init__(self):
         self.grid = {}
@@ -193,7 +195,7 @@ class Grid:
                         }
                     self.grid[grid_key]['seen_at'] = self.counter
                     self.grid[grid_key]['seen'] += 1
-                elif grid_key in self.grid and 'was_at' not in self.grid[grid_key]:
+                elif grid_key in self.grid and 'was_at' not in self.grid[grid_key] and self.grid[grid_key]['seen'] < 6:
                     self.grid[grid_key]['seen'] -= 1
 
         car_x, car_y = get_car_cell(pose['x'], pose['y'])
@@ -211,7 +213,7 @@ class Grid:
                     del self.grid[grid_key]
             elif value['seen_at'] + self.SEEN_MEMORY < self.counter:
                 del self.grid[grid_key]
-            elif value['seen'] < self.MIN_SEEN:
+            elif value['seen'] <= self.MIN_SEEN:
                 del self.grid[grid_key]
 
         self.counter += 1
@@ -227,5 +229,50 @@ class Grid:
         else:
             return 0.
 
-    def get_directions_weights(self, pose, direction):
-        pass
+    def get_directions_weights(self, pose, car_info):
+        """
+        :param pose: {'x': ..., 'y': ..., 'teta': ...}
+        :param car_info: car sizes {'to_car_center': ..., 'turn_radius': ...}
+        :return: weights {(turn, direction): weight, ...}
+        """
+        result = {
+            (-1., 1.): 0.,
+            (-0.5, 1.): 0.,
+            (0., 1.): 0.,
+            (0.5, 1.): 0.,
+            (1., 1.): 0.,
+            (-1., -1.): 0.,
+            (-0.5, -1.): 0.,
+            (0., -1.): 0.,
+            (0.5, -1.): 0.,
+            (1., -1.): 0.,
+        }
+
+        shift = car_info['to_car_center'] + car_info['turn_radius'] / 2.
+        front_point = [
+            pose['x'] + shift * cos(pose['teta']),
+            pose['y'] + shift * sin(pose['teta']),
+        ]
+        shift = car_info['to_car_center'] - car_info['turn_radius'] / 2.
+        rear_point = [
+            pose['x'] + shift * cos(pose['teta']),
+            pose['y'] + shift * sin(pose['teta']),
+        ]
+
+        central_line = get_linear_coefs(front_point, rear_point)
+        front_normal = normal_to_line_in_point(central_line, front_point)
+        rear_normal = normal_to_line_in_point(central_line, rear_point)
+        front_45s = get_45_degrees_lines(central_line, front_point)
+        rear_45s = get_45_degrees_lines(central_line, rear_point)
+
+        # print('pose {}, {}, {}'.format(pose['x'], pose['y'], pose['teta']))
+        # print('points {}, {}'.format(front_point, rear_point))
+        # print('central line: {}'.format(central_line))
+        # print('normals {}, {}'.format(front_normal, rear_normal))
+        # print('45s {}, {}'.format(front_45s, rear_45s))
+
+        # TODO перебираем доступные клетки, считаем, в какой из 10ти секторов он попадает
+        for grid_key, cell_info in self.grid.items():
+            pass  # TODO зависит от наличия и значения was_at
+
+        return result
