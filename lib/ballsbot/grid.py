@@ -2,7 +2,7 @@ from math import sqrt, sin, cos, pi
 
 from ballsbot.lidar import apply_transformation_to_cloud
 from ballsbot.geometry import get_linear_coefs, distance, point_to_line_distance, normal_to_line_in_point, \
-    get_45_degrees_lines, on_other_side
+    get_two_n_radians_lines, on_other_side
 
 VOXEL_SIZE = 0.1
 VOXELS_PER_CELL = 10
@@ -267,14 +267,19 @@ class Grid:
 
         shift = car_info['turn_radius']
         right_point = [
-            pose['x'] + shift * cos(pose['teta'] + pi / 4),
-            pose['y'] + shift * sin(pose['teta'] + pi / 4),
+            pose['x'] + shift * cos(pose['teta'] + pi / 2),
+            pose['y'] + shift * sin(pose['teta'] + pi / 2),
         ]
 
         central_line = get_linear_coefs(front_point, rear_point)
         central_normal = normal_to_line_in_point(central_line, center_point)
+        first_central_ns, second_central_ns = get_two_n_radians_lines(pi / 3, central_line, center_point)
+
         front_normal = normal_to_line_in_point(central_line, front_point)
+        first_front_ns, second_front_ns = get_two_n_radians_lines(pi / 12, central_line, front_point)
+
         rear_normal = normal_to_line_in_point(central_line, rear_point)
+        first_rear_ns, second_rear_ns = get_two_n_radians_lines(pi / 12, central_line, rear_point)
 
         for grid_key, cell_info in self.grid.items():
             cell_x, cell_y = grid_key
@@ -284,35 +289,42 @@ class Grid:
             ]
 
             left_side = on_other_side(central_line, cell_center, right_point)
+            rear_side = on_other_side(central_normal, cell_center, front_point)
 
-            if on_other_side(front_normal, cell_center, rear_point):  # at front
-                first_45s, second_45s = get_45_degrees_lines(central_line, front_point)
-                if on_other_side(first_45s, cell_center, rear_point) \
-                        and on_other_side(second_45s, cell_center, rear_point):
-                    sector_key = (0., 1.)  # 0
-                elif left_side:
-                    sector_key = (-0.5, 1.)  # 1
+            f1 = on_other_side(first_central_ns, cell_center, front_point)
+            f2 = on_other_side(second_central_ns, cell_center, front_point)
+            r1 = on_other_side(first_central_ns, cell_center, rear_point)
+            r2 = on_other_side(second_central_ns, cell_center, rear_point)
+
+            if f1 and r2 and not f2 and not r1 or not f1 and not r2 and f2 and r1:
+                if left_side:
+                    if rear_side:
+                        sector_key = (-1., -1.)  # 3
+                    else:
+                        sector_key = (-1., 1.)  # 2
                 else:
-                    sector_key = (0.5, 1.)  # 9
-            elif on_other_side(rear_normal, cell_center, front_point):  # at rear
-                first_45s, second_45s = get_45_degrees_lines(central_line, rear_point)
-                if on_other_side(first_45s, cell_center, front_point) \
-                        and on_other_side(second_45s, cell_center, front_point):
+                    if rear_side:
+                        sector_key = (1., -1.)  # 7
+                    else:
+                        sector_key = (1., 1.)  # 8
+            elif rear_side:
+                if on_other_side(rear_normal, cell_center, front_point) \
+                        and on_other_side(first_rear_ns, cell_center, front_point) \
+                        and on_other_side(second_rear_ns, cell_center, front_point):
                     sector_key = (0., -1.)  # 5
                 elif left_side:
                     sector_key = (-0.5, -1.)  # 4
                 else:
                     sector_key = (0.5, -1.)  # 6
-            elif on_other_side(central_normal, cell_center, front_point):  # rear center
-                if left_side:
-                    sector_key = (-1., -1.)  # 3
+            else:
+                if on_other_side(front_normal, cell_center, rear_point) \
+                        and on_other_side(first_front_ns, cell_center, rear_point) \
+                        and on_other_side(second_front_ns, cell_center, rear_point):
+                    sector_key = (0., 1.)  # 0
+                elif left_side:
+                    sector_key = (-0.5, 1.)  # 1
                 else:
-                    sector_key = (1., -1.)  # 7
-            else:  # front center
-                if left_side:
-                    sector_key = (-1., 1.)  # 2
-                else:
-                    sector_key = (1., 1.)  # 8
+                    sector_key = (0.5, 1.)  # 9
 
             weight = self._get_cell_weight(cell_info)
 
@@ -324,79 +336,5 @@ class Grid:
 
         return result
 
-    def debug_get_cell_color(self, pose, car_info, grid_key, i):  # FIXME
-        shift = car_info['to_car_center']
-        center_point = [
-            pose['x'] + shift * cos(pose['teta']),
-            pose['y'] + shift * sin(pose['teta']),
-        ]
-        shift = car_info['to_car_center'] + car_info['turn_radius'] / 2.
-        front_point = [
-            pose['x'] + shift * cos(pose['teta']),
-            pose['y'] + shift * sin(pose['teta']),
-        ]
-        shift = car_info['to_car_center'] - car_info['turn_radius'] / 2.
-        rear_point = [
-            pose['x'] + shift * cos(pose['teta']),
-            pose['y'] + shift * sin(pose['teta']),
-        ]
-
-        shift = car_info['turn_radius']
-        right_point = [
-            pose['x'] + shift * cos(pose['teta'] + pi / 4),
-            pose['y'] + shift * sin(pose['teta'] + pi / 4),
-        ]
-
-        central_line = get_linear_coefs(front_point, rear_point)
-        central_normal = normal_to_line_in_point(central_line, center_point)
-        front_normal = normal_to_line_in_point(central_line, front_point)
-        rear_normal = normal_to_line_in_point(central_line, rear_point)
-
-        # if i == 75:
-        #     front_45s = get_45_degrees_lines(central_line, front_point)
-        #     rear_45s = get_45_degrees_lines(central_line, rear_point)
-        #     print('pose {}, {}, {}'.format(pose['x'], pose['y'], pose['teta']))
-        #     print('points {}, {}'.format(front_point, rear_point))
-        #     print('central line: {}'.format(central_line))
-        #     print('normals {}, {}, {}'.format(front_normal, rear_normal, central_normal))
-        #     print('45s {}, {}'.format(front_45s, rear_45s))
-        #     raise ValueError()
-
-        cell_x, cell_y = grid_key
-        cell_center = [
-            (cell_x + 0.5) * CELL_SIZE,
-            (cell_y + 0.5) * CELL_SIZE,
-        ]
-
-        left_side = on_other_side(central_line, cell_center, right_point)
-
-        if on_other_side(front_normal, cell_center, rear_point):  # at front
-            first_45s, second_45s = get_45_degrees_lines(central_line, front_point)
-            if on_other_side(first_45s, cell_center, rear_point) \
-                    and on_other_side(second_45s, cell_center, rear_point):
-                sector_key = 0
-            elif left_side:
-                sector_key = 1
-            else:
-                sector_key = 9
-        elif on_other_side(rear_normal, cell_center, front_point):  # at rear
-            first_45s, second_45s = get_45_degrees_lines(central_line, rear_point)
-            if on_other_side(first_45s, cell_center, front_point) \
-                    and on_other_side(second_45s, cell_center, front_point):
-                sector_key = 5
-            elif left_side:
-                sector_key = 4
-            else:
-                sector_key = 6
-        elif on_other_side(central_normal, cell_center, front_point):  # rear center
-            if left_side:
-                sector_key = 3
-            else:
-                sector_key = 7
-        else:  # front center
-            if left_side:
-                sector_key = 2
-            else:
-                sector_key = 8
-
-        return sector_key * 25
+    # def debug_get_cell_color(self, pose, car_info, grid_key, i):
+    #     return sector_key * 25

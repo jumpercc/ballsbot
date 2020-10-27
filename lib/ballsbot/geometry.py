@@ -27,16 +27,19 @@ def normal_to_line_in_point(line_coefs, a_point):
         return 1., b2_d_a2, c2_d_a2
 
 
-def get_45_degrees_lines(line_coefs, a_point):
+def get_two_n_radians_lines(angle, line_coefs, a_point):
     a, b, c = line_coefs
     x0, y0 = a_point
-    if a == 0. or b == 0.:
-        a1, b1 = (1, 1)
-        a2, b2 = (-1, 1)
+    if a == 0.:
+        a1, b1 = (tan(angle), 1.)
+        a2, b2 = (tan(-angle), 1.)
+    elif b == 0:
+        a1, b1 = (tan(pi / 2 - angle), 1.)
+        a2, b2 = (tan(pi / 2 + angle), 1.)
     else:
-        a1 = tan(atan(a / b) + pi / 4)
+        a1 = tan(atan(a / b) + angle)
         b1 = 1.
-        a2 = tan(atan(a / b) - pi / 4)
+        a2 = tan(atan(a / b) - angle)
         b2 = 1.
     c1 = -a1 * x0 - b1 * y0
     c2 = -a2 * x0 - b2 * y0
