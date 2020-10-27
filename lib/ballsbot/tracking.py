@@ -3,7 +3,7 @@ import sys
 import json
 
 from ballsbot.utils import keep_rps
-from ballsbot.ndt import NDT
+# from ballsbot.ndt import NDT
 import ballsbot.drawing as drawing
 from ballsbot.lidar import apply_transformation_to_cloud
 
@@ -83,14 +83,19 @@ class TrackerLight:
         with open(file_path, 'w') as a_file:
             a_file.write(json.dumps(self.poses))
 
+    def get_current_pose(self):
+        return self.poses[-1]
+
 
 class Tracker(TrackerLight):
-    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=True, keep_readings=False):
+    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=False, keep_readings=False):
         super().__init__(imu, odometry, fps)
         self.lidar = lidar
         self.max_distance = max_distance
+        if fix_pose_with_lidar:
+            raise NotImplementedError()
         self.fix_pose_with_lidar = fix_pose_with_lidar
-        self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
+        # self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
         self.keep_readings = keep_readings
 
     def _get_current(self):
@@ -107,44 +112,44 @@ class Tracker(TrackerLight):
         if not self.fix_pose_with_lidar:
             return raw_result
 
-        dteta_raw = current['teta'] - previous['teta']
-        dx_raw = current['odometry_dx']
-        dy_raw = current['odometry_dy']
-
-        dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
-            previous['points'],
-            current['points'],
-            start_point=[dx_raw, dy_raw, dteta_raw]
-        )
-
-        if converged != 1.:
-            return raw_result
-
-        if score > 0.5:
-            return raw_result
-
-        steps = ceil(dt / self.fps)
-
-        max_dteta = steps * pi / 8
-        if max_dteta > 2 * pi:
-            max_dteta = 2 * pi
-        if abs(dteta - dteta_raw) > max_dteta:
-            return raw_result
-
-        prev_pose = self.poses[-1]
-        max_dxy = dt * 0.2  # m/s
-        if abs(dx_raw - dx) > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
-            return raw_result
-        if abs(dy_raw - dy) > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
-            return raw_result
-
-        teta = prev_pose['teta'] + dteta
-        if teta >= 2 * pi:
-            teta -= 2 * pi
-        elif teta <= -2 * pi:
-            teta += 2 * pi
-
-        return dx, dy, teta
+        # dteta_raw = current['teta'] - previous['teta']
+        # dx_raw = current['odometry_dx']
+        # dy_raw = current['odometry_dy']
+        #
+        # dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
+        #     previous['points'],
+        #     current['points'],
+        #     start_point=[dx_raw, dy_raw, dteta_raw]
+        # )
+        #
+        # if converged != 1.:
+        #     return raw_result
+        #
+        # if score > 0.5:
+        #     return raw_result
+        #
+        # steps = ceil(dt / self.fps)
+        #
+        # max_dteta = steps * pi / 8
+        # if max_dteta > 2 * pi:
+        #     max_dteta = 2 * pi
+        # if abs(dteta - dteta_raw) > max_dteta:
+        #     return raw_result
+        #
+        # prev_pose = self.poses[-1]
+        # max_dxy = dt * 0.2  # m/s
+        # if abs(dx_raw - dx) > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
+        #     return raw_result
+        # if abs(dy_raw - dy) > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
+        #     return raw_result
+        #
+        # teta = prev_pose['teta'] + dteta
+        # if teta >= 2 * pi:
+        #     teta -= 2 * pi
+        # elif teta <= -2 * pi:
+        #     teta += 2 * pi
+        #
+        # return dx, dy, teta
 
     def update_picture(self, image, only_nearby_meters=10):
         pose = self.poses[-1]
