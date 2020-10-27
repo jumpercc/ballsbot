@@ -1,4 +1,4 @@
-from math import sqrt
+from math import sqrt, tan, atan, pi
 
 
 def get_linear_coefs(p1, p2):
@@ -30,17 +30,55 @@ def normal_to_line_in_point(line_coefs, a_point):
 def get_45_degrees_lines(line_coefs, a_point):
     a, b, c = line_coefs
     x0, y0 = a_point
-    if a == 0.:
-        c /= b
-        b = 1.
+    if a == 0. or b == 0.:
+        a1, b1 = (1, 1)
+        a2, b2 = (-1, 1)
     else:
-        b /= a
-        c /= a
-        a = 1.
-
-    a1, b1 = (a + 1, b + 1)
+        a1 = tan(atan(a / b) + pi / 4)
+        b1 = 1.
+        a2 = tan(atan(a / b) - pi / 4)
+        b2 = 1.
     c1 = -a1 * x0 - b1 * y0
-    a2, b2 = (a - 1, b - 1)
     c2 = -a2 * x0 - b2 * y0
 
     return (a1, b1, c1), (a2, b2, c2)
+
+
+def on_other_side(line1_coefs, p1, p2):
+    a1, b1, c1 = line1_coefs
+    a2, b2, c2 = get_linear_coefs(p1, p2)
+    if b1 == 0. and b2 == 0.:
+        return False
+    elif b1 == 0.:
+        x0 = -c1 / a1
+        y0 = -(a2 * x0 + c2) / b2
+    elif b2 == 0.:
+        x0 = -c2 / a2
+        y0 = -(a1 * x0 + c1) / b1
+    else:
+        nom = c1 / b1 - c2 / b2
+        denom = a2 / b2 - a1 / b1
+        if denom == 0.:
+            return False
+        else:
+            x0 = nom / denom
+            y0 = -(a1 * x0 + c1) / b1
+
+    x1, y1 = p1
+    x2, y2 = p2
+
+    if x1 > x2:
+        if not (x1 > x0 > x2):
+            return False
+    else:
+        if not (x1 < x0 < x2):
+            return False
+
+    if y1 > y2:
+        if not (y1 > y0 > y2):
+            return False
+    else:
+        if not (y1 < y0 < y2):
+            return False
+
+    return True
