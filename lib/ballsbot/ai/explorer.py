@@ -57,7 +57,7 @@ class Explorer:
                 direction, keep_for = self._get_free_direction(direction, steps_with_direction)
             keep_for -= 1
             print('direction: {}, turn: {}, speed {:0.4f}'.format(
-                direction['steering'], direction['throttle'], self.odometry.get_speed()
+                direction['throttle'], direction['steering'], self.odometry.get_speed()
             ))
             self._follow_direction(direction)
 
@@ -223,7 +223,13 @@ class Explorer:
             (self.A_BIT_RIGHT, -1.): self._can_move_a_bit_right_backward(nearby_points),
             (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
         }
-        if len(list(filter(lambda x: x[0], can_move.values()))) == 0:
+        if prev_direction['throttle'] == self.FORWARD_THROTTLE \
+                and len(list(filter(lambda x: x[0][1] == 1. and x[1][0], can_move.items()))) == 0:
+            return {'steering': prev_direction['steering'], 'throttle': self.FORWARD_BRAKE}, 1
+        elif prev_direction['throttle'] == self.BACKWARD_TROTTLE \
+                and len(list(filter(lambda x: x[0][1] == -1. and x[1][0], can_move.items()))) == 0:
+            return {'steering': prev_direction['steering'], 'throttle': self.BACKWARD_BRAKE}, 1
+        elif len(list(filter(lambda x: x[0], can_move.values()))) == 0:
             return self.STOP, 1
 
         weights = self.grid.get_directions_weights(
@@ -244,12 +250,20 @@ class Explorer:
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
         else:  # fallback
+            if prev_direction['throttle'] == self.BACKWARD_TROTTLE:
+                filter_value = -1.
+            else:
+                filter_value = 1.
+
+            can_move_filtered = list(filter(lambda x: x[1][0] and x[0][1] == filter_value, can_move.items()))
+            if len(can_move_filtered) == 0:
+                can_move_filtered = list(filter(lambda x: x[1][0], can_move.items()))
+
             sector_key = list(sorted(
-                filter(lambda x: x[1][0], can_move.items()),
+                can_move_filtered,
                 key=lambda y: (
                     y[1][1],  # max distance
                     -abs(y[0][0]),  # prefer straight
-                    y[0][1],  # prefer forward
                 )
             ))[-1][0]
 

@@ -220,7 +220,10 @@ class Grid:
 
     def _get_cell_weight(self, cell):
         if 'was_at' in cell:
-            return (self.counter - cell['was_at']) / (2. * self.WAS_IN_MEMORY)
+            if self.counter - cell['was_at'] < self.WAS_IN_MEMORY / 2.:
+                return 0.
+            else:
+                return (self.counter - cell['was_at']) / (4. * self.WAS_IN_MEMORY)
         else:
             return 1.
 
