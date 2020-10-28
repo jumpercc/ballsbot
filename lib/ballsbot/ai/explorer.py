@@ -1,4 +1,5 @@
 from math import pi
+import json
 
 from ballsbot.lidar import Lidar
 from ballsbot.servos import get_controls
@@ -30,21 +31,40 @@ class Explorer:
     A_BIT_LEFT = -0.5
     INNER_OFFSET = 0.03
 
-    def __init__(self, test_run=False):
-        self.lidar = Lidar(test_run)
+    def __init__(self, test_run=False, profile_mocks=None):
+        if profile_mocks is None:
+            self.lidar = Lidar(test_run)
+        else:
+            test_run = True
+            self.lidar = profile_mocks['lidar']
         self.BODY_POSITION = self.lidar.calibration_to_xywh(self.lidar.calibration)
+        self.test_run = test_run
+
         self.grid = Grid()
+
         if not test_run:
             self.car_controls = get_controls()
             self.imu = IMU_Threaded()
             self.odometry = Odometry(self.imu, self.car_controls['throttle'])
             self.tracker = TrackerLight(self.imu, self.odometry)
+        elif profile_mocks is not None:
+            self.car_controls = profile_mocks['car_controls']
+            self.imu = None
+            self.odometry = profile_mocks['odometry']
+            self.tracker = profile_mocks['tracker']
 
-    def run(self):
+        self.track_info = []
+        self.cached_speed = None
+        self.cached_pose = None
+        self.cached_points = None
+        self.cached_direction = None
+
+    def run(self, save_track_info=False):
         def tracker_run():
             self.tracker.start()
 
-        run_as_thread(tracker_run)
+        if not self.test_run:
+            run_as_thread(tracker_run)
 
         ts = None
         direction = self.STOP
@@ -54,12 +74,20 @@ class Explorer:
             ts = keep_rps(ts, fps=4)
             prev_direction = direction
             if keep_for <= 0:
-                direction, keep_for = self._get_free_direction(direction, steps_with_direction)
+                direction, keep_for = self._get_next_move(direction, steps_with_direction)
             keep_for -= 1
-            print('direction: {}, turn: {}, speed {:0.4f}'.format(
-                direction['throttle'], direction['steering'], self.odometry.get_speed()
-            ))
+            # print('direction: {}, turn: {}, speed {:0.4f}'.format(
+            #     direction['throttle'], direction['steering'], self.odometry.get_speed()
+            # ))
             self._follow_direction(direction)
+
+            if save_track_info:
+                self.track_info.append({
+                    'speed': self.cached_speed,
+                    'pose': self.cached_pose,
+                    'points': self.cached_points,
+                    'direction': self.cached_direction,
+                })
 
             if prev_direction == direction:
                 steps_with_direction += 1
@@ -196,20 +224,21 @@ class Explorer:
     def _can_move_a_bit_left_backward(self, nearby_points):
         return self._can_move_some_backward(nearby_points, self._filter_a_bit_left_points)
 
-    def _get_free_direction(self, prev_direction, steps_with_direction):
+    def _get_next_move(self, prev_direction, steps_with_direction):
+        self.cached_direction = self.odometry.get_direction()
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
-            if self.odometry.direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
-                    or self.odometry.direction < 0. and prev_direction['throttle'] == self.BACKWARD_BRAKE:
+            if self.cached_direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
+                    or self.cached_direction < 0. and prev_direction['throttle'] == self.BACKWARD_BRAKE:
                 return prev_direction, 1
             else:
                 return self.STOP, 1
         elif prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == self.BACKWARD_TROTTLE:
-            if self.odometry.direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
+            if self.cached_direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
                 return self.STOP, 4
 
         nearby_points = self._get_nearby_points()
-        pose = self.tracker.get_current_pose()
-        self.grid.update_grid(self.lidar.get_lidar_points(), pose)
+        self.cached_pose = self.tracker.get_current_pose()
+        self.grid.update_grid(self.lidar.get_lidar_points(), self.cached_pose)
 
         can_move = {
             (0., 1.): self._can_move_straight_forward(nearby_points),
@@ -233,7 +262,7 @@ class Explorer:
             return self.STOP, 1
 
         weights = self.grid.get_directions_weights(
-            pose, {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.})
+            self.cached_pose, {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.})
 
         for sector_key, value in can_move.items():
             if not value[0]:
@@ -285,6 +314,7 @@ class Explorer:
         range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
         range_limit += abs(self.FROM_LIDAR_TO_CENTER)
         nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=False)
+        self.cached_points = self.lidar.get_radial_lidar_points()  # cached, no limit
 
         nearby_points = list(filter(self._ellipse_like_range_filter, nearby_points))
 
@@ -340,8 +370,12 @@ class Explorer:
         self.car_controls['throttle'].run(direction['throttle'])
 
     def get_stop_distance(self):
-        speed = self.odometry.get_speed()
-        if speed > 0.5:
-            return self.STOP_DISTANCE * speed / 0.5
+        self.cached_speed = self.odometry.get_speed()
+        if self.cached_speed > 0.5:
+            return self.STOP_DISTANCE * self.cached_speed / 0.5
         else:
             return self.STOP_DISTANCE
+
+    def track_info_to_a_file(self, file_path):
+        with open(file_path, 'w') as a_file:
+            a_file.write(json.dumps(self.track_info))

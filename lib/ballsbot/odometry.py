@@ -91,3 +91,6 @@ class Odometry:
         if self.odometry_last_interval is not None:
             return self.odometry_meters_per_rotation / self.odometry_last_interval
         return 0.
+
+    def get_direction(self):
+        return self.direction
