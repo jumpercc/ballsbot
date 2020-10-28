@@ -7,6 +7,7 @@ from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
+from ballsbot.grid import Grid
 
 
 class Explorer:
@@ -32,6 +33,7 @@ class Explorer:
     def __init__(self, test_run=False):
         self.lidar = Lidar(test_run)
         self.BODY_POSITION = self.lidar.calibration_to_xywh(self.lidar.calibration)
+        self.grid = Grid()
         if not test_run:
             self.car_controls = get_controls()
             self.imu = IMU_Threaded()
@@ -194,18 +196,6 @@ class Explorer:
     def _can_move_a_bit_left_backward(self, nearby_points):
         return self._can_move_some_backward(nearby_points, self._filter_a_bit_left_points)
 
-    def for_sort(self, direction):
-        if direction == 0.:
-            return 5
-        elif direction == self.A_BIT_LEFT:
-            return 4
-        elif direction == self.A_BIT_RIGHT:
-            return 3
-        elif direction == self.LEFT:
-            return 2
-        else:
-            return 1
-
     def _get_free_direction(self, prev_direction, steps_with_direction):
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
             if self.odometry.direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
@@ -218,40 +208,60 @@ class Explorer:
                 return self.STOP, 4
 
         nearby_points = self._get_nearby_points()
+        pose = self.tracker.get_current_pose()
+        self.grid.update_grid(self.lidar.get_lidar_points(), pose)
 
-        forward = [
-            [0.] + list(self._can_move_straight_forward(nearby_points)),
-            [self.RIGHT] + list(self._can_move_right_forward(nearby_points)),
-            [self.LEFT] + list(self._can_move_left_forward(nearby_points)),
-            [self.A_BIT_RIGHT] + list(self._can_move_a_bit_right_forward(nearby_points)),
-            [self.A_BIT_LEFT] + list(self._can_move_a_bit_left_forward(nearby_points)),
-        ]
-        forward = list(filter(lambda x: x[1], [[ft[0], ft[1], ft[2], self.for_sort(ft[0])] for ft in forward]))
+        can_move = {
+            (0., 1.): self._can_move_straight_forward(nearby_points),
+            (self.RIGHT, 1.): self._can_move_right_forward(nearby_points),
+            (self.LEFT, 1.): self._can_move_left_forward(nearby_points),
+            (self.A_BIT_RIGHT, 1.): self._can_move_a_bit_right_forward(nearby_points),
+            (self.A_BIT_LEFT, 1.): self._can_move_a_bit_left_forward(nearby_points),
+            (0., -1.): self._can_move_straight_backward(nearby_points),
+            (self.RIGHT, -1.): self._can_move_right_backward(nearby_points),
+            (self.LEFT, -1.): self._can_move_left_backward(nearby_points),
+            (self.A_BIT_RIGHT, -1.): self._can_move_a_bit_right_backward(nearby_points),
+            (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
+        }
+        if len(list(filter(lambda x: x[0], can_move.values()))) == 0:
+            return self.STOP, 1
 
-        backward = [
-            [0.] + list(self._can_move_straight_backward(nearby_points)),
-            [self.RIGHT] + list(self._can_move_right_backward(nearby_points)),
-            [self.LEFT] + list(self._can_move_left_backward(nearby_points)),
-            [self.A_BIT_RIGHT] + list(self._can_move_a_bit_right_backward(nearby_points)),
-            [self.A_BIT_LEFT] + list(self._can_move_a_bit_left_backward(nearby_points)),
-        ]
-        backward = list(filter(lambda x: x[1], [[ft[0], ft[1], ft[2], self.for_sort(ft[0])] for ft in backward]))
+        weights = self.grid.get_directions_weights(
+            pose, {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.})
 
-        if prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == 0.:
-            if len(forward):
-                # TODO sort by distance, not only x distance
-                steering = sorted(forward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
-                return {'steering': steering, 'throttle': self.FORWARD_THROTTLE}, 1
-            elif prev_direction['throttle'] == self.FORWARD_THROTTLE:
-                return {'steering': 0., 'throttle': self.FORWARD_BRAKE}, 1
-        if prev_direction['throttle'] == self.BACKWARD_TROTTLE or prev_direction['throttle'] == 0.:
-            if len(backward):
-                steering = sorted(backward, key=lambda x: (x[2], x[3]), reverse=True)[0][0]
-                return {'steering': steering, 'throttle': self.BACKWARD_TROTTLE}, 1
-            elif prev_direction['throttle'] == self.BACKWARD_TROTTLE:
-                return {'steering': 0., 'throttle': self.BACKWARD_BRAKE}, 1
+        for sector_key, value in can_move.items():
+            if not value[0]:
+                weights[sector_key] = 0.  # can't move
+                continue
 
-        return self.STOP, 1
+            weights[sector_key] *= abs(value[1])  # more can move - greater weight
+
+            if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
+                    or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_TROTTLE:
+                weights[sector_key] *= 2.  # trying to keep prev direction
+
+        weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
+        if len(weights.keys()) > 0:
+            sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
+        else:  # fallback
+            sector_key = list(sorted(
+                filter(lambda x: x[1][0], can_move.items()),
+                key=lambda y: (
+                    y[1][1],  # max distance
+                    -abs(y[0][0]),  # prefer straight
+                    y[0][1],  # prefer forward
+                )
+            ))[-1][0]
+
+        steering = sector_key[0]
+        throttle = self.FORWARD_THROTTLE if sector_key[1] > 0. else self.BACKWARD_TROTTLE
+
+        if prev_direction['throttle'] == self.FORWARD_THROTTLE and throttle == self.BACKWARD_TROTTLE:
+            throttle = self.FORWARD_BRAKE
+        elif prev_direction['throttle'] == self.BACKWARD_TROTTLE and throttle == self.FORWARD_THROTTLE:
+            throttle = self.BACKWARD_BRAKE
+
+        return {'steering': steering, 'throttle': throttle}, 1
 
     def _get_columns(self):
         return [0., self.TURN_DIAMETER], [0., -self.TURN_DIAMETER], \
