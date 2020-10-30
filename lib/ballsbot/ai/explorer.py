@@ -8,7 +8,8 @@ from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
-from ballsbot.grid import Grid
+# from ballsbot.grid import Grid
+from ballsbot_cpp import ballsbot_cpp
 
 
 class Explorer:
@@ -40,7 +41,8 @@ class Explorer:
         self.BODY_POSITION = self.lidar.calibration_to_xywh(self.lidar.calibration)
         self.test_run = test_run
 
-        self.grid = Grid()
+        # self.grid = Grid()
+        self.grid = ballsbot_cpp
 
         if not test_run:
             self.car_controls = get_controls()
@@ -99,7 +101,7 @@ class Explorer:
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
         max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self.get_stop_distance()
+        stop_x = min_x + self._get_stop_distance()
         min_x -= self.INNER_OFFSET
 
         nearest_x = max_x
@@ -116,7 +118,7 @@ class Explorer:
         max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
         max_x = self.BODY_POSITION['x']
         min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self.get_stop_distance()
+        stop_x = max_x - self._get_stop_distance()
         max_x += self.INNER_OFFSET
 
         nearest_x = min_x
@@ -172,7 +174,7 @@ class Explorer:
         nearby_points = a_filter(nearby_points)
         min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
         max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self.get_stop_distance()
+        stop_x = min_x + self._get_stop_distance()
         min_x -= self.INNER_OFFSET
 
         nearest_x = max_x
@@ -200,7 +202,7 @@ class Explorer:
         nearby_points = a_filter(nearby_points)
         max_x = self.BODY_POSITION['x']
         min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self.get_stop_distance()
+        stop_x = max_x - self._get_stop_distance()
         max_x += self.INNER_OFFSET
 
         nearest_x = min_x
@@ -369,7 +371,7 @@ class Explorer:
         self.car_controls['steering'].run(direction['steering'])
         self.car_controls['throttle'].run(direction['throttle'])
 
-    def get_stop_distance(self):
+    def _get_stop_distance(self):
         self.cached_speed = self.odometry.get_speed()
         if self.cached_speed > 0.5:
             return self.STOP_DISTANCE * self.cached_speed / 0.5
