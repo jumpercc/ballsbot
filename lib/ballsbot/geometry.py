@@ -1,4 +1,5 @@
 from math import sqrt, tan, atan, pi
+from ballsbot_cpp import ballsbot_cpp
 
 
 def get_linear_coefs(p1, p2):
@@ -12,8 +13,7 @@ def point_to_line_distance(p0, a, b, c):
     return abs(a * p0[0] + b * p0[1] + c) / sqrt(a * a + b * b)
 
 
-def distance(one, two):
-    return sqrt((one[0] - two[0]) * (one[0] - two[0]) + (one[1] - two[1]) * (one[1] - two[1]))
+distance = ballsbot_cpp.distance
 
 
 def normal_to_line_in_point(line_coefs, a_point):
