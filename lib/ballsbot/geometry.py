@@ -85,3 +85,27 @@ def on_other_side(line1_coefs, p1, p2):
             return False
 
     return True
+
+
+def get_radial_line(center_point, angle):
+    a, b = (tan(angle), 1.)
+    c = -a * center_point[0] - b * center_point[1]
+    return a, b, c
+
+
+def cross_point(first_line, second_line):
+    a1, b1, c1 = first_line
+    a2, b2, c2 = second_line
+
+    if b1 == 0. and b2 == 0.:
+        raise NotImplementedError()
+    elif b1 == 0.:
+        x = - c1 / a1
+        y = -a2 / b2 * x - c2 / b2
+    elif b2 == 0.:
+        x = - c2 / a2
+        y = -a1 / b1 * x - c1 / b1
+    else:
+        x = (c1 / b1 - c2 / b2) / (a2 / b2 - a1 / b1)
+        y = -a1 / b1 * x - c1 / b1
+    return x, y

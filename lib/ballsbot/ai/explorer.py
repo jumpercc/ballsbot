@@ -77,6 +77,7 @@ class Explorer:
             prev_direction = direction
             if keep_for <= 0:
                 direction, keep_for = self._get_next_move(direction, steps_with_direction)
+                print(direction['steering'], direction['throttle'])
             keep_for -= 1
             # print('direction: {}, turn: {}, speed {:0.4f}'.format(
             #     direction['throttle'], direction['steering'], self.odometry.get_speed()
@@ -271,16 +272,19 @@ class Explorer:
                 weights[sector_key] = 0.  # can't move
                 continue
 
-            weights[sector_key] *= abs(value[1])  # more can move - greater weight
+            if abs(value[1]) < 0.5:
+                weights[sector_key] /= 2.  # more can move - greater weight
 
             if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
                     or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_TROTTLE:
-                weights[sector_key] *= 2.  # trying to keep prev direction
+                weights[sector_key] *= 4.  # trying to keep prev direction
 
         weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
         if len(weights.keys()) > 0:
+            print(weights)
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
         else:  # fallback
+            print('fallback')
             if prev_direction['throttle'] == self.BACKWARD_TROTTLE:
                 filter_value = -1.
             else:
