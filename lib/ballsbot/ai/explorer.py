@@ -24,7 +24,7 @@ class Explorer:
     HALF_CAR_WIDTH = CAR_WIDTH / 2
     STOP = {'steering': 0., 'throttle': 0.}
     FORWARD_THROTTLE = 0.5
-    BACKWARD_TROTTLE = -0.5
+    BACKWARD_THROTTLE = -0.5
     FORWARD_BRAKE = -0.4
     BACKWARD_BRAKE = 0.4
     RIGHT = 1.
@@ -235,7 +235,7 @@ class Explorer:
                 return prev_direction, 1
             else:
                 return self.STOP, 1
-        elif prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == self.BACKWARD_TROTTLE:
+        elif prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == self.BACKWARD_THROTTLE:
             if self.cached_direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
                 return self.STOP, 4
 
@@ -258,7 +258,7 @@ class Explorer:
         if prev_direction['throttle'] == self.FORWARD_THROTTLE \
                 and len(list(filter(lambda x: x[0][1] == 1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.FORWARD_BRAKE}, 1
-        elif prev_direction['throttle'] == self.BACKWARD_TROTTLE \
+        elif prev_direction['throttle'] == self.BACKWARD_THROTTLE \
                 and len(list(filter(lambda x: x[0][1] == -1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.BACKWARD_BRAKE}, 1
         elif len(list(filter(lambda x: x > 0., can_move.values()))) == 0:
@@ -272,7 +272,7 @@ class Explorer:
 
         for sector_key in weights.keys():
             if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
-                    or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_TROTTLE:
+                    or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
                 weights[sector_key] *= 2.  # trying to keep prev direction
             if sector_key[0] == prev_direction['steering']:
                 weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
@@ -281,7 +281,7 @@ class Explorer:
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
         else:  # fallback
-            if prev_direction['throttle'] == self.BACKWARD_TROTTLE:
+            if prev_direction['throttle'] == self.BACKWARD_THROTTLE:
                 filter_value = -1.
             else:
                 filter_value = 1.
@@ -299,11 +299,11 @@ class Explorer:
             ))[-1][0]
 
         steering = sector_key[0]
-        throttle = self.FORWARD_THROTTLE if sector_key[1] > 0. else self.BACKWARD_TROTTLE
+        throttle = self.FORWARD_THROTTLE if sector_key[1] > 0. else self.BACKWARD_THROTTLE
 
-        if prev_direction['throttle'] == self.FORWARD_THROTTLE and throttle == self.BACKWARD_TROTTLE:
+        if prev_direction['throttle'] == self.FORWARD_THROTTLE and throttle == self.BACKWARD_THROTTLE:
             throttle = self.FORWARD_BRAKE
-        elif prev_direction['throttle'] == self.BACKWARD_TROTTLE and throttle == self.FORWARD_THROTTLE:
+        elif prev_direction['throttle'] == self.BACKWARD_THROTTLE and throttle == self.FORWARD_THROTTLE:
             throttle = self.BACKWARD_BRAKE
 
         return {'steering': steering, 'throttle': throttle}, 1
