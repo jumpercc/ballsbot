@@ -107,8 +107,8 @@ class PWMThrottle:
 
     def __init__(self,
                  controller=None,
-                 max_pulse=388,
-                 min_pulse=330,
+                 max_pulse=390,
+                 min_pulse=328,
                  zero_pulse=360):
 
         self.controller = controller

@@ -16,7 +16,8 @@ class Explorer:
     TURN_DIAMETER = 0.88
     CHECK_RADIUS = 2.
     A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
-    STOP_DISTANCE = 0.25
+    STOP_DISTANCE = 0.35
+    STOP_DISTANCE_REFERENCE_SPEED = 0.5
     FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
     CAR_WIDTH = 0.18
@@ -24,8 +25,8 @@ class Explorer:
     STOP = {'steering': 0., 'throttle': 0.}
     FORWARD_THROTTLE = 0.5
     BACKWARD_TROTTLE = -0.5
-    FORWARD_BRAKE = -0.45
-    BACKWARD_BRAKE = 0.45
+    FORWARD_BRAKE = -0.4
+    BACKWARD_BRAKE = 0.4
     RIGHT = 1.
     LEFT = -1.
     A_BIT_RIGHT = 0.5
@@ -372,8 +373,8 @@ class Explorer:
 
     def _get_stop_distance(self):
         self.cached_speed = self.odometry.get_speed()
-        if self.cached_speed > 0.45:
-            return self.STOP_DISTANCE * self.cached_speed / 0.45
+        if self.cached_speed > self.STOP_DISTANCE_REFERENCE_SPEED:
+            return self.STOP_DISTANCE * self.cached_speed / self.STOP_DISTANCE_REFERENCE_SPEED
         else:
             return self.STOP_DISTANCE
 
