@@ -227,6 +227,22 @@ class Explorer:
     def _can_move_a_bit_left_backward(self, nearby_points):
         return self._can_move_some_backward(nearby_points, self._filter_a_bit_left_points)
 
+    def _get_can_move_map(self, debug_radial_points=None):
+        nearby_points = self._get_nearby_points(debug_radial_points)
+        nearby_points = self._filter_nearby_points(nearby_points)
+        return {
+            (0., 1.): self._can_move_straight_forward(nearby_points),
+            (self.RIGHT, 1.): self._can_move_right_forward(nearby_points),
+            (self.LEFT, 1.): self._can_move_left_forward(nearby_points),
+            (self.A_BIT_RIGHT, 1.): self._can_move_a_bit_right_forward(nearby_points),
+            (self.A_BIT_LEFT, 1.): self._can_move_a_bit_left_forward(nearby_points),
+            (0., -1.): self._can_move_straight_backward(nearby_points),
+            (self.RIGHT, -1.): self._can_move_right_backward(nearby_points),
+            (self.LEFT, -1.): self._can_move_left_backward(nearby_points),
+            (self.A_BIT_RIGHT, -1.): self._can_move_a_bit_right_backward(nearby_points),
+            (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
+        }
+
     def _get_next_move(self, prev_direction, steps_with_direction):
         self.cached_direction = self.odometry.get_direction()
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
@@ -240,22 +256,10 @@ class Explorer:
             if self.cached_direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
                 return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 4
 
-        nearby_points = self._get_nearby_points()
+        can_move = self._get_can_move_map()
         self.cached_pose = self.tracker.get_current_pose()
         self.grid.update_grid(self.lidar.get_lidar_points(), self.cached_pose)
 
-        can_move = {
-            (0., 1.): self._can_move_straight_forward(nearby_points),
-            (self.RIGHT, 1.): self._can_move_right_forward(nearby_points),
-            (self.LEFT, 1.): self._can_move_left_forward(nearby_points),
-            (self.A_BIT_RIGHT, 1.): self._can_move_a_bit_right_forward(nearby_points),
-            (self.A_BIT_LEFT, 1.): self._can_move_a_bit_left_forward(nearby_points),
-            (0., -1.): self._can_move_straight_backward(nearby_points),
-            (self.RIGHT, -1.): self._can_move_right_backward(nearby_points),
-            (self.LEFT, -1.): self._can_move_left_backward(nearby_points),
-            (self.A_BIT_RIGHT, -1.): self._can_move_a_bit_right_backward(nearby_points),
-            (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
-        }
         if prev_direction['throttle'] == self.FORWARD_THROTTLE \
                 and len(list(filter(lambda x: x[0][1] == 1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.FORWARD_BRAKE}, 1
@@ -313,12 +317,17 @@ class Explorer:
         return [0., self.TURN_DIAMETER], [0., -self.TURN_DIAMETER], \
                self.TURN_DIAMETER - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
 
-    def _get_nearby_points(self):
+    def _get_nearby_points(self, debug_radial_points=None):
         range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
         range_limit += abs(self.FROM_LIDAR_TO_CENTER)
-        nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=False)
+        if debug_radial_points is None:
+            nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=False)
+        else:
+            nearby_points = list(filter(lambda x: x['distance'] <= range_limit, debug_radial_points))
         self.cached_points = self.lidar.get_radial_lidar_points()  # cached, no limit
+        return nearby_points
 
+    def _filter_nearby_points(self, nearby_points):
         nearby_points = list(filter(self._ellipse_like_range_filter, nearby_points))
 
         nearby_points = self.lidar.radial_points_to_cartesian(nearby_points)
