@@ -31,7 +31,7 @@ def shorter_distance_corner(car_point, radial_line, corner_wall, corner, *walls)
 
 def get_long_room():
     car_point = [1.5, -1.]
-    d_angle = 2. * pi / 490.
+    car_teta = 0.
 
     lt = [0., 0.]
     rb = [4., -2.]
@@ -43,7 +43,9 @@ def get_long_room():
         get_linear_coefs([lt[0], rb[1]], lt),
     ]
 
+    d_angle = 2. * pi / 490.
     points = []
+    radial_points = []
     angle = 0.
     while angle < 2. * pi:
         radial_line = get_radial_line(car_point, angle)
@@ -66,11 +68,15 @@ def get_long_room():
         else:
             raise ValueError()
 
-        points.append(radial_to_cartesian(dist, angle))
+        fixed_angle = angle - car_teta
+        if fixed_angle < -pi:
+            fixed_angle += 2. * pi
+        radial_points.append({'distance': dist, 'angle': fixed_angle})
+        points.append(radial_to_cartesian(dist, fixed_angle))
 
         angle += d_angle
 
-    return points, {'x': car_point[0], 'y': car_point[1], 'teta': 0.}
+    return points, radial_points, {'x': car_point[0], 'y': car_point[1], 'teta': car_teta}
 
 
 def get_g_room():

@@ -8,7 +8,6 @@ from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
-# from ballsbot.grid import Grid
 from ballsbot_cpp import ballsbot_cpp
 
 
@@ -42,7 +41,6 @@ class Explorer:
         self.BODY_POSITION = self.lidar.calibration_to_xywh(self.lidar.calibration)
         self.test_run = test_run
 
-        # self.grid = Grid()
         self.grid = ballsbot_cpp
 
         if not test_run:
@@ -61,6 +59,7 @@ class Explorer:
         self.cached_pose = None
         self.cached_points = None
         self.cached_direction = None
+        self.cached_weights = None
 
     def run(self, save_track_info=False):
         def tracker_run():
@@ -90,6 +89,7 @@ class Explorer:
                     'pose': self.cached_pose,
                     'points': self.cached_points,
                     'direction': self.cached_direction,
+                    'weights': self.cached_weights,
                 })
 
             if prev_direction == direction:
@@ -282,6 +282,7 @@ class Explorer:
             if sector_key[0] == prev_direction['steering']:
                 weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
 
+        self.cached_weights = weights
         weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
