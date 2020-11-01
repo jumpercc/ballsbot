@@ -16,7 +16,7 @@ class Explorer:
     TURN_DIAMETER = 0.88
     CHECK_RADIUS = 2.
     A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
-    STOP_DISTANCE = 0.35
+    STOP_DISTANCE = 0.25
     FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
     CAR_WIDTH = 0.18
@@ -24,8 +24,8 @@ class Explorer:
     STOP = {'steering': 0., 'throttle': 0.}
     FORWARD_THROTTLE = 0.5
     BACKWARD_TROTTLE = -0.5
-    FORWARD_BRAKE = -0.4
-    BACKWARD_BRAKE = 0.4
+    FORWARD_BRAKE = -0.45
+    BACKWARD_BRAKE = 0.45
     RIGHT = 1.
     LEFT = -1.
     A_BIT_RIGHT = 0.5
@@ -77,11 +77,10 @@ class Explorer:
             prev_direction = direction
             if keep_for <= 0:
                 direction, keep_for = self._get_next_move(direction, steps_with_direction)
-                print(direction['steering'], direction['throttle'])
             keep_for -= 1
-            # print('direction: {}, turn: {}, speed {:0.4f}'.format(
-            #     direction['throttle'], direction['steering'], self.odometry.get_speed()
-            # ))
+            print('direction: {}, turn: {}, speed {:0.4f}'.format(
+                direction['throttle'], direction['steering'], self.odometry.get_speed()
+            ))
             self._follow_direction(direction)
 
             if save_track_info:
@@ -109,10 +108,10 @@ class Explorer:
         for a_point in nearby_points:
             if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
                 if a_point[0] < stop_x:
-                    return False, 0.
+                    return 0.
                 elif nearest_x > a_point[0]:
                     nearest_x = a_point[0]
-        return True, nearest_x
+        return nearest_x
 
     def _can_move_straight_backward(self, nearby_points):
         min_y = self.BODY_POSITION['y'] - self.FEAR_DISTANCE
@@ -126,10 +125,10 @@ class Explorer:
         for a_point in nearby_points:
             if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
                 if a_point[0] > stop_x:
-                    return False, 0.
+                    return 0.
                 elif nearest_x < a_point[0]:
                     nearest_x = a_point[0]
-        return True, -nearest_x
+        return -nearest_x
 
     def _filter_right_points(self, nearby_points):
         left_center, right_center, column_radius = self._get_columns()
@@ -182,10 +181,10 @@ class Explorer:
         for a_point in nearby_points:
             if min_x < a_point[0]:
                 if a_point[0] < stop_x:
-                    return False, 0.
+                    return 0.
                 elif nearest_x > a_point[0]:
                     nearest_x = a_point[0]
-        return True, nearest_x
+        return nearest_x
 
     def _can_move_right_forward(self, nearby_points):
         return self._can_move_some_forward(nearby_points, self._filter_right_points)
@@ -210,10 +209,10 @@ class Explorer:
         for a_point in nearby_points:
             if a_point[0] < max_x:
                 if a_point[0] > stop_x:
-                    return False, 0.
+                    return 0.
                 elif nearest_x < a_point[0]:
                     nearest_x = a_point[0]
-        return True, -nearest_x
+        return -nearest_x
 
     def _can_move_right_backward(self, nearby_points):
         return self._can_move_some_backward(nearby_points, self._filter_right_points)
@@ -256,48 +255,44 @@ class Explorer:
             (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
         }
         if prev_direction['throttle'] == self.FORWARD_THROTTLE \
-                and len(list(filter(lambda x: x[0][1] == 1. and x[1][0], can_move.items()))) == 0:
+                and len(list(filter(lambda x: x[0][1] == 1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.FORWARD_BRAKE}, 1
         elif prev_direction['throttle'] == self.BACKWARD_TROTTLE \
-                and len(list(filter(lambda x: x[0][1] == -1. and x[1][0], can_move.items()))) == 0:
+                and len(list(filter(lambda x: x[0][1] == -1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.BACKWARD_BRAKE}, 1
-        elif len(list(filter(lambda x: x[0], can_move.values()))) == 0:
+        elif len(list(filter(lambda x: x > 0., can_move.values()))) == 0:
             return self.STOP, 1
 
         weights = self.grid.get_directions_weights(
-            self.cached_pose, {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.})
+            self.cached_pose,
+            {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.},
+            can_move
+        )
 
-        for sector_key, value in can_move.items():
-            if not value[0]:
-                weights[sector_key] = 0.  # can't move
-                continue
-
-            if abs(value[1]) < 0.5:
-                weights[sector_key] /= 2.  # more can move - greater weight
-
+        for sector_key in weights.keys():
             if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
                     or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_TROTTLE:
-                weights[sector_key] *= 4.  # trying to keep prev direction
+                weights[sector_key] *= 2.  # trying to keep prev direction
+            if sector_key[0] == prev_direction['steering']:
+                weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
 
         weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
         if len(weights.keys()) > 0:
-            print(weights)
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
         else:  # fallback
-            print('fallback')
             if prev_direction['throttle'] == self.BACKWARD_TROTTLE:
                 filter_value = -1.
             else:
                 filter_value = 1.
 
-            can_move_filtered = list(filter(lambda x: x[1][0] and x[0][1] == filter_value, can_move.items()))
+            can_move_filtered = list(filter(lambda x: x[1] > 0. and x[0][1] == filter_value, can_move.items()))
             if len(can_move_filtered) == 0:
-                can_move_filtered = list(filter(lambda x: x[1][0], can_move.items()))
+                can_move_filtered = list(filter(lambda x: x[1] > 0., can_move.items()))
 
             sector_key = list(sorted(
                 can_move_filtered,
                 key=lambda y: (
-                    y[1][1],  # max distance
+                    y[1],  # max distance
                     -abs(y[0][0]),  # prefer straight
                 )
             ))[-1][0]
@@ -377,8 +372,8 @@ class Explorer:
 
     def _get_stop_distance(self):
         self.cached_speed = self.odometry.get_speed()
-        if self.cached_speed > 0.5:
-            return self.STOP_DISTANCE * self.cached_speed / 0.5
+        if self.cached_speed > 0.45:
+            return self.STOP_DISTANCE * self.cached_speed / 0.45
         else:
             return self.STOP_DISTANCE
 
