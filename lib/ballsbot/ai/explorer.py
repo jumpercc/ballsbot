@@ -22,7 +22,7 @@ class Explorer:
     FEAR_DISTANCE = 0.05
     CAR_WIDTH = 0.18
     HALF_CAR_WIDTH = CAR_WIDTH / 2
-    STOP = {'steering': 0., 'throttle': 0.}
+    STOP = 0.
     FORWARD_THROTTLE = 0.5
     BACKWARD_THROTTLE = -0.5
     FORWARD_BRAKE = -0.4
@@ -70,7 +70,7 @@ class Explorer:
             run_as_thread(tracker_run)
 
         ts = None
-        direction = self.STOP
+        direction = {'steering': 0., 'throttle': self.STOP}
         steps_with_direction = 0
         keep_for = 0
         while True:
@@ -234,10 +234,11 @@ class Explorer:
                     or self.cached_direction < 0. and prev_direction['throttle'] == self.BACKWARD_BRAKE:
                 return prev_direction, 1
             else:
-                return self.STOP, 1
-        elif prev_direction['throttle'] == self.FORWARD_THROTTLE or prev_direction['throttle'] == self.BACKWARD_THROTTLE:
+                return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 1
+        elif prev_direction['throttle'] == self.FORWARD_THROTTLE \
+                or prev_direction['throttle'] == self.BACKWARD_THROTTLE:
             if self.cached_direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
-                return self.STOP, 4
+                return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 4
 
         nearby_points = self._get_nearby_points()
         self.cached_pose = self.tracker.get_current_pose()
@@ -262,7 +263,7 @@ class Explorer:
                 and len(list(filter(lambda x: x[0][1] == -1. and x[1] > 0., can_move.items()))) == 0:
             return {'steering': prev_direction['steering'], 'throttle': self.BACKWARD_BRAKE}, 1
         elif len(list(filter(lambda x: x > 0., can_move.values()))) == 0:
-            return self.STOP, 1
+            return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 1
 
         weights = self.grid.get_directions_weights(
             self.cached_pose,
