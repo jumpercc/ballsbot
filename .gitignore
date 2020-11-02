@@ -1,7 +1,13 @@
-.idea
-*-libs
+**/.idea
 **/__pycache__
-test*
+test.py
 tmp*
 *.json
 *.log
+**/*.swp
+cpp/build
+cpp/cmake-build-debug/
+cpp/dist
+cpp/ballsbot_cpp.egg-info
+cpp/ballsbot_cpp.cpp
+
