@@ -22,7 +22,7 @@ struct VoxelIndexes {
     }
 
     bool operator==(const VoxelIndexes& other) const {
-        return (this->x == other.x && this->y == other.y);
+        return (x == other.x && y == other.y);
     }
 };
 
@@ -308,14 +308,14 @@ void Grid::UpdateGrid(PointCloud a_cloud, Pose a_pose) {
         for (size_t cell_x = 0; cell_x < free_cells.cells.size(); ++cell_x) {
             GridKey grid_key = {int(cell_x) + shift_x, int(cell_y) + shift_y};
             if (free_cells.cells[cell_y][cell_x]) {
-                if (this->grid_.find(grid_key) == this->grid_.end()) {
-                    this->grid_[grid_key] = {};
+                if (grid_.find(grid_key) == grid_.end()) {
+                    grid_[grid_key] = {};
                 }
-                this->grid_[grid_key].seen_at = this->counter_;
-                ++this->grid_[grid_key].seen;
-            } else if (this->grid_.find(grid_key) != this->grid_.end() &&
-                       this->grid_[grid_key].was_at == -1 && this->grid_[grid_key].seen < 6) {
-                --this->grid_[grid_key].seen;
+                grid_[grid_key].seen_at = counter_;
+                ++grid_[grid_key].seen;
+            } else if (grid_.find(grid_key) != grid_.end() && grid_[grid_key].was_at == -1 &&
+                       grid_[grid_key].seen < 6) {
+                --grid_[grid_key].seen;
             }
         }
     }
@@ -323,37 +323,37 @@ void Grid::UpdateGrid(PointCloud a_cloud, Pose a_pose) {
     auto car_cell = GetCarCell(a_pose.x, a_pose.y);
     if (car_cell.second) {
         auto car_grid_key = car_cell.first;
-        if (this->grid_.find(car_grid_key) == this->grid_.end()) {
-            this->grid_[car_grid_key] = {int(this->counter_), 0};
+        if (grid_.find(car_grid_key) == grid_.end()) {
+            grid_[car_grid_key] = {int(counter_), 0};
         }
-        this->grid_[car_grid_key].was_at = int(this->counter_);
+        grid_[car_grid_key].was_at = int(counter_);
     }
 
     std::vector<GridKey> to_remove;
-    for (auto it : this->grid_) {
+    for (auto it : grid_) {
         if (it.second.was_at != -1) {
-            if (it.second.was_at + this->WAS_IN_MEMORY < this->counter_) {
+            if (it.second.was_at + WAS_IN_MEMORY < counter_) {
                 to_remove.push_back(it.first);
             }
-        } else if (it.second.seen_at + this->SEEN_MEMORY < this->counter_) {
+        } else if (it.second.seen_at + SEEN_MEMORY < counter_) {
             to_remove.push_back(it.first);
-        } else if (it.second.seen <= this->MIN_SEEN) {
+        } else if (it.second.seen <= MIN_SEEN) {
             to_remove.push_back(it.first);
         }
     }
     for (auto it : to_remove) {
-        this->grid_.erase(it);
+        grid_.erase(it);
     }
 
-    ++this->counter_;
+    ++counter_;
 }
 
 double Grid::GetCellWeight(GridInfo cell_info) const {
     if (cell_info.was_at != -1) {
-        if (this->counter_ - cell_info.was_at < this->WAS_IN_MEMORY / 2.) {
+        if (counter_ - cell_info.was_at < WAS_IN_MEMORY / 2.) {
             return 0.;
         } else {
-            return (this->counter_ - cell_info.was_at) / (4. * this->WAS_IN_MEMORY);
+            return (counter_ - cell_info.was_at) / (4. * WAS_IN_MEMORY);
         }
     } else {
         return 1.;
@@ -361,9 +361,9 @@ double Grid::GetCellWeight(GridInfo cell_info) const {
 }
 
 double Grid::GetCellWeight(GridKey grid_key) const {
-    auto it = this->grid_.find(grid_key);
-    if (it != this->grid_.end()) {
-        return this->GetCellWeight(it->second);
+    auto it = grid_.find(grid_key);
+    if (it != grid_.end()) {
+        return GetCellWeight(it->second);
     } else {
         return 0.;
     }
@@ -400,7 +400,7 @@ std::vector<CellsToDirections> Grid::AssignCellsToDirections(Pose pose, CarInfo 
     auto rear_ns = GetTwoNRadiansLines(M_PI / 12., central_line, rear_point);
 
     std::vector<CellsToDirections> result;
-    for (auto it : this->grid_) {
+    for (auto it : grid_) {
         int cell_x = it.first.x;
         int cell_y = it.first.y;
         Point cell_center = {
@@ -505,10 +505,10 @@ DirectionsWeights Grid::GetDirectionsWeights(Pose pose, CarInfo car_info,
         result[it.first] = 0.;
     }
 
-    auto cell_to_direction = this->AssignCellsToDirections(pose, car_info);
+    auto cell_to_direction = AssignCellsToDirections(pose, car_info);
 
     for (auto it : cell_to_direction) {
-        double weight = this->GetCellWeight(this->grid_.at(it.grid_key));
+        double weight = GetCellWeight(grid_.at(it.grid_key));
         double dist = it.distance;
         if (dist != 0.) {
             weight /= dist;
@@ -562,7 +562,7 @@ std::vector<std::vector<size_t>> Grid::GetSectorsMap(Pose pose, CarInfo car_info
         result[i].resize(a_size);
     }
 
-    auto cell_to_direction = this->AssignCellsToDirections(pose, car_info);
+    auto cell_to_direction = AssignCellsToDirections(pose, car_info);
     for (auto it : cell_to_direction) {
         auto grid_key = it.grid_key;
         if (grid_key.x < -static_cast<int>(half_size) ||
