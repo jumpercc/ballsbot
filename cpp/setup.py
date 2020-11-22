@@ -23,6 +23,7 @@ ext_args = defaultdict(list)
 
 for flag in pkgconfig('--cflags-only-I'):
     ext_args['include_dirs'].append(flag[2:])
+ext_args['include_dirs'].append("/usr/include/opencv4")
 
 ext_args['library_dirs'].append('/usr/lib')
 
@@ -34,10 +35,14 @@ for flag in pkgconfig('--cflags-only-other'):
         ext_args['extra_compile_args'].append(flag)
 
 ext_args['extra_compile_args'].append("-std=c++17")
+ext_args['library_dirs'].append("/usr/lib/aarch64-linux-gnu")
 ext_args['library_dirs'].append("/usr/lib/x86_64-linux-gnu/")
+ext_args['library_dirs'].append("./ballsbot_cpp")
 
 for flag in pkgconfig('--libs-only-l'):
     ext_args['libraries'].append(flag[2:])
+ext_args['libraries'].append('opencv_core')
+ext_args['libraries'].append('opencv_videoio')
 
 for flag in pkgconfig('--libs-only-L'):
     ext_args['library_dirs'].append(flag[2:])
@@ -48,8 +53,16 @@ for flag in pkgconfig('--libs-only-other'):
 module = [
     Extension(
         "ballsbot_cpp.ballsbot_cpp",
-        ["ballsbot_cpp.pyx", "ballsbot/geometry.cpp", "ballsbot/point_cloud.cpp", "ballsbot/grid.cpp"],
+        [
+            "ballsbot_cpp.pyx",
+            "ballsbot/geometry.cpp", "ballsbot/point_cloud.cpp", "ballsbot/grid.cpp",
+            "ballsbot/cam_detector.cpp",
+        ],
         language="c++",
+        runtime_library_dirs=[  # FIXME
+            '/usr/local/lib/python3.6/dist-packages/ballsbot_cpp-0.1-py3.6-linux-aarch64.egg/ballsbot_cpp',
+            '/usr/lib/aarch64-linux-gnu',
+        ],
         **ext_args
     ),
 ]
@@ -69,4 +82,11 @@ setup(
     install_requires=install_requires,
     ext_modules=module,
     cmdclass={'build_ext': build_ext},
+    package_data={'': ['libuffssd.so', 'ssd_coco_labels.txt', 'ssd_relu6.uff']},
+    include_package_data=True,
+    libraries=[
+        ("uffssd", {'sources': ["ballsbot/cam_detector.cpp"]}),
+        ("opencv_core", {'sources': ["ballsbot/cam_detector.cpp"]}),
+        ("opencv_videoio", {'sources': ["ballsbot/cam_detector.cpp"]}),
+    ],
 )

@@ -4,6 +4,7 @@
 from libcpp.vector cimport vector
 from libcpp.unordered_map cimport unordered_map
 from libcpp.utility cimport pair
+from libcpp.string cimport string
 
 cdef extern from "ballsbot/common.h":
     cdef struct Point:
@@ -54,4 +55,23 @@ cdef extern from "ballsbot/grid.h":
         DirectionsWeights GetDirectionsWeights(Pose, CarInfo, FreeDistances)
         double GetCellWeight(GridKey)
         vector[vector[size_t]] GetSectorsMap(Pose, CarInfo, double)
+
+
+cdef extern from "ballsbot/cam_detector.h":
+    cdef struct DetectionPoint:
+        DetectionPoint(double, double)
+        double x
+        double y
+
+    cdef struct Detection:
+        Detection(string, double, DetectionPoint, DetectionPoint)
+        string object_class
+        double confidence
+        DetectionPoint top_left
+        DetectionPoint bottom_right
+
+    cdef cppclass _CamDetector "CamDetector":
+        _CamDetector()
+        void StartUp(string)
+        vector[Detection] Detect()
 
