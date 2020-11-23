@@ -146,8 +146,8 @@ cdef class CamDetector:
             result.append({
                 'object_class': it.object_class.decode('UTF-8'),
                 'confidence': it.confidence,
-                'top_left': (it.top_left.x, it.top_left.y),
-                'bottom_right': (it.bottom_right.x, it.bottom_right.y),
+                'bottom_left': (it.bottom_left.x, it.bottom_left.y),
+                'top_right': (it.top_right.x, it.top_right.y),
             })
 
         return result

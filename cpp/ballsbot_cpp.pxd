@@ -67,8 +67,8 @@ cdef extern from "ballsbot/cam_detector.h":
         Detection(string, double, DetectionPoint, DetectionPoint)
         string object_class
         double confidence
-        DetectionPoint top_left
-        DetectionPoint bottom_right
+        DetectionPoint bottom_left
+        DetectionPoint top_right
 
     cdef cppclass _CamDetector "CamDetector":
         _CamDetector()

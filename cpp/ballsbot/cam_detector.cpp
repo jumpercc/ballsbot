@@ -94,7 +94,8 @@ std::vector<Detection> CamDetector::Detect() {
     std::vector<Detection> result;
     auto detections = DetectObjects(&raw_bgr_[0]);
     for (auto it : detections) {
-        Detection det = {classes_names_[int(it[0])], it[1], {it[2], it[3]}, {it[4], it[5]}};
+        Detection det = {
+            classes_names_[int(it[0])], it[1], {it[2], 1.f - it[5]}, {it[4], 1.f - it[3]}};
         result.push_back(det);
     }
     return result;

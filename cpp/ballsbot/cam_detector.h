@@ -15,13 +15,13 @@ struct DetectionPoint {
 struct Detection {
     std::string object_class;
     float confidence;
-    DetectionPoint top_left, bottom_right;
+    DetectionPoint bottom_left, top_right;
 };
 
 class CamDetector {
 public:
-    static const int kCaptureWidth = 3264;   // 1280;
-    static const int kCaptureHeight = 2464;  // 720;
+    static const int kCaptureWidth = 3264;
+    static const int kCaptureHeight = 2464;
     static const int kDisplayWidth = 300;
     static const int kDisplayHeight = 300;
     static const int kFramerate = 2;
