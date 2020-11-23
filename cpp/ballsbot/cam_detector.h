@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
@@ -19,17 +20,12 @@ struct Detection {
 
 class CamDetector {
 public:
-    static const int kCaptureWidth = 1280;  // 3264;
-    static const int kCaptureHeight = 720;  // 2464;
+    static const int kCaptureWidth = 3264;   // 1280;
+    static const int kCaptureHeight = 2464;  // 720;
     static const int kDisplayWidth = 300;
     static const int kDisplayHeight = 300;
-    static const int kFramerate = 1;
+    static const int kFramerate = 2;
     static const int kFlipMethod = 0;
-
-    CamDetector() {
-        std::string pipeline = GstreamerPipeline();
-        cap_ = cv::VideoCapture(pipeline, cv::CAP_GSTREAMER);
-    }
 
     ~CamDetector() {
         cap_.release();
@@ -46,7 +42,11 @@ private:
     cv::VideoCapture cap_;
     std::vector<std::string> classes_names_;
     std::string net_files_directory_;
+    std::chrono::high_resolution_clock::time_point video_start_ts_;
+    uint64_t frames_seen_;
 
+    void OpenVideoStream();
+    int GetFramesToSkip();
     void ReadClassesNames();
     std::string GstreamerPipeline();
 };

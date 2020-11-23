@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fstream>  // needed by GetClassesNames
 #include <stdexcept>
+#include <cmath>
 
 #include <opencv2/core/matx.hpp>
 
@@ -14,8 +15,7 @@ std::string CamDetector::GstreamerPipeline() {
            ", format=(string)NV12, framerate=(fraction)" + std::to_string(kFramerate) +
            "/1 ! nvvidconv flip-method=" + std::to_string(kFlipMethod) +
            " ! video/x-raw, width=(int)" + std::to_string(kDisplayWidth) + ", height=(int)" +
-           std::to_string(kDisplayHeight) +
-           ", format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink";
+           std::to_string(kDisplayHeight) + ", format=(string)BGRx ! videoconvert ! appsink";
 }
 
 void CamDetector::ReadClassesNames() {
@@ -30,17 +30,52 @@ void CamDetector::ReadClassesNames() {
 
 void CamDetector::StartUp(std::string net_files_directory) {
     net_files_directory_ = net_files_directory;
-    if (!cap_.isOpened()) {
-        throw std::runtime_error("Failed to open camera");
-    }
     ReadClassesNames();
     StartupDetector(net_files_directory);
 }
 
+void CamDetector::OpenVideoStream() {
+    std::string pipeline = GstreamerPipeline();
+    cap_ = cv::VideoCapture(pipeline, cv::CAP_GSTREAMER);
+    cap_.set(cv::CAP_PROP_FPS, kFramerate);
+    video_start_ts_ = std::chrono::high_resolution_clock::now();
+    frames_seen_ = 0;
+}
+
+int CamDetector::GetFramesToSkip() {
+    auto now_ts = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> from_video_start = now_ts - video_start_ts_;
+    return std::floor(double(kFramerate) * from_video_start.count() / 1000.) - frames_seen_;
+}
+
 std::vector<Detection> CamDetector::Detect() {
+    if (!cap_.isOpened()) {
+        OpenVideoStream();
+        if (!cap_.isOpened()) {
+            throw std::runtime_error("Failed to open camera");
+        }
+    }
+
+    if (frames_seen_ != 0) {
+        // skip obsolete frames
+        auto frames_to_skip = GetFramesToSkip();
+        if (frames_to_skip > kFramerate) {
+            frames_to_skip = kFramerate;
+        }
+        for (int i = 0; i < frames_to_skip - 1; ++i) {
+            cap_.grab();
+            ++frames_seen_;
+        }
+    }
+
     if (!cap_.read(img_)) {
         throw std::runtime_error("Capture read error");
     }
+    int to_add = GetFramesToSkip();
+    if (to_add < 0) {
+        to_add = 0;
+    }
+    frames_seen_ += static_cast<uint64_t>(to_add);
 
     if (img_.type() != CV_8UC3) {
         throw std::runtime_error("Unexpected capture format (need CV_8UC3)");
