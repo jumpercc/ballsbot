@@ -1,5 +1,5 @@
 from ballsbot.utils import keep_rps, run_as_thread
-from ballsbot_cpp import ballsbot_cpp
+from ballsbot_detection import ballsbot_detection
 
 
 class Detector:
@@ -14,11 +14,11 @@ class Detector:
         }
 
     def start(self):
-        ballsbot_cpp.startup_detection()
+        ballsbot_detection.startup_detection()
         ts = None
         while True:
             ts = keep_rps(ts, fps=self.fps)
-            detections = ballsbot_cpp.detect()
+            detections = ballsbot_detection.detect()
             detections = list(filter(lambda x: x['object_class'] in self.object_classes, detections))
 
             for an_object in detections:

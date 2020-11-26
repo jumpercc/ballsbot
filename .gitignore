@@ -8,6 +8,6 @@ tmp*
 cpp_*/build
 cpp_*/cmake-build-debug/
 cpp_*/dist
-cpp_*/ballsbot_cpp.egg-info
-cpp_*/ballsbot_cpp.cpp
+cpp_*/ballsbot_*.egg-info
+cpp_*/ballsbot_*.cpp
 
