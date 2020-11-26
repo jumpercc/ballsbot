@@ -8,6 +8,7 @@ from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
+from ballsbot.detection import Detector
 from ballsbot_cpp import ballsbot_cpp
 
 
@@ -31,6 +32,7 @@ class Explorer:
     A_BIT_RIGHT = 0.5
     A_BIT_LEFT = -0.5
     INNER_OFFSET = 0.03
+    DETECTION_MAX_DISTANCE_FROM_CENTER = 0.10  # TODO select optimal one
 
     def __init__(self, test_run=False, profile_mocks=None):
         if profile_mocks is None:
@@ -48,11 +50,13 @@ class Explorer:
             self.imu = IMU_Threaded()
             self.odometry = Odometry(self.imu, self.car_controls['throttle'])
             self.tracker = TrackerLight(self.imu, self.odometry)
+            self.detector = Detector()
         elif profile_mocks is not None:
             self.car_controls = profile_mocks['car_controls']
             self.imu = None
             self.odometry = profile_mocks['odometry']
             self.tracker = profile_mocks['tracker']
+            self.detector = None
 
         self.track_info = []
         self.cached_speed = None
@@ -65,8 +69,12 @@ class Explorer:
         def tracker_run():
             self.tracker.start()
 
+        def detector_run():
+            self.detector.start()
+
         if not self.test_run:
             run_as_thread(tracker_run)
+            run_as_thread(detector_run)
 
         ts = None
         direction = {'steering': 0., 'throttle': self.STOP}
@@ -275,18 +283,34 @@ class Explorer:
             can_move
         )
 
-        for sector_key in weights.keys():
-            if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
-                    or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
-                weights[sector_key] *= 2.  # trying to keep prev direction
-            if sector_key[0] == prev_direction['steering']:
-                weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
+        detected_object = self.detector.get_seen_object()
+        if detected_object is None:
+            print('no object')  # FIXME
+            for sector_key in weights.keys():
+                if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
+                        or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
+                    weights[sector_key] *= 2.  # trying to keep prev direction
+                if sector_key[0] == prev_direction['steering']:
+                    weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
+        else:
+            print(detected_object)  # FIXME
+            directions = self._get_preferred_directions(detected_object)
+            print(directions)  # FIXME
+            if directions is None:
+                for sector_key in weights.keys():
+                    weights[sector_key] = 0.
+            else:
+                for sector_key in weights.keys():
+                    if sector_key in directions:
+                        weights[sector_key] *= 10.
+                    else:
+                        weights[sector_key] /= 10.
 
         self.cached_weights = weights
         weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
-        else:  # fallback
+        elif detected_object is None:  # fallback
             if prev_direction['throttle'] == self.BACKWARD_THROTTLE:
                 filter_value = -1.
             else:
@@ -303,6 +327,8 @@ class Explorer:
                     -abs(y[0][0]),  # prefer straight
                 )
             ))[-1][0]
+        else:
+            sector_key = (0., 0.)
 
         steering = sector_key[0]
         throttle = self.FORWARD_THROTTLE if sector_key[1] > 0. else self.BACKWARD_THROTTLE
@@ -392,3 +418,69 @@ class Explorer:
     def track_info_to_a_file(self, file_path):
         with open(file_path, 'w') as a_file:
             a_file.write(json.dumps(self.track_info))
+
+    def _get_detection_segment(self, detected_object):
+        center_x, center_y = detected_object['center']
+
+        if center_x < 0.5 and 0.5 - center_x > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+            result_x = -1
+        elif center_x > 0.5 and center_x - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+            result_x = 1
+        else:
+            result_x = 0
+
+        if center_y < 0.5 and 0.5 - center_y > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+            result_y = -1
+        elif center_y > 0.5 and center_y - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+            result_y = 1
+        else:
+            result_y = 0
+
+        return result_x, result_y
+
+    def _get_preferred_directions(self, detected_object):
+        """
+        returns {(st, tr), ...}
+        """
+        result = set()
+
+        segment_x, segment_y = self._get_detection_segment(detected_object)
+        if segment_y == -1 or segment_y == 1:
+            if segment_x == -1:
+                # left, back
+                for st in (-1., -0.5):
+                    result.add((st, -1.))
+            elif segment_x == 0:
+                result.add((0., -1.))  # back
+            else:
+                # right, back
+                for st in (0.5, 1.):
+                    result.add((st, -1.))
+        elif segment_y == 0:
+            too_close = detected_object['vsize'] > 2 * self.DETECTION_MAX_DISTANCE_FROM_CENTER \
+                        or detected_object['hsize'] > 2 * self.DETECTION_MAX_DISTANCE_FROM_CENTER
+            if segment_x == -1:
+                if too_close:
+                    # right, backward
+                    for st in (0.5, 1.):
+                        result.add((st, -1.))
+                else:
+                    # right, forward
+                    for st in (0.5, 1.):
+                        result.add((st, 1.))
+            elif segment_x == 0:
+                if too_close:
+                    return None  # stop
+                else:
+                    result.add((0., 1.))  # forward
+            else:  # 1
+                if too_close:
+                    # left, backward
+                    for st in (-1., -0.5):
+                        result.add((st, -1.))
+                else:
+                    # left, forward
+                    for st in (-1., -0.5):
+                        result.add((st, 1.))
+
+        return result
