@@ -5,9 +5,9 @@ tmp*
 *.json
 *.log
 **/*.swp
-cpp/build
-cpp/cmake-build-debug/
-cpp/dist
-cpp/ballsbot_cpp.egg-info
-cpp/ballsbot_cpp.cpp
+cpp_*/build
+cpp_*/cmake-build-debug/
+cpp_*/dist
+cpp_*/ballsbot_cpp.egg-info
+cpp_*/ballsbot_cpp.cpp
 
