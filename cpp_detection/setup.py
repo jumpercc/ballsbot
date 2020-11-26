@@ -37,7 +37,7 @@ for flag in pkgconfig('--cflags-only-other'):
 ext_args['extra_compile_args'].append("-std=c++17")
 ext_args['library_dirs'].append("/usr/lib/aarch64-linux-gnu")
 ext_args['library_dirs'].append("/usr/lib/x86_64-linux-gnu/")
-ext_args['library_dirs'].append("./ballsbot_cpp")
+ext_args['library_dirs'].append("./ballsbot_detection")
 
 for flag in pkgconfig('--libs-only-l'):
     ext_args['libraries'].append(flag[2:])
@@ -52,29 +52,40 @@ for flag in pkgconfig('--libs-only-other'):
 
 module = [
     Extension(
-        "ballsbot_cpp.ballsbot_cpp",
+        "ballsbot_detection.ballsbot_detection",
         [
-            "ballsbot_cpp.pyx",
-            "ballsbot/geometry.cpp", "ballsbot/point_cloud.cpp", "ballsbot/grid.cpp",
+            "ballsbot_detection.pyx",
+            "ballsbot/cam_detector.cpp",
         ],
         language="c++",
+        runtime_library_dirs=[  # FIXME
+            '/usr/local/lib/python3.6/dist-packages/ballsbot_detection-0.1-py3.6-linux-aarch64.egg/ballsbot_detection',
+            '/usr/lib/aarch64-linux-gnu',
+        ],
         **ext_args
     ),
 ]
 
 setup(
-    name='ballsbot-cpp',
-    description='Python bindings for ballsbot cpp functions.',
+    name='ballsbot-detection',
+    description='Python bindings for ballsbot detection functions.',
     version='0.1',
     author='Oleg Nurtdinov',
     author_email='j@jumper.cc',
     license='BSD',
     packages=[
-        "ballsbot_cpp",
+        "ballsbot_detection",
     ],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
     ext_modules=module,
     cmdclass={'build_ext': build_ext},
+    package_data={'': ['libuffssd.so', 'ssd_coco_labels.txt', 'ssd_relu6.uff']},
+    include_package_data=True,
+    libraries=[
+        ("uffssd", {'sources': ["ballsbot/cam_detector.cpp"]}),
+        ("opencv_core", {'sources': ["ballsbot/cam_detector.cpp"]}),
+        ("opencv_videoio", {'sources': ["ballsbot/cam_detector.cpp"]}),
+    ],
 )
