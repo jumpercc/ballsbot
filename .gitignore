@@ -10,4 +10,5 @@ cpp_*/cmake-build-debug/
 cpp_*/dist
 cpp_*/ballsbot_*.egg-info
 cpp_*/ballsbot_*.cpp
+**/cmake-build-debug/
 

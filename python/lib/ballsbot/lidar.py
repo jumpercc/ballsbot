@@ -8,6 +8,7 @@ from random import random
 from ballsbot.utils import keep_rps
 
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
+sys.path.append('/usr/lib/python2.7/dist-packages')
 
 import rospy
 from sensor_msgs.msg import LaserScan

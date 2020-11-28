@@ -1,6 +1,7 @@
 import sys
 
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
+sys.path.append('/usr/lib/python2.7/dist-packages')
 import rospy
 
 

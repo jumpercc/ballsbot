@@ -1,5 +1,11 @@
-from ballsbot.utils import keep_rps, run_as_thread
-from ballsbot_detection import ballsbot_detection
+import sys
+
+sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
+sys.path.append('/usr/lib/python2.7/dist-packages')
+sys.path.append('/home/ballsbot/catkin_ws/devel/lib/python2.7/dist-packages')
+
+import rospy
+from ballsbot_detection.msg import DetectionsList
 
 
 class Detector:
@@ -14,11 +20,23 @@ class Detector:
         }
 
     def start(self):
-        ballsbot_detection.startup_detection()
-        ts = None
         while True:
-            ts = keep_rps(ts, fps=self.fps)
-            detections = ballsbot_detection.detect()
+            try:
+                data = rospy.wait_for_message('/cam_detections', DetectionsList, timeout=5)
+            except KeyboardInterrupt:
+                break
+            except rospy.exceptions.ROSException as e:
+                data = None
+            if data is not None:
+                detections = [{
+                    'object_class': x.object_class,
+                    'top_right': (x.top_right.x, x.top_right.y),
+                    'bottom_left': (x.bottom_left.x, x.bottom_left.y),
+                    'confidence': x.confidence,
+                } for x in data.data]
+            else:
+                detections = []
+
             detections = list(filter(lambda x: x['object_class'] in self.object_classes, detections))
 
             for an_object in detections:
