@@ -32,7 +32,8 @@ class Explorer:
     A_BIT_RIGHT = 0.5
     A_BIT_LEFT = -0.5
     INNER_OFFSET = 0.03
-    DETECTION_MAX_DISTANCE_FROM_CENTER = 0.10  # TODO select optimal one
+    DETECTION_MAX_DISTANCE_FROM_CENTER = 0.15
+    DETECTION_CLOSE_ENOUGH = 0.2
 
     def __init__(self, test_run=False, profile_mocks=None):
         if profile_mocks is None:
@@ -64,6 +65,7 @@ class Explorer:
         self.cached_points = None
         self.cached_direction = None
         self.cached_weights = None
+        self.prev_seen_class = "no one"
 
     def run(self, save_track_info=False):
         def tracker_run():
@@ -86,9 +88,9 @@ class Explorer:
             if keep_for <= 0:
                 direction, keep_for = self._get_next_move(direction, steps_with_direction)
             keep_for -= 1
-            print('direction: {}, turn: {}, speed {:0.4f}'.format(
-                direction['throttle'], direction['steering'], self.odometry.get_speed()
-            ))
+            # print('direction: {}, turn: {}, speed {:0.4f}'.format(
+            #     direction['throttle'], direction['steering'], self.odometry.get_speed()
+            # ))
             self._follow_direction(direction)
 
             if save_track_info:
@@ -285,7 +287,9 @@ class Explorer:
 
         detected_object = self.detector.get_seen_object()
         if detected_object is None:
-            print('no object')  # FIXME
+            if self.prev_seen_class is not None:
+                print("I'll find ya!")
+                self.prev_seen_class = None
             for sector_key in weights.keys():
                 if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
                         or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
@@ -293,9 +297,10 @@ class Explorer:
                 if sector_key[0] == prev_direction['steering']:
                     weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
         else:
-            print(detected_object)  # FIXME
+            if self.prev_seen_class is None or self.prev_seen_class != detected_object['object_class']:
+                print('See ya! (a ' + detected_object['object_class'] + ')')
+                self.prev_seen_class = detected_object['object_class']
             directions = self._get_preferred_directions(detected_object)
-            print(directions)  # FIXME
             if directions is None:
                 for sector_key in weights.keys():
                     weights[sector_key] = 0.
@@ -331,7 +336,12 @@ class Explorer:
             sector_key = (0., 0.)
 
         steering = sector_key[0]
-        throttle = self.FORWARD_THROTTLE if sector_key[1] > 0. else self.BACKWARD_THROTTLE
+        if sector_key[1] > 0.:
+            throttle = self.FORWARD_THROTTLE
+        elif sector_key[1] < 0.:
+            throttle = self.BACKWARD_THROTTLE
+        else:
+            throttle = 0.
 
         if prev_direction['throttle'] == self.FORWARD_THROTTLE and throttle == self.BACKWARD_THROTTLE:
             throttle = self.FORWARD_BRAKE
@@ -447,26 +457,26 @@ class Explorer:
         segment_x, segment_y = self._get_detection_segment(detected_object)
         if segment_y == -1 or segment_y == 1:
             if segment_x == -1:
-                # left, back
-                for st in (-1., -0.5):
+                # -left, back
+                for st in (0.5, 1.):
                     result.add((st, -1.))
             elif segment_x == 0:
                 result.add((0., -1.))  # back
             else:
-                # right, back
-                for st in (0.5, 1.):
+                # -right, back
+                for st in (-1., -0.5):
                     result.add((st, -1.))
         elif segment_y == 0:
-            too_close = detected_object['vsize'] > 2 * self.DETECTION_MAX_DISTANCE_FROM_CENTER \
-                        or detected_object['hsize'] > 2 * self.DETECTION_MAX_DISTANCE_FROM_CENTER
+            too_close = detected_object['vsize'] > self.DETECTION_CLOSE_ENOUGH \
+                        or detected_object['hsize'] > self.DETECTION_CLOSE_ENOUGH
             if segment_x == -1:
                 if too_close:
-                    # right, backward
+                    # -left, backward
                     for st in (0.5, 1.):
                         result.add((st, -1.))
                 else:
-                    # right, forward
-                    for st in (0.5, 1.):
+                    # left, forward
+                    for st in (-1., -0.5):
                         result.add((st, 1.))
             elif segment_x == 0:
                 if too_close:
@@ -475,12 +485,12 @@ class Explorer:
                     result.add((0., 1.))  # forward
             else:  # 1
                 if too_close:
-                    # left, backward
+                    # -right, backward
                     for st in (-1., -0.5):
                         result.add((st, -1.))
                 else:
-                    # left, forward
-                    for st in (-1., -0.5):
+                    # right, forward
+                    for st in (0.5, 1.):
                         result.add((st, 1.))
 
         return result
