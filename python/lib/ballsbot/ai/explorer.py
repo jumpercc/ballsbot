@@ -32,8 +32,9 @@ class Explorer:
     A_BIT_RIGHT = 0.5
     A_BIT_LEFT = -0.5
     INNER_OFFSET = 0.03
-    DETECTION_MAX_DISTANCE_FROM_CENTER = 0.15
-    DETECTION_CLOSE_ENOUGH = 0.2
+    DETECTION_MAX_DISTANCE_FROM_CENTER_X = 0.15
+    DETECTION_MAX_DISTANCE_FROM_CENTER_Y = 0.25
+    DETECTION_CLOSE_ENOUGH = 0.15 * 0.15
 
     def __init__(self, test_run=False, profile_mocks=None):
         if profile_mocks is None:
@@ -432,16 +433,16 @@ class Explorer:
     def _get_detection_segment(self, detected_object):
         center_x, center_y = detected_object['center']
 
-        if center_x < 0.5 and 0.5 - center_x > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+        if center_x < 0.5 and 0.5 - center_x > self.DETECTION_MAX_DISTANCE_FROM_CENTER_X:
             result_x = -1
-        elif center_x > 0.5 and center_x - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+        elif center_x > 0.5 and center_x - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER_X:
             result_x = 1
         else:
             result_x = 0
 
-        if center_y < 0.5 and 0.5 - center_y > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+        if center_y < 0.5 and 0.5 - center_y > self.DETECTION_MAX_DISTANCE_FROM_CENTER_Y:
             result_y = -1
-        elif center_y > 0.5 and center_y - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER:
+        elif center_y > 0.5 and center_y - 0.5 > self.DETECTION_MAX_DISTANCE_FROM_CENTER_Y:
             result_y = 1
         else:
             result_y = 0
@@ -455,22 +456,24 @@ class Explorer:
         result = set()
 
         segment_x, segment_y = self._get_detection_segment(detected_object)
+        close_enough = detected_object['vsize'] * detected_object['hsize'] > self.DETECTION_CLOSE_ENOUGH
         if segment_y == -1 or segment_y == 1:
             if segment_x == -1:
                 # -left, back
                 for st in (0.5, 1.):
                     result.add((st, -1.))
             elif segment_x == 0:
-                result.add((0., -1.))  # back
+                if close_enough:
+                    return None  # stop
+                else:
+                    result.add((0., 1.))  # forward
             else:
                 # -right, back
                 for st in (-1., -0.5):
                     result.add((st, -1.))
         elif segment_y == 0:
-            too_close = detected_object['vsize'] > self.DETECTION_CLOSE_ENOUGH \
-                        or detected_object['hsize'] > self.DETECTION_CLOSE_ENOUGH
             if segment_x == -1:
-                if too_close:
+                if close_enough:
                     # -left, backward
                     for st in (0.5, 1.):
                         result.add((st, -1.))
@@ -479,12 +482,12 @@ class Explorer:
                     for st in (-1., -0.5):
                         result.add((st, 1.))
             elif segment_x == 0:
-                if too_close:
+                if close_enough:
                     return None  # stop
                 else:
                     result.add((0., 1.))  # forward
             else:  # 1
-                if too_close:
+                if close_enough:
                     # -right, backward
                     for st in (-1., -0.5):
                         result.add((st, -1.))

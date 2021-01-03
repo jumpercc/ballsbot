@@ -15,7 +15,9 @@ class Detector:
         self.main_object_detected = None
         self.object_classes = {
             'cat': 3,
-            'dog': 2,
+            'dog': 2,  # cat
+            'bear': 2,  # and cat
+            'teddy bear': 2,  # and this could be a cat too
             'person': 1,
         }
 
