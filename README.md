@@ -6,7 +6,7 @@
 
 ### Hardware
 
-- Remo Hobby Smax 1:16 RH1635 (strongly reccomend) / RH1631
+- Remo Hobby Smax 1:16 RH1635 (strongly recommend) / RH1631
 - E9631 Brushless Motor For Remo 1/16 smax (only for RH1631. RH1635 already has one)
 - SURPASS HOBBY KK 35A ESC Waterproof Electric Speed Controller for 1/16 RC Car Brushless Motor Power system [aliexpress](https://www.aliexpress.com/item/4000004474965.html?spm=a2g0s.9042311.0.0.264d4c4da73utK&_ga=2.261127435.707005012.1606162973-254637839.1604956961)
 - Nvidia Jetson Nano Developer Kit [aliexpress](https://www.aliexpress.com/item/4000765500472.html?spm=a2g0s.9042311.0.0.264d4c4da73utK&_ga=2.227629467.707005012.1606162973-254637839.1604956961)
