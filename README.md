@@ -1,5 +1,7 @@
 # Miniature self driving car
 
+<img caption="robot photo" src="https://github.com/jumpercc/ballsbot/blob/master/images/car-photo.jpg?raw=true" width="400" />
+
 **TODO!!!** link to youtube video
 
 ## Requirements
