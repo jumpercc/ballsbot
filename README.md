@@ -33,7 +33,7 @@
 - code from this repo
 - ROS
 - **TODO!!!**
-- [YDLidar-SDK](https://github.com/YDLIDAR/YDLidar-SDK) for lidar
+- [YDLidar-SDK](https://github.com/YDLIDAR/YDLidar-SDK) for lidar (use [pdf](https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR-X2-USER%20Manual.pdf) too)
 - [JHPWMDriver](https://github.com/jetsonhacks/JHPWMDriver.git) for PCA9685
 - [RTIMULib](https://github.com/jetsonhacks/RTIMULib.git) for IMU
 - [mt7610u-linksys-ae6000-wifi-fixes](https://github.com/xtknight/mt7610u-linksys-ae6000-wifi-fixes.git) if your wi-fi module has not supported by jetson by default
