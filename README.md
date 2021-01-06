@@ -35,5 +35,5 @@
 - **TODO!!!**
 - [YDLidar-ros](https://github.com/YDLIDAR/ydlidar_ros) for lidar (use [pdf](https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR-X2-USER%20Manual.pdf) too) and install tf ros package
 - [JHPWMDriver](https://github.com/jetsonhacks/JHPWMDriver.git) for PCA9685
-- [RTIMULib](https://github.com/jetsonhacks/RTIMULib.git) for IMU ([tutorial](https://www.jetsonhacks.com/2016/01/29/bosch-bno055-imu-interface-over-i2c-nvidia-jetson-tk1-development-kit/))
+- [RTIMULib](https://github.com/jetsonhacks/RTIMULib/tree/master/Linux/python) for IMU
 - [mt7610u-linksys-ae6000-wifi-fixes](https://github.com/xtknight/mt7610u-linksys-ae6000-wifi-fixes.git) if your wi-fi module has not supported by jetson by default
