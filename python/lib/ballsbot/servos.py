@@ -2,7 +2,8 @@ import time
 
 # 9865, over rides only if needed, ie. TX2..
 PCA9685_I2C_ADDR = 0x40
-PCA9685_I2C_BUSNUM = 1
+PCA9685_I2C_BUSNUM = 0  # for T208 and pins 27, 28
+# PCA9685_I2C_BUSNUM = 1  # for T200 and pins 3, 5
 
 # STEERING
 STEERING_CHANNEL = 0
