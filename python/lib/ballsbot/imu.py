@@ -4,10 +4,11 @@ import numpy as np
 from math import pi
 from ballsbot.utils import run_as_thread
 
+s = RTIMU.Settings("RTIMULib")
+
 
 class IMU:
     def __init__(self):
-        s = RTIMU.Settings("RTIMULib")
         imu = RTIMU.RTIMU(s)
         if not imu.IMUInit():
             raise ValueError("IMU Init Failed")
