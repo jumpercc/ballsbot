@@ -36,5 +36,21 @@
 - **TODO!!!**
 - [YDLidar-ros](https://github.com/YDLIDAR/ydlidar_ros) for lidar (use [pdf](https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR-X2-USER%20Manual.pdf) too) and install tf ros package
 - pip install adafruit-pca9685 for PCA9685
-- [RTIMULib](https://github.com/jetsonhacks/RTIMULib/tree/master/Linux/python) for IMU
+- [RTIMULib](https://github.com/jetsonhacks/RTIMULib/tree/master/Linux/python) for IMU and you need this fix (for i2c bus 0):
+```
+$ git diff
+diff --git a/RTIMULib/RTIMUSettings.cpp b/RTIMULib/RTIMUSettings.cpp
+index 783dbff..9c0333e 100644
+--- a/RTIMULib/RTIMUSettings.cpp
++++ b/RTIMULib/RTIMUSettings.cpp
+@@ -470,7 +470,7 @@ void RTIMUSettings::setDefaults()
+     m_imuType = RTIMU_TYPE_AUTODISCOVER;
+     m_I2CSlaveAddress = 0;
+     m_busIsI2C = true;
+-    m_I2CBus = 1;
++    m_I2CBus = 0;
+     m_SPIBus = 0;
+     m_SPISelect = 0;
+     m_SPISpeed = 500000;
+```
 - [mt7610u-linksys-ae6000-wifi-fixes](https://github.com/xtknight/mt7610u-linksys-ae6000-wifi-fixes.git) if your wi-fi module has not supported by jetson by default
