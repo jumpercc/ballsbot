@@ -32,6 +32,7 @@
 - JetPack 4.4
 - code from this repo
 - ROS
+- [Jupyter](https://jupyter.org/install) (pip install notebook)
 - **TODO!!!**
 - [YDLidar-ros](https://github.com/YDLIDAR/ydlidar_ros) for lidar (use [pdf](https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR-X2-USER%20Manual.pdf) too) and install tf ros package
 - pip install adafruit-pca9685 for PCA9685
