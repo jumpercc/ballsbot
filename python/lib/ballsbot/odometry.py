@@ -64,7 +64,8 @@ class Odometry:
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
 
-        input_pin_speed = 18  # BCM pin 18, BOARD pin 12
+        # input_pin_speed = 18  # BCM pin 18, BOARD pin 12
+        input_pin_speed = 20  # BCM pin 20, BOARD pin 38
         GPIO.setup(input_pin_speed, GPIO.IN)
 
         input_pin_direction = 19  # BCM pin 19, BOARD pin 35
