@@ -99,7 +99,7 @@ class Tracker(TrackerLight):
         self.keep_readings = keep_readings
 
     def _get_current(self):
-        result = super(TrackerLight, self)._get_current()
+        result = super(Tracker, self)._get_current()
         result['points'] = self.lidar.get_lidar_points()
         result['ts'] = self.lidar.points_ts
         return result
@@ -108,7 +108,7 @@ class Tracker(TrackerLight):
         self.poses[-1]['points'] = current['points']
 
     def _get_transformation(self, dt, current, previous):
-        raw_result = super(TrackerLight, self)._get_transformation(dt, current, previous)
+        raw_result = super(Tracker, self)._get_transformation(dt, current, previous)
         if not self.fix_pose_with_lidar:
             return raw_result
 
