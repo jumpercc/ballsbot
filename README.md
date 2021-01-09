@@ -2,7 +2,7 @@
 
 <img caption="robot photo" src="https://github.com/jumpercc/ballsbot/blob/master/images/car-photo.jpg?raw=true" height="400" /> <img caption="robot photo" src="https://github.com/jumpercc/ballsbot/blob/master/images/car-photo2.jpg?raw=true" height="400" />
 
-**TODO!!!** link to youtube video
+[A video how to construct this car](https://www.youtube.com/watch?v=rkNG0EHzA00&list=PLYvKlIOUsVXJjlYiZFUibLezPqPUq2qsj&index=1) (russian)
 
 ## Requirements
 
