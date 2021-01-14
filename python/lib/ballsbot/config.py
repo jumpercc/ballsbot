@@ -1,7 +1,7 @@
 # -1 for chip on an upper side
 IMU_Z_ROTATION_SIGN = -1
 
-# result of Lider.calibrate()
+# result of Lidar.calibrate()
 LIDAR_CALIBRATION = {
     'angle_fix': 3.0810609316737434,  # lidar orientation (radians)
     'fl_x': 0.2041686441507201,  # front left corner coords
@@ -11,7 +11,7 @@ LIDAR_CALIBRATION = {
 }
 
 # meters per count of primary or secondary peaks
-ODOMETRY_METERS_PER_ROTATION = 3.5 / 39.
+ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
 
 # ODOMETRY_PRIMARY_PIN = 18  # BOARD pin 12 T200 default
 ODOMETRY_PRIMARY_PIN = 20  # BOARD pin 38 T208 default
