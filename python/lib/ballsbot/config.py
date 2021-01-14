@@ -1,6 +1,3 @@
-# -1 for chip on an upper side
-IMU_Z_ROTATION_SIGN = -1
-
 # result of Lidar.calibrate()
 LIDAR_CALIBRATION = {
     'angle_fix': 3.0810609316737434,  # lidar orientation (radians)
