@@ -1,6 +1,7 @@
 from math import sin, cos, pi
 from time import time
 from ballsbot.utils import run_as_thread
+from ballsbot.config import ODOMETRY_METERS_PER_ROTATION, ODOMETRY_PRIMARY_PIN, ODOMETRY_SECONDARY_PIN
 
 
 class Odometry:
@@ -11,7 +12,7 @@ class Odometry:
         self.teta_eps = 0.01
         self.teta_speed = 0.08
 
-        self.odometry_meters_per_rotation = 3.5 / 39.
+        self.odometry_meters_per_rotation = ODOMETRY_METERS_PER_ROTATION
         self.odometry_counter = 0
         self.direction = 0.
         self.odometry_last_interval = None
@@ -64,22 +65,18 @@ class Odometry:
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
 
-        # input_pin_speed = 18  # BCM pin 18, BOARD pin 12
-        input_pin_speed = 20  # BCM pin 20, BOARD pin 38
-        GPIO.setup(input_pin_speed, GPIO.IN)
-
-        input_pin_direction = 19  # BCM pin 19, BOARD pin 35
-        GPIO.setup(input_pin_direction, GPIO.IN)
+        GPIO.setup(ODOMETRY_PRIMARY_PIN, GPIO.IN)
+        GPIO.setup(ODOMETRY_SECONDARY_PIN, GPIO.IN)
 
         try:
             prev_ts = time()
             while True:
-                if GPIO.wait_for_edge(input_pin_speed, GPIO.FALLING, timeout=750) is None:
+                if GPIO.wait_for_edge(ODOMETRY_PRIMARY_PIN, GPIO.FALLING, timeout=750) is None:
                     ts = time()
                     self.odometry_last_interval = None
                     self.direction = 0.
                 else:
-                    self.direction = 1. if GPIO.input(input_pin_direction) == GPIO.HIGH else -1.
+                    self.direction = 1. if GPIO.input(ODOMETRY_SECONDARY_PIN) == GPIO.HIGH else -1.
                     self.odometry_counter += 1
                     ts = time()
                     if 0.01 < ts - prev_ts < 10.:

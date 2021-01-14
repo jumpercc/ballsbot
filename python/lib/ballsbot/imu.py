@@ -3,6 +3,7 @@ from time import time, sleep
 import numpy as np
 from math import pi
 from ballsbot.utils import run_as_thread
+from ballsbot.config import IMU_Z_ROTATION_SIGN
 
 s = RTIMU.Settings("RTIMULib")
 
@@ -45,7 +46,7 @@ class IMU:
                 data = self.imu.getIMUData()
                 if data["fusionPose"][0] != 0. or data["fusionPose"][1] != 0. or data["fusionPose"][2] != 0.:
                     diff = np.array(data["fusionPose"]) - self.initial_position
-                    teta = -diff[2]
+                    teta = IMU_Z_ROTATION_SIGN * diff[2]
                     if teta > pi:
                         teta -= 2 * pi
                     self.teta = teta

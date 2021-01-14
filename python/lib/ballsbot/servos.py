@@ -1,13 +1,9 @@
 import time
+from ballsbot.config import PCA9685_I2C_BUSNUM, STEERING_CHANNEL, THROTTLE_CHANNEL, \
+    SERVOS_LEFT_PULSE, SERVOS_RIGHT_PULSE, SERVOS_ZERO_PULSE, SERVOS_MIN_PULSE, SERVOS_MAX_PULSE
 
 # 9865, over rides only if needed, ie. TX2..
 PCA9685_I2C_ADDR = 0x40
-PCA9685_I2C_BUSNUM = 0  # for T208 and pins 27, 28
-# PCA9685_I2C_BUSNUM = 1  # for T200 and pins 3, 5
-
-# STEERING
-STEERING_CHANNEL = 0
-THROTTLE_CHANNEL = 1
 
 
 def map_range(x, X_min, X_max, Y_min, Y_max):
@@ -29,13 +25,13 @@ class PCA9685:
     This is used for most RC Cars
     '''
 
-    def __init__(self, channel, address=0x40, frequency=60, busnum=None, init_delay=0.1):
+    def __init__(self, channel, address=PCA9685_I2C_ADDR, frequency=60, busnum=None, init_delay=0.1):
 
         self.default_freq = 60
         self.pwm_scale = frequency / self.default_freq
 
         import Adafruit_PCA9685
-        # Initialise the PCA9685 using the default address (0x40).
+        # Initialise the PCA9685 using the default address (PCA9685_I2C_ADDR).
         if busnum is not None:
             from Adafruit_GPIO import I2C
             # replace the get_bus function with our own
@@ -67,8 +63,8 @@ class PWMSteering:
 
     def __init__(self,
                  controller=None,
-                 left_pulse=450,
-                 right_pulse=330):
+                 left_pulse=SERVOS_LEFT_PULSE,
+                 right_pulse=SERVOS_RIGHT_PULSE):
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
@@ -108,9 +104,9 @@ class PWMThrottle:
 
     def __init__(self,
                  controller=None,
-                 max_pulse=390,
-                 min_pulse=328,
-                 zero_pulse=360):
+                 max_pulse=SERVOS_MAX_PULSE,
+                 min_pulse=SERVOS_MIN_PULSE,
+                 zero_pulse=SERVOS_ZERO_PULSE):
 
         self.controller = controller
         self.max_pulse = max_pulse

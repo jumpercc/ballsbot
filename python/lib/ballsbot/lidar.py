@@ -6,6 +6,7 @@ from time import time
 from random import random
 
 from ballsbot.utils import keep_rps
+from ballsbot.config import LIDAR_CALIBRATION
 
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
 sys.path.append('/usr/lib/python2.7/dist-packages')
@@ -59,13 +60,7 @@ class Lidar:
         self.test_run = test_run
 
     def _default_calibration(self):
-        return {
-            'angle_fix': 3.0810609316737434,
-            'fl_x': 0.2041686441507201,
-            'fl_y': 0.10426277741236079,
-            'rr_x': -0.08011094659163859,
-            'rr_y': -0.0988675829003773,
-        }
+        return LIDAR_CALIBRATION
 
     def _get_raw_lidar_points(self):
         data = None
