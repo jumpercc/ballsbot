@@ -24,6 +24,7 @@
 - PCA9685 16 Channel 12-bit PWM Servo motor Driver I2C [aliexpress](https://www.aliexpress.com/item/4000468996665.html?spm=a2g0s.9042311.0.0.264d4c4dFaR0Zo&_ga=2.165131705.707005012.1606162973-254637839.1604956961)
 - 4 Channel IIC I2C Logic Level Converter Bi-Directional Module 5V to 3.3V [aliexpress](https://www.aliexpress.com/item/32771873030.html?spm=a2g0s.9042311.0.0.264d4c4dFaR0Zo&_ga=2.165131705.707005012.1606162973-254637839.1604956961)
 - short USB - USB-C data cable like [this one](https://www.aliexpress.com/item/32771873030.html?spm=a2g0s.9042311.0.0.264d4c4dFaR0Zo&_ga=2.165131705.707005012.1606162973-254637839.1604956961)
+- two laser distance sensors VL53L0X (6 pin) [aliexpress](https://www.aliexpress.com/item/32842745623.html?spm=a2g0s.9042311.0.0.769233edHZLl5S&_ga=2.52956256.932233813.1612635851-254637839.1604956961)
 - access to 3D printer
 - tools
 
