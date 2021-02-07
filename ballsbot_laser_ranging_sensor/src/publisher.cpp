@@ -79,12 +79,13 @@ void ChangeSensorsAddresses(unsigned char bus) {
 int main(int argc, char** argv) {
     unsigned char bus = 0;
     uint8_t address = FRONT_ADDRESS;
+    std::string direction("unknown");
 
     if (argc >= 2) {
         bus = atoi(argv[1]);
     }
     if (argc >= 3) {
-        std::string direction(argv[2]);
+        direction = argv[2];
         if (direction == "front") {
             address = FRONT_ADDRESS;
         } else {
@@ -136,7 +137,9 @@ int main(int argc, char** argv) {
 
         msg.distance_in_mm = distance;
         msg.bus_number = bus;
-        ROS_INFO("%i bus %i: %i mm", argc, msg.bus_number, msg.distance_in_mm);
+        msg.direction = direction;
+        ROS_INFO("%i bus %i, %s: %i mm", argc, msg.bus_number, msg.direction.c_str(),
+                 msg.distance_in_mm);
         ROS_INFO("-");
 
         chatter_pub.publish(msg);
