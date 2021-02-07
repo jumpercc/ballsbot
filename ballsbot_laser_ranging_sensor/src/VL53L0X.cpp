@@ -48,8 +48,8 @@ extern "C" {
 
 // Constructors ////////////////////////////////////////////////////////////////
 
-VL53L0X::VL53L0X(unsigned char bus_no=0)
-    : address(ADDRESS_DEFAULT)
+VL53L0X::VL53L0X(unsigned char bus_no, uint8_t an_address)
+    : address(an_address)
     , io_timeout(0) // no timeout
     , did_timeout(false)
     , kI2CBus(bus_no)

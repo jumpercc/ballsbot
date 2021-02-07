@@ -102,7 +102,7 @@ class VL53L0X
     int error ;
 
 
-    VL53L0X(unsigned char bus_no);
+    VL53L0X(unsigned char bus_no, uint8_t an_address);
 
     int millis(void);
 

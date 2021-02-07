@@ -34,7 +34,7 @@ include_directories(
   src
 )
 
-add_executable(publisher_laser_sensor src/publisher.cpp src/VL53L0X.cpp)
+add_executable(publisher_laser_sensor src/publisher.cpp src/VL53L0X.cpp src/GPIOManager.cpp)
 target_link_libraries(publisher_laser_sensor ${catkin_LIBRARIES} ${I2C})
 add_dependencies(publisher_laser_sensor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
