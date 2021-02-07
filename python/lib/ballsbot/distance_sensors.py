@@ -16,22 +16,25 @@ class DistanceSensors:
 
         if LASER_SENSOR_FRONT_ENABLED:
             self.distances['front'] = None
+            run_as_thread(self.get_auto_update('front'))
 
         if LASER_SENSOR_REAR_ENABLED:
             self.distances['rear'] = None
+            run_as_thread(self.get_auto_update('rear'))
 
-        run_as_thread(self.start)
+    def get_auto_update(self, direction):
+        def result():
+            while True:
+                try:
+                    data = rospy.wait_for_message('/laser_distance_' + direction, LaserDistance, timeout=5)
+                except KeyboardInterrupt:
+                    break
+                except rospy.exceptions.ROSException as e:
+                    data = None
+                if data is not None:
+                    self.distances[data.direction] = data.distance_in_mm
 
-    def start(self):
-        while True:
-            try:
-                data = rospy.wait_for_message('/laser_distance', LaserDistance, timeout=5)
-            except KeyboardInterrupt:
-                break
-            except rospy.exceptions.ROSException as e:
-                data = None
-            if data is not None:
-                self.distances[data.direction] = data.distance_in_mm
+        return result
 
     def get_distances(self):
         return self.distances.copy()

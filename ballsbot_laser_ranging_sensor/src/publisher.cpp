@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
     unsigned char bus = 0;
     uint8_t address = FRONT_ADDRESS;
     std::string direction("unknown");
+    std::string topic_name("laser_distance_");
 
     if (argc >= 2) {
         bus = atoi(argv[1]);
@@ -92,13 +93,14 @@ int main(int argc, char** argv) {
             address = REAR_ADDRESS;
         }
     }
+    topic_name += direction;
 
     ChangeSensorsAddresses(bus);
 
     ros::init(argc, argv, "ballsbot_laser_ranging_sensor");
     ros::NodeHandle n;
     ros::Publisher chatter_pub =
-        n.advertise<ballsbot_laser_ranging_sensor::LaserDistance>("laser_distance", 2);
+        n.advertise<ballsbot_laser_ranging_sensor::LaserDistance>(topic_name, 2);
     ros::Rate loop_rate(10);
 
     VL53L0X* sensor = new VL53L0X(bus, address);
