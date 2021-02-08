@@ -8,6 +8,7 @@ from ballsbot.geometry import distance
 from ballsbot.odometry import Odometry
 from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
+from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 from ballsbot.detection import Detector
 from ballsbot_cpp import ballsbot_cpp
 
@@ -53,12 +54,17 @@ class Explorer:
             self.odometry = Odometry(self.imu, self.car_controls['throttle'])
             self.tracker = TrackerLight(self.imu, self.odometry)
             self.detector = Detector()
+            if has_distance_sensors():
+                self.distance_sensors = DistanceSensors(autostart=False)
+            else:
+                self.distance_sensors = None
         elif profile_mocks is not None:
             self.car_controls = profile_mocks['car_controls']
             self.imu = None
             self.odometry = profile_mocks['odometry']
             self.tracker = profile_mocks['tracker']
             self.detector = None
+            self.distance_sensors = None
 
         self.track_info = []
         self.cached_speed = None
@@ -78,6 +84,8 @@ class Explorer:
         if not self.test_run:
             run_as_thread(tracker_run)
             run_as_thread(detector_run)
+            if self.distance_sensors is not None:
+                self.distance_sensors.start()
 
         ts = None
         direction = {'steering': 0., 'throttle': self.STOP}
@@ -240,7 +248,18 @@ class Explorer:
 
     def _get_can_move_map(self, debug_radial_points=None):
         nearby_points = self._get_nearby_points(debug_radial_points)
+
+        if self.distance_sensors is not None:
+            distances = self.distance_sensors.get_distances()
+            for direction_name, angle in {'front': 0., 'rear': pi}.items():
+                a_distance = distances.get(direction_name)
+                if a_distance is not None:
+                    a_distance /= 1000.  # to meters
+                    nearby_points.append({'distance': a_distance, 'angle': angle})
+                    # print('{} {:0.03f}'.format(direction_name, a_distance))
+
         nearby_points = self._filter_nearby_points(nearby_points)
+
         return {
             (0., 1.): self._can_move_straight_forward(nearby_points),
             (self.RIGHT, 1.): self._can_move_right_forward(nearby_points),

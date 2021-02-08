@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(ballsbot_laser_ranging_sensor)
 
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   genmsg

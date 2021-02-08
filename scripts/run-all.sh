@@ -14,7 +14,7 @@ $DIR/run-lidar.sh > ~/lidar.log 2>&1 &
 sleep 1
 
 $DIR/run-ballsbot_laser_sensor_front.sh > ~/sensor_front.log 2>&1 &
-sleep 1
+sleep 5
 
 $DIR/run-ballsbot_laser_sensor_rear.sh > ~/sensor_rear.log 2>&1 &
 sleep 1

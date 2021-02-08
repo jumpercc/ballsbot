@@ -2,11 +2,14 @@
 #include <unistd.h>
 #include <fstream>
 #include <mutex>
+#include <chrono>
+#include <thread>
 
 GPIOManager::GPIOManager(const int16_t xshutGPIOPin) : xshutGPIOPin(xshutGPIOPin) {
 }
 
 void GPIOManager::initGPIO() {
+    using namespace std::chrono_literals;
     if (this->gpioInitialized) {
         return;
     }
@@ -22,10 +25,16 @@ void GPIOManager::initGPIO() {
         std::lock_guard<std::mutex> guard(this->fileAccessMutex);
 
         std::ofstream file;
-        file.open("/sys/class/gpio/export", std::ofstream::out);
-        if (!file.is_open() || !file.good()) {
-            file.close();
-            throw(std::runtime_error("Failed opening file: /sys/class/gpio/export"));
+        for (int i = 0; i < 3; ++i) {
+            file.open("/sys/class/gpio/export", std::ofstream::out);
+            if (!file.is_open() || !file.good()) {
+                file.close();
+                if (i == 2) {
+                    throw(std::runtime_error("Failed opening file: /sys/class/gpio/export"));
+                }
+                std::this_thread::sleep_for(500ms);
+            }
+            break;
         }
         file << this->xshutGPIOPin;
         file.close();
