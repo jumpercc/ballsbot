@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "ballsbot_laser_ranging_sensor");
     ros::NodeHandle n;
     ros::Publisher chatter_pub =
-        n.advertise<ballsbot_laser_ranging_sensor::LaserDistance>(topic_name, 2);
+        n.advertise<ballsbot_laser_ranging_sensor::LaserDistance>(topic_name, 1);
     ros::Rate loop_rate(10);
 
     VL53L0X* sensor = new VL53L0X(bus, address);

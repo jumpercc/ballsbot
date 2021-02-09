@@ -313,7 +313,7 @@ class Explorer:
             for sector_key in weights.keys():
                 if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
                         or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
-                    weights[sector_key] *= 2.  # trying to keep prev direction
+                    weights[sector_key] *= 5.  # trying to keep prev direction
                 if sector_key[0] == prev_direction['steering']:
                     weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
         else:
