@@ -53,3 +53,12 @@ index 783dbff..9c0333e 100644
      m_SPISpeed = 500000;
 ```
 - [mt7610u-linksys-ae6000-wifi-fixes](https://github.com/xtknight/mt7610u-linksys-ae6000-wifi-fixes.git) if your wi-fi module has not supported by jetson by default
+
+### SD card image
+
+You can download SD card images from [here](https://disk.yandex.ru/d/XgYrkfBPJS2h5Q?w=1).
+Images are for 64GB SD cards.
+
+Login& password: `ballsbot`.
+
+You need to connect to your wi-fi and make this connection "avaliable for all users" (checkbox in network settings).
