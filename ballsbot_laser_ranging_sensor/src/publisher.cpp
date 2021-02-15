@@ -2,10 +2,10 @@
 #include "ros/ros.h"
 #include "ballsbot_laser_ranging_sensor/LaserDistance.h"
 #include <string>
-#include "GPIOManager.h"
 #include <cstdint>
 #include <stdexcept>
 #include <fstream>
+#include <memory>
 
 // Uncomment this line to use long range mode. This
 // increases the sensitivity of the sensor and extends its
@@ -23,57 +23,33 @@
 //#define HIGH_SPEED
 //#define HIGH_ACCURACY
 
-const int16_t FRONT_GPIO_PIN = 216;
-#define ADDRESS_DEFAULT 0x29
 #define FRONT_ADDRESS 0x27
 #define REAR_ADDRESS 0x28
-const std::string ADDRESSES_CHANGED("/tmp/laser_sensors_addresses_changed");
 
-void ChangeSensorsAddresses(unsigned char bus) {
-    std::ifstream already_done(ADDRESSES_CHANGED.c_str());
-    if (already_done.good()) {
-        return;
-    }
-
-    ROS_INFO("changing addresses for sensors");
-
-    ROS_INFO("setting off front sensor");
-    GPIOManager manager(FRONT_GPIO_PIN);
-    manager.powerOff();
-
-    ROS_INFO("changing for rear");
-    VL53L0X* rear_sensor = new VL53L0X(bus, ADDRESS_DEFAULT);
-    if (!rear_sensor->openVL53L0X()) {
+std::unique_ptr<VL53L0X> get_sensor(unsigned char bus, uint8_t address) {
+    auto sensor = std::make_unique<VL53L0X>(bus, address);
+    if (!sensor->openVL53L0X()) {
         ROS_INFO("Unable to open VL53L0X");
-        throw std::runtime_error("Unable to open VL53L0X, rear");
+        exit(-1);
     }
-    rear_sensor->init();
-    rear_sensor->setAddress(REAR_ADDRESS);
-    rear_sensor->closeVL53L0X();
-    delete rear_sensor;
+    sensor->init();
+    sensor->setTimeout(500);
+#if defined LONG_RANGE
+    // lower the return signal rate limit (default is 0.25 MCPS)
+    sensor->setSignalRateLimit(0.1);
+    // increase laser pulse periods (defaults are 14 and 10 PCLKs)
+    sensor->setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+    sensor->setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+#endif
 
-    ROS_INFO("setting on front sensor");
-    manager.powerOn();
-
-    ROS_INFO("changing for front");
-    VL53L0X* front_sensor = new VL53L0X(bus, ADDRESS_DEFAULT);
-    if (!front_sensor->openVL53L0X()) {
-        ROS_INFO("Unable to open VL53L0X");
-        throw std::runtime_error("Unable to open VL53L0X, front");
-    }
-    front_sensor->init();
-    front_sensor->setAddress(FRONT_ADDRESS);
-    front_sensor->closeVL53L0X();
-    delete front_sensor;
-
-    ROS_INFO("done");
-
-    std::ofstream mark_as_done(ADDRESSES_CHANGED.c_str(), std::ofstream::out);
-    if (!mark_as_done.is_open() || !mark_as_done.good()) {
-        mark_as_done.close();
-        throw(std::runtime_error(std::string("Failed opening file: ") + ADDRESSES_CHANGED));
-    }
-    mark_as_done.close();
+#if defined HIGH_SPEED
+    // reduce timing budget to 20 ms (default is about 33 ms)
+    sensor->setMeasurementTimingBudget(20000);
+#elif defined HIGH_ACCURACY
+    // increase timing budget to 200 ms
+    sensor->setMeasurementTimingBudget(200000);
+#endif
+    return sensor;
 }
 
 int main(int argc, char** argv) {
@@ -95,36 +71,14 @@ int main(int argc, char** argv) {
     }
     topic_name += direction;
 
-    ChangeSensorsAddresses(bus);
-
     ros::init(argc, argv, "ballsbot_laser_ranging_sensor");
+
+    auto sensor = get_sensor(bus, address);
+
     ros::NodeHandle n;
     ros::Publisher chatter_pub =
         n.advertise<ballsbot_laser_ranging_sensor::LaserDistance>(topic_name, 1);
     ros::Rate loop_rate(10);
-
-    VL53L0X* sensor = new VL53L0X(bus, address);
-    if (!sensor->openVL53L0X()) {
-        ROS_INFO("Unable to open VL53L0X");
-        return -1;
-    }
-    sensor->init();
-    sensor->setTimeout(500);
-#if defined LONG_RANGE
-    // lower the return signal rate limit (default is 0.25 MCPS)
-    sensor.setSignalRateLimit(0.1);
-    // increase laser pulse periods (defaults are 14 and 10 PCLKs)
-    sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
-    sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
-#endif
-
-#if defined HIGH_SPEED
-    // reduce timing budget to 20 ms (default is about 33 ms)
-    sensor.setMeasurementTimingBudget(20000);
-#elif defined HIGH_ACCURACY
-    // increase timing budget to 200 ms
-    sensor.setMeasurementTimingBudget(200000);
-#endif
 
     while (ros::ok()) {
         ballsbot_laser_ranging_sensor::LaserDistance msg;
@@ -132,6 +86,8 @@ int main(int argc, char** argv) {
         uint16_t distance = sensor->readRangeSingleMillimeters();
         if (sensor->timeoutOccurred()) {
             ROS_INFO("Sensor timeout!");
+            sensor->closeVL53L0X();
+            sensor = get_sensor(bus, address);
             continue;
         } else if (distance > 2500) {
             distance = 0xFFFF;
@@ -150,7 +106,6 @@ int main(int argc, char** argv) {
     }
 
     sensor->closeVL53L0X();
-    delete sensor;
 
     return 0;
 }

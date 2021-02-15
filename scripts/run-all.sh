@@ -4,6 +4,16 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 if [ -z ${NO_MAKE_ROS_MODULES+x} ]; then
     $DIR/make-ros-modules.sh
+    if [ $? -ne 0 ]
+    then
+      exit -1
+    fi
+fi
+
+$DIR/run-ballsbot_laser_sensors_change_addresses.sh
+if [ $? -ne 0 ]
+then
+  exit -1
 fi
 
 $DIR/run-roscore.sh > ~/core.log 2>&1 &
@@ -14,7 +24,7 @@ $DIR/run-lidar.sh > ~/lidar.log 2>&1 &
 sleep 1
 
 $DIR/run-ballsbot_laser_sensor_front.sh > ~/sensor_front.log 2>&1 &
-sleep 5
+sleep 1
 
 $DIR/run-ballsbot_laser_sensor_rear.sh > ~/sensor_rear.log 2>&1 &
 sleep 1

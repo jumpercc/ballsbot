@@ -2,8 +2,6 @@
 #include <unistd.h>
 #include <fstream>
 #include <mutex>
-#include <chrono>
-#include <thread>
 
 GPIOManager::GPIOManager(const int16_t xshutGPIOPin) : xshutGPIOPin(xshutGPIOPin) {
 }
@@ -32,7 +30,7 @@ void GPIOManager::initGPIO() {
                 if (i == 2) {
                     throw(std::runtime_error("Failed opening file: /sys/class/gpio/export"));
                 }
-                std::this_thread::sleep_for(500ms);
+                usleep(500000);
             }
             break;
         }
@@ -58,11 +56,19 @@ void GPIOManager::powerOn() {
         std::lock_guard<std::mutex> guard(this->fileAccessMutex);
         std::ofstream file;
 
-        file.open(this->gpioFilename.c_str(), std::ofstream::out);
-        if (!file.is_open() || !file.good()) {
-            file.close();
-            throw(std::runtime_error(std::string("Failed opening file: ") + this->gpioFilename));
+        for (int i = 0; i < 5; ++i) {
+            file.open(this->gpioFilename.c_str(), std::ofstream::out);
+            if (!file.is_open() || !file.good()) {
+                file.close();
+                if (i == 4) {
+                    throw(std::runtime_error(std::string("Failed opening file: ") +
+                                             this->gpioFilename));
+                }
+                usleep(500000);
+            }
+            break;
         }
+
         file << "1";
         file.close();
 
@@ -78,10 +84,17 @@ void GPIOManager::powerOff() {
         std::lock_guard<std::mutex> guard(this->fileAccessMutex);
         std::ofstream file;
 
-        file.open(this->gpioFilename.c_str(), std::ofstream::out);
-        if (!file.is_open() || !file.good()) {
-            file.close();
-            throw(std::runtime_error(std::string("Failed opening file: ") + this->gpioFilename));
+        for (int i = 0; i < 5; ++i) {
+            file.open(this->gpioFilename.c_str(), std::ofstream::out);
+            if (!file.is_open() || !file.good()) {
+                file.close();
+                if (i == 4) {
+                    throw(std::runtime_error(std::string("Failed opening file: ") +
+                                             this->gpioFilename));
+                }
+                usleep(500000);
+            }
+            break;
         }
         file << "0";
         file.close();
