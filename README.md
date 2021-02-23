@@ -58,6 +58,7 @@ index 783dbff..9c0333e 100644
 
 You can download SD card images from [here](https://disk.yandex.ru/d/XgYrkfBPJS2h5Q?w=1).
 Images are for 64GB SD cards.
+```gunzip -c ballsbot-sd-2021-02-11.tgz | sudo dd of=/dev/sdb```
 
 Login& password: `ballsbot`.
 
