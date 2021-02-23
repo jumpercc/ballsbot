@@ -52,7 +52,6 @@ index 783dbff..9c0333e 100644
      m_SPISelect = 0;
      m_SPISpeed = 500000;
 ```
-- [mt7610u-linksys-ae6000-wifi-fixes](https://github.com/xtknight/mt7610u-linksys-ae6000-wifi-fixes.git) if your wi-fi module has not supported by jetson by default
 
 ### SD card image
 
