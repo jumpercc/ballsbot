@@ -10,19 +10,18 @@ from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
 from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 from ballsbot.detection import Detector
+from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH
 from ballsbot_cpp import ballsbot_cpp
 
 
 class Explorer:
-    TURN_DIAMETER = 0.88
     CHECK_RADIUS = 2.
     A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
     STOP_DISTANCE = 0.35
     STOP_DISTANCE_REFERENCE_SPEED = 0.5
-    FROM_LIDAR_TO_CENTER = 0.07
     FEAR_DISTANCE = 0.05
-    CAR_WIDTH = 0.18
     HALF_CAR_WIDTH = CAR_WIDTH / 2
+
     STOP = 0.
     FORWARD_THROTTLE = 0.5
     BACKWARD_THROTTLE = -0.5
@@ -301,7 +300,7 @@ class Explorer:
 
         weights = self.grid.get_directions_weights(
             self.cached_pose,
-            {'to_car_center': self.FROM_LIDAR_TO_CENTER, 'turn_radius': self.TURN_DIAMETER / 2.},
+            {'to_car_center': FROM_LIDAR_TO_CENTER, 'turn_radius': TURN_DIAMETER / 2.},
             can_move
         )
 
@@ -371,12 +370,12 @@ class Explorer:
         return {'steering': steering, 'throttle': throttle}, 1
 
     def _get_columns(self):
-        return [0., self.TURN_DIAMETER], [0., -self.TURN_DIAMETER], \
-               self.TURN_DIAMETER - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
+        return [0., TURN_DIAMETER], [0., -TURN_DIAMETER], \
+               TURN_DIAMETER - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
 
     def _get_nearby_points(self, debug_radial_points=None):
         range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
-        range_limit += abs(self.FROM_LIDAR_TO_CENTER)
+        range_limit += abs(FROM_LIDAR_TO_CENTER)
         if debug_radial_points is None:
             nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=False)
         else:

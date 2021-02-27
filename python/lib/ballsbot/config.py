@@ -6,6 +6,9 @@ LIDAR_CALIBRATION = {
     'rr_x': -0.08011094659163859,  # rear right corner coords
     'rr_y': -0.0988675829003773,
 }
+TURN_DIAMETER = 0.88
+FROM_LIDAR_TO_CENTER = 0.07
+CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))
 
 # meters per count of primary or secondary peaks
 ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
