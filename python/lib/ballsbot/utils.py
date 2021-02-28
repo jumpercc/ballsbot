@@ -38,8 +38,8 @@ def keep_rps(ts, fps=1.):
 _all_threads = []
 
 
-def run_as_thread(an_action, stop_action=None):
-    a_thread = PropagatingThread(target=an_action)
+def run_as_thread(an_action, stop_action=None, *args, **kwargs):
+    a_thread = PropagatingThread(target=an_action, args=args, kwargs=kwargs)
 
     def stop_me():
         a_thread.join()

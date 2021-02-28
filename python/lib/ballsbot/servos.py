@@ -1,9 +1,6 @@
 import time
 from ballsbot.config import PCA9685_I2C_BUSNUM, STEERING_CHANNEL, THROTTLE_CHANNEL, \
-    SERVOS_LEFT_PULSE, SERVOS_RIGHT_PULSE, SERVOS_ZERO_PULSE, SERVOS_MIN_PULSE, SERVOS_MAX_PULSE
-
-# 9865, over rides only if needed, ie. TX2..
-PCA9685_I2C_ADDR = 0x40
+    SERVOS_LEFT_PULSE, SERVOS_RIGHT_PULSE, SERVOS_ZERO_PULSE, SERVOS_MIN_PULSE, SERVOS_MAX_PULSE, PCA9685_I2C_ADDR
 
 
 def map_range(x, X_min, X_max, Y_min, Y_max):
@@ -25,7 +22,7 @@ class PCA9685:
     This is used for most RC Cars
     '''
 
-    def __init__(self, channel, address=PCA9685_I2C_ADDR, frequency=60, busnum=None, init_delay=0.1):
+    def __init__(self, channel, address=PCA9685_I2C_ADDR, frequency=60, busnum=PCA9685_I2C_BUSNUM, init_delay=0.1):
 
         self.default_freq = 60
         self.pwm_scale = frequency / self.default_freq
@@ -152,19 +149,12 @@ class PWMThrottle:
 
 
 def get_controls():
-    steering_controller = PCA9685(
-        STEERING_CHANNEL,
-        PCA9685_I2C_ADDR,
-        busnum=PCA9685_I2C_BUSNUM
-    )
+    steering_controller = PCA9685(STEERING_CHANNEL)
     steering = PWMSteering(
         controller=steering_controller,
     )
 
-    throttle_controller = PCA9685(
-        THROTTLE_CHANNEL,
-        PCA9685_I2C_ADDR, busnum=PCA9685_I2C_BUSNUM
-    )
+    throttle_controller = PCA9685(THROTTLE_CHANNEL)
     throttle = PWMThrottle(
         controller=throttle_controller,
     )
