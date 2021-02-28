@@ -8,10 +8,12 @@ STEP = 0.005
 IGNORE_LIMIT = 0.25
 
 
-def get_controller_axis_value_getter(controller, axis):
+def get_controller_axis_value_getter(controller, axis, invert=False):
     def get_value():
         if len(controller.axes):
             value = controller.axes[axis].value
+            if invert:
+                value = -value
 
             if abs(value) > IGNORE_LIMIT:
                 return float_map_range(value, -1, 1, -STEP, STEP)
@@ -64,7 +66,7 @@ class Manipulator:
             self._link_servo_to_function,
             servo=PCA9685(servo_config['channel']),
             servo_config=servo_config,
-            get_value_cb=get_controller_axis_value_getter(controller, axis),
+            get_value_cb=get_controller_axis_value_getter(controller, axis, invert=True),
         )
 
         servo_config = MANIPULATOR['servos'][2]
