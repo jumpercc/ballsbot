@@ -6,6 +6,13 @@ LIDAR_CALIBRATION = {
     'rr_x': -0.08011094659163859,  # rear right corner coords
     'rr_y': -0.0988675829003773,
 }
+# LIDAR_CALIBRATION = {  # with manipulator
+#     'angle_fix': 3.109469926106282,
+#     'fl_x': 0.20689532350517953,
+#     'fl_y': 0.12212448832044505,
+#     'rr_x': -0.08528775600356198,
+#     'rr_y': -0.1545258750723076,
+# }
 TURN_DIAMETER = 0.88
 FROM_LIDAR_TO_CENTER = 0.07
 CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))
