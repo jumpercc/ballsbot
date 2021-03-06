@@ -71,6 +71,8 @@ class Explorer:
         self.cached_points = None
         self.cached_direction = None
         self.cached_weights = None
+        self.cached_detected_object = None
+        self.cached_distances = None
         self.prev_seen_class = "no one"
 
     def run(self, save_track_info=False):
@@ -103,11 +105,20 @@ class Explorer:
 
             if save_track_info:
                 self.track_info.append({
-                    'speed': self.cached_speed,
-                    'pose': self.cached_pose,
-                    'points': self.cached_points,
-                    'direction': self.cached_direction,
-                    'weights': self.cached_weights,
+                    'state': {
+                        'speed': self.cached_speed,
+                        'pose': self.cached_pose,
+                        'steps_with_direction': steps_with_direction,
+                        'prev_direction': prev_direction,
+                        'prev_seen_class': self.prev_seen_class,
+                    },
+                    'in': {
+                        'points': self.cached_points,
+                        'weights': self.cached_weights,
+                        'detected_object': self.cached_detected_object,
+                        'distances': self.cached_distances,
+                    },
+                    'out': direction,
                 })
 
             if prev_direction == direction:
@@ -249,9 +260,9 @@ class Explorer:
         nearby_points = self._get_nearby_points(debug_radial_points)
 
         if self.distance_sensors is not None:
-            distances = self.distance_sensors.get_distances()
+            self.cached_distances = self.distance_sensors.get_distances()
             for direction_name, angle in {'front': 0., 'rear': pi}.items():
-                a_distance = distances.get(direction_name)
+                a_distance = self.cached_distances.get(direction_name)
                 if a_distance is not None:
                     a_distance /= 1000.  # to meters
                     nearby_points.append({'distance': a_distance, 'angle': angle})
@@ -304,8 +315,8 @@ class Explorer:
             can_move
         )
 
-        detected_object = self.detector.get_seen_object()
-        if detected_object is None:
+        self.cached_detected_object = self.detector.get_seen_object()
+        if self.cached_detected_object is None:
             if self.prev_seen_class is not None:
                 print("I'll find ya!")
                 self.prev_seen_class = None
@@ -316,10 +327,10 @@ class Explorer:
                 if sector_key[0] == prev_direction['steering']:
                     weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
         else:
-            if self.prev_seen_class is None or self.prev_seen_class != detected_object['object_class']:
-                print('See ya! (a ' + detected_object['object_class'] + ')')
-                self.prev_seen_class = detected_object['object_class']
-            directions = self._get_preferred_directions(detected_object)
+            if self.prev_seen_class is None or self.prev_seen_class != self.cached_detected_object['object_class']:
+                print('See ya! (a ' + self.cached_detected_object['object_class'] + ')')
+                self.prev_seen_class = self.cached_detected_object['object_class']
+            directions = self._get_preferred_directions(self.cached_detected_object)
             if directions is None:
                 for sector_key in weights.keys():
                     weights[sector_key] = 0.
@@ -334,7 +345,7 @@ class Explorer:
         weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
-        elif detected_object is None:  # fallback
+        elif self.cached_detected_object is None:  # fallback
             if prev_direction['throttle'] == self.BACKWARD_THROTTLE:
                 filter_value = -1.
             else:
@@ -429,8 +440,12 @@ class Explorer:
         if angle > pi / 2:
             angle = pi - angle
 
-        range_limit = self.CHECK_RADIUS + self.FEAR_DISTANCE \
-                      + self.HALF_CAR_WIDTH * angle + lidar_to_center * (pi / 2 - angle)
+        range_limit = (
+                self.CHECK_RADIUS +
+                self.FEAR_DISTANCE +
+                self.HALF_CAR_WIDTH * angle +
+                lidar_to_center * (pi / 2 - angle)
+        )
         return a_point['distance'] < range_limit
 
     def _follow_direction(self, direction):
@@ -445,6 +460,9 @@ class Explorer:
             return self.STOP_DISTANCE
 
     def track_info_to_a_file(self, file_path):
+        for it in self.track_info:
+            if 'in' in it and 'weights' in it['in']:
+                it['in']['weights'] = {'{:+0.01f},{:+0.01f}'.format(*x[0]): x[1] for x in it['in']['weights'].items()}
         with open(file_path, 'w') as a_file:
             a_file.write(json.dumps(self.track_info))
 
