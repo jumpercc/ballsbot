@@ -422,7 +422,7 @@ class Explorer:
         if pi / 2 <= angle <= 3 * pi / 2:
             lidar_to_center = 0.
         else:
-            lidar_to_center = self.FROM_LIDAR_TO_CENTER
+            lidar_to_center = FROM_LIDAR_TO_CENTER
 
         if angle >= pi:
             angle -= pi
