@@ -78,6 +78,14 @@ class Manipulator:
             get_value_cb=get_controller_axis_value_getter(controller, axis),
         )
 
+        servo_config = MANIPULATOR['servos'][3]
+        run_as_thread(
+            self._link_servo_to_function,
+            servo=PCA9685(servo_config['channel']),
+            servo_config=servo_config,
+            get_value_cb=get_controller_two_buttons_value_getter(controller, 4, 6),
+        )
+
         run_as_thread(
             self._watch_fold,
             controller=controller,

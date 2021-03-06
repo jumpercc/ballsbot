@@ -51,23 +51,30 @@ MANIPULATOR = {
     "servos": [
         {
             "channel": 4,
-            "min_pulse": 265,
-            "max_pulse": 503,
-            "default_position": -0.4557,
+            "min_pulse": 281,
+            "max_pulse": 532,
+            "default_position": -0.0884,
         },
         {
             "channel": 5,
-            "min_pulse": 101,
-            "max_pulse": 629,
+            "min_pulse": 680,
+            "max_pulse": 163,
             "default_position": -1.,
             "unfold_position": 0.8,
         },
         {
             "channel": 6,
-            "min_pulse": 630,
-            "max_pulse": 137,
+            "min_pulse": 162,
+            "max_pulse": 634,
             "default_position": -1.,
             "unfold_position": 0.8,
+        },
+        {
+            "channel": 7,
+            "min_pulse": 188,
+            "max_pulse": 401,
+            "default_position": -1.,
+            "unfold_position": -0.5,
         },
     ],
 }
