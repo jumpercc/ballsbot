@@ -7,11 +7,11 @@ LIDAR_CALIBRATION = {
     'rr_y': -0.0988675829003773,
 }
 # LIDAR_CALIBRATION = {  # with manipulator
-#     'angle_fix': 3.109469926106282,
-#     'fl_x': 0.20689532350517953,
-#     'fl_y': 0.12212448832044505,
-#     'rr_x': -0.08528775600356198,
-#     'rr_y': -0.1545258750723076,
+#     'angle_fix': 3.1237764080339154,
+#     'fl_x': 0.23090432880217832,
+#     'fl_y': 0.1539137515794161,
+#     'rr_x': -0.08784647285380637,
+#     'rr_y': -0.14349584614860772,
 # }
 TURN_DIAMETER = 0.88
 FROM_LIDAR_TO_CENTER = 0.07
@@ -47,18 +47,18 @@ LASER_SENSOR_REAR_ENABLED = True
 LASER_SENSOR_REAR_OFFSET = 60  # mm from lidar center
 
 MANIPULATOR = {
-    "enabled": True,
+    "enabled": False,
     "servos": [
         {
             "channel": 4,
-            "min_pulse": 281,
-            "max_pulse": 532,
-            "default_position": -0.0884,
+            "min_pulse": 247,
+            "max_pulse": 472,
+            "default_position": 0.0211,
         },
         {
             "channel": 5,
-            "min_pulse": 680,
-            "max_pulse": 163,
+            "min_pulse": 595,
+            "max_pulse": 101,
             "default_position": -1.,
             "unfold_position": 0.8,
         },
