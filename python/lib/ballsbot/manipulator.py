@@ -4,7 +4,7 @@ from ballsbot.config import MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
 
-STEP = 0.005
+STEP = 0.003
 IGNORE_LIMIT = 0.25
 
 
