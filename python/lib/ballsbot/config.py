@@ -48,6 +48,7 @@ LASER_SENSOR_REAR_OFFSET = 60  # mm from lidar center
 
 MANIPULATOR = {
     "enabled": False,
+    "has_camera": True,
     "servos": [
         {
             "channel": 4,
