@@ -1,4 +1,4 @@
-#include "ams_as5048b.h"
+#include "magnetic_encoder_driver.h"
 #include "ros/ros.h"
 #include "ballsbot_magnetic_encoder/EncoderAngle.h"
 #include <string>
@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         n.advertise<ballsbot_magnetic_encoder::EncoderAngle>(topic_name, 1);
     ros::Rate loop_rate(10);
 
-    AMS_AS5048B a_sensor(bus);
+    AMS_AS5600 a_sensor(bus);
     a_sensor.OpenSensor();
     a_sensor.SetClockWise(false);
 

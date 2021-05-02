@@ -34,6 +34,6 @@ include_directories(
   src
 )
 
-add_executable(publisher_magnetic_encoder src/magnetic_encoder.cpp src/ams_as5048b.cpp)
+add_executable(publisher_magnetic_encoder src/magnetic_encoder.cpp src/magnetic_encoder_driver.cpp)
 target_link_libraries(publisher_magnetic_encoder ${catkin_LIBRARIES} ${I2C})
 add_dependencies(publisher_magnetic_encoder ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
