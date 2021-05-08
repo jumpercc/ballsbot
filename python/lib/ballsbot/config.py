@@ -54,7 +54,7 @@ MANIPULATOR = {
             "channel": 4,
             "min_pulse": 247,
             "max_pulse": 449,
-            "default_position": -0.37,
+            "default_position": -0.072,
         },
         {
             "channel": 5,
@@ -65,8 +65,8 @@ MANIPULATOR = {
         },
         {
             "channel": 6,
-            "min_pulse": 160,
-            "max_pulse": 614,
+            "min_pulse": 201,
+            "max_pulse": 658,
             "default_position": -1.,
             "unfold_position": 0.8,
         },
