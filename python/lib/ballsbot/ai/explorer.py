@@ -74,8 +74,12 @@ class Explorer:
         self.cached_detected_object = None
         self.cached_distances = None
         self.prev_seen_class = "no one"
+        self.save_track_info = False
+        self.raw_grid = None
 
     def run(self, save_track_info=False):
+        self.save_track_info = save_track_info
+
         def tracker_run():
             self.tracker.start()
 
@@ -111,6 +115,7 @@ class Explorer:
                         'steps_with_direction': steps_with_direction,
                         'prev_direction': prev_direction,
                         'prev_seen_class': self.prev_seen_class,
+                        'raw_grid': self.raw_grid,
                     },
                     'in': {
                         'points': self.cached_points,
@@ -299,6 +304,8 @@ class Explorer:
         can_move = self._get_can_move_map()
         self.cached_pose = self.tracker.get_current_pose()
         self.grid.update_grid(self.lidar.get_lidar_points(), self.cached_pose)
+        if self.save_track_info:
+            self.raw_grid = self.grid.debug_get_grid()
 
         if prev_direction['throttle'] == self.FORWARD_THROTTLE \
                 and len(list(filter(lambda x: x[0][1] == 1. and x[1] > 0., can_move.items()))) == 0:
@@ -463,6 +470,9 @@ class Explorer:
         for it in self.track_info:
             if 'in' in it and 'weights' in it['in']:
                 it['in']['weights'] = {'{:+0.01f},{:+0.01f}'.format(*x[0]): x[1] for x in it['in']['weights'].items()}
+            if 'state' in it and 'raw_grid' in it['state']:
+                it['state']['raw_grid'] = {
+                    '{:+01d},{:+01d}'.format(*x[0]): x[1] for x in it['state']['raw_grid'].items()}
         with open(file_path, 'w') as a_file:
             a_file.write(json.dumps(self.track_info))
 

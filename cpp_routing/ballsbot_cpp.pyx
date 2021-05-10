@@ -5,7 +5,7 @@ import pathlib
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from ballsbot_cpp cimport Point, Distance, Direction, PointCloud, DirectionsWeights, \
-    Pose, CarInfo, GridKey, _Grid, FreeDistances
+    Pose, CarInfo, GridKey, _Grid, FreeDistances, RawGrid
 
 def distance(p1_raw, p2_raw):
     cdef Point p1
@@ -90,6 +90,18 @@ cdef class Grid:
         cpp_grid_key.y = grid_key[1]
         return self.thisobj.GetCellWeight(cpp_grid_key)
 
+    def debug_get_grid(self):
+        cdef RawGrid cpp_result = self.thisobj.DebugGetGrid()
+        result = {}
+        for it in cpp_result:
+            key = (it.first.x, it.first.y)
+            result[key] = {
+                'seen_at': it.second.seen_at,
+                'was_at': it.second.was_at,
+                'seen': it.second.seen,
+            }
+        return result
+
 grid = None
 
 def update_grid(a_cloud, a_pose):
@@ -119,4 +131,10 @@ def get_sectors_map(a_pose, car_info, half_size):
 def reset_grid():
     global grid
     grid = Grid()
+
+def debug_get_grid():
+    global grid
+    if grid is None:
+        grid = Grid()
+    return grid.debug_get_grid()
 

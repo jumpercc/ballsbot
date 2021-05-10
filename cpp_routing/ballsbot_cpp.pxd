@@ -48,10 +48,19 @@ cdef extern from "ballsbot/grid.h":
         double to_car_center
         double turn_radius
 
+    cdef struct GridInfo:
+        GridInfo(int, int, int)
+        int seen_at
+        int was_at
+        int seen
+
     cdef cppclass _Grid "Grid":
         _Grid()
         void UpdateGrid(PointCloud, Pose)
         DirectionsWeights GetDirectionsWeights(Pose, CarInfo, FreeDistances)
         double GetCellWeight(GridKey)
         vector[vector[size_t]] GetSectorsMap(Pose, CarInfo, double)
+        unordered_map[GridKey, GridInfo] DebugGetGrid()
+
+ctypedef unordered_map[GridKey, GridInfo] RawGrid
 
