@@ -1,3 +1,5 @@
+import math
+
 # result of Lidar.calibrate()
 LIDAR_CALIBRATION = {
     'angle_fix': 3.0810609316737434,  # lidar orientation (radians)
@@ -55,6 +57,8 @@ MANIPULATOR = {
             "min_pulse": 247,
             "max_pulse": 449,
             "default_position": -0.072,
+            "min_angle": math.radians(-30.),
+            "max_angle": math.radians(30.),
         },
         {
             "channel": 5,
@@ -62,6 +66,8 @@ MANIPULATOR = {
             "max_pulse": 101,
             "default_position": -1.,
             "unfold_position": 0.8,
+            "min_angle": math.radians(-90.),
+            "max_angle": math.radians(60.),
         },
         {
             "channel": 6,
@@ -69,6 +75,8 @@ MANIPULATOR = {
             "max_pulse": 658,
             "default_position": -1.,
             "unfold_position": 0.8,
+            "min_angle": math.radians(-90.),
+            "max_angle": math.radians(60.),
         },
         {
             "channel": 7,
@@ -76,6 +84,35 @@ MANIPULATOR = {
             "max_pulse": 423,
             "default_position": -1.,
             "unfold_position": -0.5,
+            "min_angle": math.radians(0.),
+            "max_angle": math.radians(150.),
+        },
+    ],
+    "bones": [
+        {
+            "start": True,
+            "default_position": (148.5, -100., -56.5),
+        },
+        {
+            "rotation": "y",
+            "direction": 1.,
+            "default_position": (-19., -5.5, 0.),
+        },
+        {
+            "rotation": "z",
+            "direction": 1.,
+            "default_position": (-149.5, -19., 0.),
+        },
+        {
+            "rotation": "z",
+            "direction": -1.,
+            "default_position": (188., -6., 1.),
+        },
+        {
+            "default_position": (55., 0., 0.),
+            "rotation": "z",
+            "direction": 1.,
+            "claw": True,
         },
     ],
 }
