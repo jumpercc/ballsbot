@@ -156,7 +156,7 @@ class Manipulator:
                 fold_increment = None
                 increment = get_value_cb()
 
-            current_position += increment  # FIXME need to move right to end point
+            current_position += increment
             if current_position < -1.:
                 current_position = -1.
                 Manipulator._need_fold = False

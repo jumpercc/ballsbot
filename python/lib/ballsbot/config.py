@@ -1,23 +1,22 @@
 import math
 
 # result of Lidar.calibrate()
-LIDAR_CALIBRATION = {
+LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {
     'angle_fix': 3.0810609316737434,  # lidar orientation (radians)
     'fl_x': 0.2041686441507201,  # front left corner coords
     'fl_y': 0.10426277741236079,
     'rr_x': -0.08011094659163859,  # rear right corner coords
     'rr_y': -0.0988675829003773,
 }
-# LIDAR_CALIBRATION = {  # with manipulator
-#     'angle_fix': 3.1237764080339154,
-#     'fl_x': 0.23090432880217832,
-#     'fl_y': 0.1539137515794161,
-#     'rr_x': -0.08784647285380637,
-#     'rr_y': -0.14349584614860772,
-# }
+LIDAR_CALIBRATION_WITH_MANIPULATOR = {
+    'angle_fix': 3.1237764080339154,
+    'fl_x': 0.23090432880217832,
+    'fl_y': 0.1539137515794161,
+    'rr_x': -0.08784647285380637,
+    'rr_y': -0.14349584614860772,
+}
 TURN_DIAMETER = 0.88
 FROM_LIDAR_TO_CENTER = 0.07
-CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))
 
 # meters per count of primary or secondary peaks
 ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
@@ -116,3 +115,8 @@ MANIPULATOR = {
         },
     ],
 }
+
+LIDAR_CALIBRATION = (
+    LIDAR_CALIBRATION_WITH_MANIPULATOR if MANIPULATOR['enabled'] else LIDAR_CALIBRATION_WITHOUT_MANIPULATOR
+)
+CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))

@@ -5,6 +5,7 @@ from matplotlib.transforms import Affine2D
 from io import BytesIO
 
 from ballsbot.utils import figsize_from_image_size
+from ballsbot.config import LIDAR_CALIBRATION_WITHOUT_MANIPULATOR
 
 
 def update_image_abs_coords(
@@ -177,6 +178,19 @@ class ManipulatorPoseDrawing:
             ax = fig.gca()
 
             ax.text(-crop_half_size, -crop_half_size, image_type, fontsize=16)
+
+            if image_type == 'xy':
+                width = LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['fl_x'] - LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['rr_x']
+                height = LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['fl_y'] - LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['rr_y']
+                rect = patches.Rectangle(
+                    (
+                        LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['rr_x'] * 1000,
+                        LIDAR_CALIBRATION_WITHOUT_MANIPULATOR['rr_y'] * 1000
+                    ),
+                    width * 1000, height * 1000,
+                    linewidth=2, edgecolor='black', facecolor='none'
+                )
+                ax.add_patch(rect)
 
             if image_type == 'xy':
                 first_points = x_points
