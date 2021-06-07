@@ -64,6 +64,8 @@ for flag in pkgconfig('--libs-only-L'):
 for flag in pkgconfig('--libs-only-other'):
     ext_args['extra_link_args'].append(flag)
 
+ext_args['libraries'].append('boost_system')
+
 module = [
     Extension(
         "ballsbot_manipulator.ballsbot_manipulator",
