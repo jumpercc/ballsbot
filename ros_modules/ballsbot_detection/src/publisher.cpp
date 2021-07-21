@@ -4,7 +4,7 @@
 #include <string>
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "ballsbot_detections");
+    ros::init(argc, argv, "ballsbot_detection");
     ros::NodeHandle n;
     ros::Publisher chatter_pub =
         n.advertise<ballsbot_detection::DetectionsList>("cam_detections", 1);

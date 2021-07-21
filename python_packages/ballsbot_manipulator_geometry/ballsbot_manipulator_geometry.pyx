@@ -4,7 +4,7 @@
 from libcpp.vector cimport vector
 from pcl cimport PointXYZ
 
-cdef extern from "ballsbot_manipulator.h":
+cdef extern from "ballsbot_manipulator_geometry.h":
     cdef vector[PointXYZ] ApplyRotations(vector[PointXYZ] default_points, vector[PointXYZ] rotations)
 
 def apply_rotations_wrapper(

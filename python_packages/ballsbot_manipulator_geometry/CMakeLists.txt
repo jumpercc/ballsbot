@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(ballsbot_manipulator)
+project(ballsbot_manipulator_geometry)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
@@ -21,7 +21,7 @@ include_directories(
 
 add_executable(test
         test.cpp
-        ballsbot_manipulator.h)
+        ballsbot_manipulator_geometry.h)
 set_target_properties(test PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(test
         contrib_catch_main

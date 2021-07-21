@@ -5,10 +5,10 @@ tmp*
 *.json
 *.log
 **/*.swp
-cpp_*/build
-cpp_*/cmake-build-debug/
-cpp_*/dist
-cpp_*/ballsbot_*.egg-info
-cpp_*/ballsbot_*.cpp
-**/cmake-build-debug/
+**/build
+**/cmake-build-debug
+**/dist
+**/ballsbot_*.egg-info
+**/ballsbot_*.cpp
+**/cmake-build-debug
 

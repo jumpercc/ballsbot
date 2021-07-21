@@ -3,7 +3,7 @@ from warnings import warn
 from ballsbot.config import MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
-from ballsbot_manipulator import ballsbot_manipulator
+from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry
 
 STEP = 0.003
 IGNORE_LIMIT = 0.25
@@ -198,7 +198,7 @@ class Manipulator:
             default_points.append(end_point)
             current_rotations.append(current_rotation)
 
-        points = ballsbot_manipulator.apply_rotations_wrapper(default_points, current_rotations)
+        points = ballsbot_manipulator_geometry.apply_rotations_wrapper(default_points, current_rotations)
 
         # TODO add magnetic encoders
 

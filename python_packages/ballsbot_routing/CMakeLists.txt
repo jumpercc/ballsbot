@@ -1,4 +1,4 @@
-project(ballsbot-cpp)
+project(ballsbot_routing)
 
 cmake_minimum_required(VERSION 3.8)
 

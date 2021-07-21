@@ -4,7 +4,7 @@
 import pathlib
 from libcpp.vector cimport vector
 from libcpp.string cimport string
-from ballsbot_cpp cimport Point, Distance, Direction, PointCloud, DirectionsWeights, \
+from ballsbot_routing cimport Point, Distance, Direction, PointCloud, DirectionsWeights, \
     Pose, CarInfo, GridKey, _Grid, FreeDistances, RawGrid
 
 def distance(p1_raw, p2_raw):

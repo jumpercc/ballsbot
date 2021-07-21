@@ -1,5 +1,5 @@
 #include <catch.hpp>
-#include "ballsbot_manipulator.h"
+#include "ballsbot_manipulator_geometry.h"
 
 namespace std {
 bool operator==(const PointType left, const PointType right) {

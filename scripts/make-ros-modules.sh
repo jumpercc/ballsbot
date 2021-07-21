@@ -7,9 +7,11 @@ source devel/setup.bash
 
 rm -rf src/ballsbot_detection && \
 rm -rf src/ballsbot_laser_ranging_sensor && \
+rm -rf src/ballsbot_magnetic_encoder && \
 cd src && \
-ln -s /home/ballsbot/projects/ballsbot/ballsbot_detection && \
-ln -s /home/ballsbot/projects/ballsbot/ballsbot_laser_ranging_sensor && \
+ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_detection && \
+ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_laser_ranging_sensor && \
+ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_magnetic_encoder && \
 cd .. && \
 
 catkin_make

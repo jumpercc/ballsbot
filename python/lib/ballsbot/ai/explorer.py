@@ -11,7 +11,7 @@ from ballsbot.tracking import TrackerLight
 from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 from ballsbot.detection import Detector
 from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH
-from ballsbot_cpp import ballsbot_cpp
+from ballsbot_routing import ballsbot_routing
 
 
 class Explorer:
@@ -45,7 +45,7 @@ class Explorer:
         self.BODY_POSITION = self.lidar.calibration_to_xywh(self.lidar.calibration)
         self.test_run = test_run
 
-        self.grid = ballsbot_cpp
+        self.grid = ballsbot_routing
 
         if not test_run:
             self.car_controls = get_controls()

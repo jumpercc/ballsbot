@@ -9,35 +9,21 @@ import sys
 
 setup_requires = []
 install_requires = [
-    'Cython>=0.26.0',
+    'Cython>=0.29.0',
 ]
 
 
 def pkgconfig(flag):
-    p = subprocess.Popen(['pkg-config', flag] + pcl_libs, stdout=subprocess.PIPE)
+    p = subprocess.Popen(['pkg-config', flag], stdout=subprocess.PIPE)
     stdout, _ = p.communicate()
     return stdout.decode().split()
 
-
-PCL_SUPPORTED = ["-1.8", "-1.10", ""]  # in order of preference
-
-for pcl_version in PCL_SUPPORTED:
-    if subprocess.call(['pkg-config', 'pcl_common%s' % pcl_version]) == 0:
-        break
-else:
-    print("%s: error: cannot find PCL, tried" %
-          sys.argv[0], file=sys.stderr)
-    for version in PCL_SUPPORTED:
-        print('    pkg-config pcl_common%s' % version, file=sys.stderr)
-    sys.exit(1)
-
-pcl_libs = ["common", "filters", "geometry", "io", "registration"]
-pcl_libs = ["pcl_%s%s" % (lib, pcl_version) for lib in pcl_libs]
 
 ext_args = defaultdict(list)
 
 for flag in pkgconfig('--cflags-only-I'):
     ext_args['include_dirs'].append(flag[2:])
+ext_args['include_dirs'].append("/usr/include/opencv4")
 
 ext_args['library_dirs'].append('/usr/lib')
 
@@ -49,14 +35,14 @@ for flag in pkgconfig('--cflags-only-other'):
         ext_args['extra_compile_args'].append(flag)
 
 ext_args['extra_compile_args'].append("-std=c++17")
+ext_args['library_dirs'].append("/usr/lib/aarch64-linux-gnu")
 ext_args['library_dirs'].append("/usr/lib/x86_64-linux-gnu/")
+ext_args['library_dirs'].append("./ballsbot_routing")
 
 for flag in pkgconfig('--libs-only-l'):
-    if flag == "-lflann_cpp-gd":
-        print(
-            "skipping -lflann_cpp-gd (see https://github.com/strawlab/python-pcl/issues/29")
-        continue
     ext_args['libraries'].append(flag[2:])
+ext_args['libraries'].append('opencv_core')
+ext_args['libraries'].append('opencv_videoio')
 
 for flag in pkgconfig('--libs-only-L'):
     ext_args['library_dirs'].append(flag[2:])
@@ -64,26 +50,27 @@ for flag in pkgconfig('--libs-only-L'):
 for flag in pkgconfig('--libs-only-other'):
     ext_args['extra_link_args'].append(flag)
 
-ext_args['libraries'].append('boost_system')
-
 module = [
     Extension(
-        "ballsbot_manipulator.ballsbot_manipulator",
-        ["ballsbot_manipulator.pyx"],
+        "ballsbot_routing.ballsbot_routing",
+        [
+            "ballsbot_routing.pyx",
+            "ballsbot/geometry.cpp", "ballsbot/point_cloud.cpp", "ballsbot/grid.cpp",
+        ],
         language="c++",
         **ext_args
     ),
 ]
 
 setup(
-    name='ballsbot_manipulator',
-    description='manipulator pose calculation',
+    name='ballsbot_routing',
+    description='Python bindings for ballsbot_routing functions.',
     version='0.1',
     author='Oleg Nurtdinov',
     author_email='j@jumper.cc',
     license='BSD',
     packages=[
-        "ballsbot_manipulator",
+        "ballsbot_routing",
     ],
     zip_safe=False,
     setup_requires=setup_requires,

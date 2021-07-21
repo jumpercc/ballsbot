@@ -1,7 +1,0 @@
-build
-cmake-build-*
-dist
-ballsbot_manipulator
-ballsbot_manipulator.egg-info
-ballsbot_manipulator.cpp
-.idea
