@@ -3,13 +3,14 @@ import os.path
 import sys
 
 # result of Lidar.calibrate()
-LIDAR_CALIBRATION = {
+LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {
     'angle_fix': 3.0810609316737434,  # lidar orientation (radians)
     'fl_x': 0.2041686441507201,  # front left corner coords
     'fl_y': 0.10426277741236079,
     'rr_x': -0.08011094659163859,  # rear right corner coords
     'rr_y': -0.0988675829003773,
 }
+LIDAR_CALIBRATION = LIDAR_CALIBRATION_WITHOUT_MANIPULATOR
 TURN_DIAMETER = 0.88
 FROM_LIDAR_TO_CENTER = 0.07
 
