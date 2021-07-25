@@ -49,7 +49,7 @@ LASER_SENSOR_REAR_OFFSET = 60  # mm from lidar center
 
 MANIPULATOR = {
     "enabled": False,
-    "has_camera": True,
+    "has_camera": False,
     "servos": [
         {
             "channel": 4,
@@ -70,8 +70,8 @@ MANIPULATOR = {
         },
         {
             "channel": 6,
-            "min_pulse": 201,
-            "max_pulse": 658,
+            "min_pulse": 208,
+            "max_pulse": 641,
             "default_position": -1.,
             "unfold_position": 0.8,
             "min_angle": math.radians(-90.),
