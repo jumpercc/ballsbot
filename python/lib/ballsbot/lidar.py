@@ -6,7 +6,7 @@ from time import time
 from random import random
 
 from ballsbot.utils import keep_rps
-from ballsbot.config import LIDAR_CALIBRATION
+from ballsbot.config import LIDAR_CALIBRATION, LIDAR_CALIBRATION_RANGE_LIMIT
 
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
 sys.path.append('/usr/lib/python2.7/dist-packages')
@@ -175,7 +175,7 @@ class Lidar:
                 cb(points, only_nearby_meters=only_nearby_meters)
 
     def _get_my_corners(self):
-        range_limit = 0.3
+        range_limit = LIDAR_CALIBRATION_RANGE_LIMIT
 
         while True:
             data = self._get_raw_lidar_points()
