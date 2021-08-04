@@ -55,7 +55,7 @@ class CSICamera(SingletonConfigurable):
 
 
 def get_images_and_cameras(image_width=640, image_height=480, fps=5):
-    if MANIPULATOR['enabled'] and MANIPULATOR.get('has_camera'):
+    if MANIPULATOR.get('has_camera'):
         sensors = [0, 1]
     else:
         sensors = [0]

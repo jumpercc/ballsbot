@@ -1,0 +1,40 @@
+LIDAR_CALIBRATION = {
+    'angle_fix': 3.083771826820918,
+    'fl_x': 0.3371084301852129,
+    'fl_y': 0.16540299714227663,
+    'rr_x': -0.1044873414628473,
+    'rr_y': -0.1589888544588804
+}
+LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {
+    'angle_fix': 3.083771826820918,
+    'fl_x': 0.29,
+    'fl_y': 0.16540299714227663,
+    'rr_x': -0.1044873414628473,
+    'rr_y': -0.1589888544588804
+}
+LIDAR_CALIBRATION_RANGE_LIMIT = 0.5
+FROM_LIDAR_TO_CENTER = 0.203
+
+#TURN_DIAMETER = 0.88
+
+# meters per count of primary or secondary peaks
+#ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
+
+# steering
+#SERVOS_LEFT_PULSE = 450
+#SERVOS_RIGHT_PULSE = 330
+
+# throttle
+#SERVOS_MIN_PULSE = 330
+#SERVOS_MAX_PULSE = 390
+#SERVOS_ZERO_PULSE = 360
+
+LASER_SENSOR_FRONT_ENABLED = False
+LASER_SENSOR_FRONT_OFFSET = 275  # mm from lidar center
+LASER_SENSOR_REAR_ENABLED = False
+LASER_SENSOR_REAR_OFFSET = 80  # mm from lidar center
+
+MANIPULATOR = {
+    "enabled": False,
+    "has_camera": True,
+}
