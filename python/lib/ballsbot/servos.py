@@ -16,6 +16,20 @@ def map_range(x, X_min, X_max, Y_min, Y_max):
     return int(y)
 
 
+def scaled_map_range(value, from_min, from_max, to_min, to_max, scale=1.):
+    result = map_range(value, from_min / scale, from_max / scale, to_min, to_max)
+
+    if to_min > to_max:
+        to_min, to_max = to_max, to_min
+
+    if result < to_min:
+        result = to_min
+    elif result > to_max:
+        result = to_max
+
+    return result
+
+
 class PCA9685:
     '''
     PWM motor controler using PCA9685 boards.
@@ -65,8 +79,13 @@ class PWMSteering:
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
-        self.pulse = map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                               self.left_pulse, self.right_pulse)
+        self.scale = 2.
+        self.pulse = scaled_map_range(
+            0,
+            self.LEFT_ANGLE, self.RIGHT_ANGLE,
+            self.left_pulse, self.right_pulse,
+            self.scale
+        )
         self.running = True
         print('PWM Steering created')
 
@@ -76,9 +95,12 @@ class PWMSteering:
 
     def run_threaded(self, angle):
         # map absolute angle to angle that vehicle can implement.
-        self.pulse = map_range(angle,
-                               self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                               self.left_pulse, self.right_pulse)
+        self.pulse = scaled_map_range(
+            angle,
+            self.LEFT_ANGLE, self.RIGHT_ANGLE,
+            self.left_pulse, self.right_pulse,
+            self.scale
+        )
 
     def run(self, angle):
         self.run_threaded(angle)
@@ -111,6 +133,7 @@ class PWMThrottle:
         self.zero_pulse = zero_pulse
         self.pulse = zero_pulse
         self.throttle = 0.
+        self.zero_throttle = map_range(zero_pulse, self.min_pulse, self.max_pulse, self.MIN_THROTTLE, self.MAX_THROTTLE)
 
         # send zero pulse to calibrate ESC
         self.controller.set_pulse(self.zero_pulse)
@@ -122,21 +145,19 @@ class PWMThrottle:
             self.controller.set_pulse(self.pulse)
 
     def run_threaded(self, throttle):
-        if abs(throttle) < 0.25:
+        # self.throttle = throttle
+        # self.pulse = map_range(throttle,
+        #                        self.MIN_THROTTLE, self.MAX_THROTTLE,
+        #                        self.min_pulse, self.max_pulse)
+        if abs(throttle - self.zero_throttle) < 0.25:
             self.throttle = 0.
             self.pulse = self.zero_pulse
-        elif throttle > 0:
-            self.throttle = throttle
-            if throttle > 0.9:
-                self.pulse = self.max_pulse + 5
-            else:
-                self.pulse = self.max_pulse
+        elif throttle > self.zero_throttle:
+            self.throttle = 1.
+            self.pulse = self.max_pulse
         else:
-            self.throttle = throttle
-            if throttle < -0.9:
-                self.pulse = self.min_pulse - 5
-            else:
-                self.pulse = self.min_pulse
+            self.throttle = -1.
+            self.pulse = self.min_pulse
 
     def run(self, throttle):
         self.run_threaded(throttle)
