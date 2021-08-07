@@ -132,6 +132,7 @@ class PWMThrottle:
         self.min_pulse = min_pulse
         self.zero_pulse = zero_pulse
         self.pulse = zero_pulse
+        self.scale = 2.
         self.throttle = 0.
         self.zero_throttle = map_range(zero_pulse, self.min_pulse, self.max_pulse, self.MIN_THROTTLE, self.MAX_THROTTLE)
 
@@ -152,12 +153,13 @@ class PWMThrottle:
         if abs(throttle - self.zero_throttle) < 0.25:
             self.throttle = 0.
             self.pulse = self.zero_pulse
-        elif throttle > self.zero_throttle:
-            self.throttle = 1.
-            self.pulse = self.max_pulse
         else:
-            self.throttle = -1.
-            self.pulse = self.min_pulse
+            self.pulse = scaled_map_range(
+                throttle,
+                self.MIN_THROTTLE, self.MAX_THROTTLE,
+                self.min_pulse, self.max_pulse,
+                self.scale
+            )
 
     def run(self, throttle):
         self.run_threaded(throttle)
