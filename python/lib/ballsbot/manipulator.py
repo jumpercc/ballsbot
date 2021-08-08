@@ -1,6 +1,6 @@
 from warnings import warn
 
-from ballsbot.config import MANIPULATOR
+from ballsbot.config import MANIPULATOR, SECONDS_TO_UNFOLD_MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry
@@ -35,6 +35,23 @@ def get_controller_two_buttons_value_getter(controller, button_up, button_down):
     return get_value
 
 
+def get_controller_stub():
+    def do_nothing():
+        return 0.
+
+    return do_nothing()
+
+
+def get_controller_link(controller, config):
+    if not config:
+        return get_controller_stub()
+    elif "buttons" in config:
+        return get_controller_two_buttons_value_getter(controller, *config['buttons'])
+    elif "axis" in config:
+        return get_controller_axis_value_getter(controller, config['axis'], invert=config.get('invert', False))
+    raise NotImplementedError(config)
+
+
 def float_map_range(x, X_min, X_max, Y_min, Y_max):
     X_range = X_max - X_min
     Y_range = Y_max - Y_min
@@ -44,7 +61,7 @@ def float_map_range(x, X_min, X_max, Y_min, Y_max):
 
 class Manipulator:
     RPS = 50
-    FOLD_STEPS = RPS * 2.  # 2 seconds
+    FOLD_STEPS = RPS * float(SECONDS_TO_UNFOLD_MANIPULATOR)
     _need_fold = False
     _need_unfold = False
 
@@ -60,39 +77,13 @@ class Manipulator:
             self.servo_values[it['channel']] = it['default_position']
             self.servo_channel_to_index[it['channel']] = i
 
-        servo_config = MANIPULATOR['servos'][0]
-        run_as_thread(
-            self._link_servo_to_function,
-            servo=(None if emulate_only else PCA9685(servo_config['channel'])),
-            servo_config=servo_config,
-            get_value_cb=get_controller_two_buttons_value_getter(controller, 5, 7),
-        )
-
-        servo_config = MANIPULATOR['servos'][1]
-        axis = 3
-        run_as_thread(
-            self._link_servo_to_function,
-            servo=(None if emulate_only else PCA9685(servo_config['channel'])),
-            servo_config=servo_config,
-            get_value_cb=get_controller_axis_value_getter(controller, axis, invert=True),
-        )
-
-        servo_config = MANIPULATOR['servos'][2]
-        axis = 2
-        run_as_thread(
-            self._link_servo_to_function,
-            servo=(None if emulate_only else PCA9685(servo_config['channel'])),
-            servo_config=servo_config,
-            get_value_cb=get_controller_axis_value_getter(controller, axis),
-        )
-
-        servo_config = MANIPULATOR['servos'][3]
-        run_as_thread(
-            self._link_servo_to_function,
-            servo=(None if emulate_only else PCA9685(servo_config['channel'])),
-            servo_config=servo_config,
-            get_value_cb=get_controller_two_buttons_value_getter(controller, 4, 6),
-        )
+        for servo_config in MANIPULATOR['servos']:
+            run_as_thread(
+                self._link_servo_to_function,
+                servo=(None if emulate_only else PCA9685(servo_config['channel'])),
+                servo_config=servo_config,
+                get_value_cb=get_controller_link(controller, servo_config.get('control')),
+            )
 
         run_as_thread(
             self._watch_fold,

@@ -19,6 +19,7 @@ MANIPULATOR = {
             "default_position": -0.072,
             "min_angle": math.radians(-30.),
             "max_angle": math.radians(30.),
+            "control": {"buttons": (5, 7)},
         },
         {
             "channel": 5,
@@ -28,6 +29,7 @@ MANIPULATOR = {
             "unfold_position": 0.8,
             "min_angle": math.radians(-90.),
             "max_angle": math.radians(60.),
+            "control": {"axis": 3, "invert": True},
         },
         {
             "channel": 6,
@@ -37,6 +39,7 @@ MANIPULATOR = {
             "unfold_position": 0.8,
             "min_angle": math.radians(-90.),
             "max_angle": math.radians(60.),
+            "control": {"axis": 2},
         },
         {
             "channel": 7,
@@ -46,6 +49,7 @@ MANIPULATOR = {
             "unfold_position": -0.5,
             "min_angle": math.radians(0.),
             "max_angle": math.radians(150.),
+            "control": {"buttons": (4, 6)},
         },
     ],
     "bones": [
