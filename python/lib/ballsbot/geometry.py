@@ -17,7 +17,7 @@ distance = ballsbot_routing.distance
 
 
 def normal_to_line_in_point(line_coefs, a_point):
-    a, b, c = line_coefs
+    a, b, _ = line_coefs
     x0, y0 = a_point
     if b == 0.:
         return 0., 1., -y0
@@ -28,7 +28,7 @@ def normal_to_line_in_point(line_coefs, a_point):
 
 
 def get_two_n_radians_lines(angle, line_coefs, a_point):
-    a, b, c = line_coefs
+    a, b, _ = line_coefs
     x0, y0 = a_point
     if a == 0.:
         a1, b1 = (tan(angle), 1.)
@@ -47,7 +47,7 @@ def get_two_n_radians_lines(angle, line_coefs, a_point):
     return (a1, b1, c1), (a2, b2, c2)
 
 
-def on_other_side(line1_coefs, p1, p2):
+def on_other_side(line1_coefs, p1, p2):  # pylint: disable=R0914
     a1, b1, c1 = line1_coefs
     a2, b2, c2 = get_linear_coefs(p1, p2)
     if b1 == 0. and b2 == 0.:
@@ -71,17 +71,17 @@ def on_other_side(line1_coefs, p1, p2):
     x2, y2 = p2
 
     if x1 > x2:
-        if not (x1 > x0 > x2):
+        if not x1 > x0 > x2:
             return False
     else:
-        if not (x1 < x0 < x2):
+        if not x1 < x0 < x2:
             return False
 
     if y1 > y2:
-        if not (y1 > y0 > y2):
+        if not y1 > y0 > y2:
             return False
     else:
-        if not (y1 < y0 < y2):
+        if not y1 < y0 < y2:
             return False
 
     return True

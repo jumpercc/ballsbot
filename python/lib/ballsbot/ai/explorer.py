@@ -166,7 +166,7 @@ class Explorer:
         return -nearest_x
 
     def _filter_right_points(self, nearby_points):
-        left_center, right_center, column_radius = self._get_columns()
+        _, right_center, column_radius = self._get_columns()
         outer_radius = column_radius + 2 * (self.HALF_CAR_WIDTH + self.FEAR_DISTANCE)
 
         def on_a_curve(a_point):
@@ -175,7 +175,7 @@ class Explorer:
         return list(filter(on_a_curve, nearby_points))
 
     def _filter_left_points(self, nearby_points):
-        left_center, right_center, column_radius = self._get_columns()
+        left_center, _, column_radius = self._get_columns()
         outer_radius = column_radius + 2 * (self.HALF_CAR_WIDTH + self.FEAR_DISTANCE)
 
         def on_a_curve(a_point):
@@ -288,7 +288,7 @@ class Explorer:
             (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
         }
 
-    def _get_next_move(self, prev_direction, steps_with_direction):
+    def _get_next_move(self, prev_direction, steps_with_direction):  # pylint: disable=R0915
         self.cached_direction = self.odometry.get_direction()
         if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
             if self.cached_direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
@@ -349,7 +349,7 @@ class Explorer:
                         weights[sector_key] /= 10.
 
         self.cached_weights = weights
-        weights = {k: v for k, v in filter(lambda x: x[1] > 0., weights.items())}
+        weights = dict(filter(lambda x: x[1] > 0., weights.items()))
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
         elif self.cached_detected_object is None:  # fallback
@@ -503,7 +503,7 @@ class Explorer:
 
         segment_x, segment_y = self._get_detection_segment(detected_object)
         close_enough = detected_object['vsize'] * detected_object['hsize'] > self.DETECTION_CLOSE_ENOUGH
-        if segment_y == -1 or segment_y == 1:
+        if segment_y in (-1, 1):
             if segment_x == -1:
                 # -left, back
                 for st in (0.5, 1.):

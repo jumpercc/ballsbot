@@ -1,6 +1,6 @@
 from math import cos, sin, pi
 import numpy as np
-import ballsbot.drawing as drawing
+from ballsbot import drawing
 import sys
 from time import time
 from random import random
@@ -21,10 +21,10 @@ def radial_to_cartesian(magnitude, angle):
     return [x, y]
 
 
-def apply_transformation_to_cloud(a_cloud, tr):
+def apply_transformation_to_cloud(a_cloud, transformation):
     result = []
 
-    tx, ty, fi = tr
+    tx, ty, fi = transformation
     rotate_m = np.array([
         [cos(fi), -sin(fi)],
         [sin(fi), cos(fi)]
@@ -59,7 +59,8 @@ class Lidar:
         self.points_ts = time()
         self.test_run = test_run
 
-    def _default_calibration(self):
+    @staticmethod
+    def _default_calibration():
         return LIDAR_CALIBRATION
 
     def _get_raw_lidar_points(self):
@@ -72,7 +73,7 @@ class Lidar:
                     self.angle_max = data.angle_max
                 except KeyboardInterrupt:
                     return None
-                except Exception as e:
+                except Exception:  # pylint: disable=W0703
                     break
         else:
             data = TestLidarData()
@@ -106,8 +107,8 @@ class Lidar:
             return self.radial_points
         points = []
         angle = data.angle_min
-        for i in range(len(data.intensities)):
-            if data.intensities[i] > 0:
+        for i, intensities_i in enumerate(data.intensities):
+            if intensities_i > 0:
                 points.append({'distance': data.ranges[i], 'angle': self._fix_angle(angle)})
             angle += data.angle_increment
 
@@ -174,10 +175,10 @@ class Lidar:
             if cb is not None:
                 cb(points, only_nearby_meters=only_nearby_meters)
 
-    def _get_my_corners(self):
+    def _get_my_corners(self):  # pylint: disable=R0914, R0915
         range_limit = LIDAR_CALIBRATION_RANGE_LIMIT
 
-        while True:
+        while True:  # pylint: disable=R1702
             data = self._get_raw_lidar_points()
             candidates = []
             distance_up = False
@@ -185,8 +186,8 @@ class Lidar:
             angle = data.angle_min
             prev_range = None
             points_met = 0
-            for i in range(len(data.intensities)):
-                if data.intensities[i] > 0 and (range_limit is None or data.ranges[i] <= range_limit):
+            for i, intensities_i in enumerate(data.intensities):
+                if intensities_i > 0 and (range_limit is None or data.ranges[i] <= range_limit):
                     if prev_range is not None and abs(data.ranges[i] - prev_range) <= 0.03:  # denoise
                         x, y = radial_to_cartesian(data.ranges[i], angle)
                         if data.ranges[i] > prev_range:
@@ -200,7 +201,7 @@ class Lidar:
                                 'points_met': points_met,
                             }
                             points_met = 0
-                            if wait_for_max and len(candidates) and abs(candidates[-1]['angle'] - c['angle']) < 0.05:
+                            if wait_for_max and candidates and abs(candidates[-1]['angle'] - c['angle']) < 0.05:
                                 c['points_met'] += candidates[-1]['points_met']
                                 candidates[-1] = c
                             else:
@@ -229,15 +230,15 @@ class Lidar:
             for c in candidates:
                 points_met += c['points_met']
                 if max_one is not None:
-                    diff = abs(max_one['angle'] - c['angle'])
+                    diff = abs(max_one['angle'] - c['angle'])  # pylint: disable=E1136
                     if diff > data.angle_max:
                         diff -= data.angle_max
                     if diff > 0.9:
                         corners.append(max_one)
-                        points_met = points_met - max_one['points_met']
+                        points_met = points_met - max_one['points_met']  # pylint: disable=E1136
                         max_one = None
                 c['points_met'] = points_met
-                if max_one is None or max_one['range'] < c['range']:
+                if max_one is None or max_one['range'] < c['range']:  # pylint: disable=E1136
                     max_one = c
             if max_one is not None:
                 corners.append(max_one)
@@ -248,8 +249,8 @@ class Lidar:
                 pass  # TODO
         return corners, data
 
-    def calibrate(self):
-        corners, data = self._get_my_corners()
+    def calibrate(self):  # pylint: disable=R0914
+        corners, _ = self._get_my_corners()
 
         points_met = 100000000
         front_left_index = 0

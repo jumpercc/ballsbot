@@ -1,4 +1,4 @@
-from math import pi, tan, atan
+from math import pi
 
 from ballsbot.lidar import radial_to_cartesian
 from ballsbot.geometry import get_linear_coefs, distance, cross_point, get_radial_line
@@ -17,7 +17,7 @@ def straight_distance(a_point, a_wall):
 def shorter_distance(car_point, radial_line, *walls):
     points = [cross_point(radial_line, x) for x in walls]
     distances = [distance(car_point, x) for x in points]
-    return list(sorted(distances, key=lambda x: abs(x)))[0]
+    return list(sorted(distances, key=lambda x: abs(x)))[0]  # pylint: disable=W0108
 
 
 def shorter_distance_corner(car_point, radial_line, corner_wall, corner, *walls):
@@ -49,7 +49,7 @@ def get_long_room():
     angle = 0.
     while angle < 2. * pi:
         radial_line = get_radial_line(car_point, angle)
-        if angle == 0. or angle == 2. * pi:
+        if angle in (0., 2. * pi):
             dist = straight_distance(car_point, walls[1])
         elif 0 < angle < pi / 2.:
             dist = shorter_distance(car_point, radial_line, walls[0], walls[1])
@@ -102,7 +102,7 @@ def get_g_room():
     angle = 0.
     while angle < 2. * pi:
         radial_line = get_radial_line(car_point, angle)
-        if angle == 0. or angle == 2. * pi:
+        if angle in (0., 2. * pi):
             dist = straight_distance(car_point, walls[1])
         elif 0 < angle < pi / 2.:
             dist = shorter_distance(car_point, radial_line, walls[0], walls[1])

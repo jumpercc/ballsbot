@@ -3,20 +3,20 @@ from ballsbot.config import PCA9685_I2C_BUSNUM, STEERING_CHANNEL, THROTTLE_CHANN
     SERVOS_LEFT_PULSE, SERVOS_RIGHT_PULSE, SERVOS_ZERO_PULSE, SERVOS_MIN_PULSE, SERVOS_MAX_PULSE, PCA9685_I2C_ADDR
 
 
-def map_range(x, X_min, X_max, Y_min, Y_max):
-    '''
+def map_range(x, x_min, x_max, y_min, y_max):
+    """
     Linear mapping between two ranges of values
-    '''
-    X_range = X_max - X_min
-    Y_range = Y_max - Y_min
-    XY_ratio = X_range / Y_range
+    """
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    xy_ratio = x_range / y_range
 
-    y = ((x - X_min) / XY_ratio + Y_min) // 1
+    y = ((x - x_min) / xy_ratio + y_min) // 1
 
     return int(y)
 
 
-def scaled_map_range(value, from_min, from_max, to_min, to_max, scale=1.):
+def scaled_map_range(value, from_min, from_max, to_min, to_max, scale=1.):  # pylint: disable=R0913
     result = map_range(value, from_min / scale, from_max / scale, to_min, to_max)
 
     if to_min > to_max:
@@ -31,20 +31,22 @@ def scaled_map_range(value, from_min, from_max, to_min, to_max, scale=1.):
 
 
 class PCA9685:
-    '''
+    """
     PWM motor controler using PCA9685 boards.
     This is used for most RC Cars
-    '''
+    """
 
+    # pylint: disable=R0913
     def __init__(self, channel, address=PCA9685_I2C_ADDR, frequency=60, busnum=PCA9685_I2C_BUSNUM, init_delay=0.1):
 
         self.default_freq = 60
         self.pwm_scale = frequency / self.default_freq
 
-        import Adafruit_PCA9685
+        import Adafruit_PCA9685  # pylint: disable=C0415
         # Initialise the PCA9685 using the default address (PCA9685_I2C_ADDR).
         if busnum is not None:
-            from Adafruit_GPIO import I2C
+            from Adafruit_GPIO import I2C  # pylint: disable=C0415
+
             # replace the get_bus function with our own
             def get_bus():
                 return busnum
@@ -58,7 +60,7 @@ class PCA9685:
     def set_pulse(self, pulse):
         try:
             self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
-        except:
+        except:  # pylint: disable=W0702
             self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
 
     def run(self, pulse):

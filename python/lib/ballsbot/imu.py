@@ -58,12 +58,12 @@ class IMU:
         self.main_loop()
 
 
-class IMU_Threaded:
+class IMU_Threaded:  # pylint: disable=C0103
     def __init__(self):
         run_as_thread(self.start)
 
     def start(self):
-        self.imu = IMU()
+        self.imu = IMU()  # pylint: disable=W0201
         self.imu.start()
 
     def get_teta(self):

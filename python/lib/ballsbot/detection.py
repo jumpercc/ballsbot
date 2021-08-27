@@ -27,7 +27,7 @@ class Detector:
                 data = rospy.wait_for_message('/cam_detections', DetectionsList, timeout=5)
             except KeyboardInterrupt:
                 break
-            except rospy.exceptions.ROSException as e:
+            except rospy.exceptions.ROSException:
                 data = None
             if data is not None:
                 detections = [{
@@ -53,7 +53,7 @@ class Detector:
             # add main object from prev frame if there is no object with this class in current
             objects_detected = detections.copy()
             if self.main_object_detected is not None:
-                seen_classes = set([x['object_class'] for x in detections])
+                seen_classes = set(x['object_class'] for x in detections)
                 if self.main_object_detected['object_class'] not in seen_classes \
                         and len(list(filter(lambda x: x['object_class'] == self.main_object_detected['object_class'],
                                             self.objects_detected))) != 0:

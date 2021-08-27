@@ -1,0 +1,40 @@
+[MESSAGES CONTROL]
+disable=missing-function-docstring,
+    missing-class-docstring,
+    missing-module-docstring,
+    wrong-import-order,
+    unspecified-encoding,
+    wrong-import-position,
+    too-many-branches,
+    too-few-public-methods,
+    too-many-return-statements,
+    too-many-instance-attributes,
+    no-else-return,
+    no-else-raise,
+    no-else-break,
+    fixme,
+    duplicate-code
+
+[FORMAT]
+max-line-length=120
+
+[BASIC]
+argument-naming-style=snake_case
+attr-naming-style=any
+class-attribute-naming-style=any
+class-naming-style=PascalCase
+const-naming-style=UPPER_CASE
+function-naming-style=snake_case
+inlinevar-naming-style=any
+method-naming-style=snake_case
+include-naming-hint=yes
+variable-rgx=([^\W\dA-Z][^\WA-Z]+|_[^\WA-Z]*|__[^\WA-Z\d_][^\WA-Z]+__)$
+good-names=i,j,k,
+           x,y,z,
+           a,b,c,
+           p0,p1,p2,
+           dt,
+           e,
+           w,h,l,
+           cb,
+           _

@@ -52,11 +52,11 @@ def get_controller_link(controller, config):
     raise NotImplementedError(config)
 
 
-def float_map_range(x, X_min, X_max, Y_min, Y_max):
-    X_range = X_max - X_min
-    Y_range = Y_max - Y_min
-    XY_ratio = X_range / Y_range
-    return ((x - X_min) / XY_ratio + Y_min)
+def float_map_range(x, x_min, x_max, y_min, y_max):
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    xy_ratio = x_range / y_range
+    return (x - x_min) / xy_ratio + y_min
 
 
 class Manipulator:

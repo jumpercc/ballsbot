@@ -1,5 +1,3 @@
-import json
-
 import ballsbot.utils as ballsbot_utils
 
 ballsbot_utils.keep_rps = lambda ts, fps: ts
@@ -28,7 +26,7 @@ class LidarMock:
     def get_lidar_points(self):
         return self.radial_points_to_cartesian(self.get_radial_lidar_points(False))
 
-    def get_radial_lidar_points(self, range_limit=None, cached=False):
+    def get_radial_lidar_points(self, range_limit=None, cached=False):  # pylint: disable=W0613
         return self.feed.get_current_frame()['points']
 
     def radial_points_to_cartesian(self, points):

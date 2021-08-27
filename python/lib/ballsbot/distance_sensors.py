@@ -43,7 +43,7 @@ class DistanceSensors:
                     data = rospy.wait_for_message('/laser_distance_' + direction, LaserDistance, timeout=5)
                 except KeyboardInterrupt:
                     break
-                except rospy.exceptions.ROSException as e:
+                except rospy.exceptions.ROSException:
                     data = None
                 if data is not None:
                     it = self.distances[data.direction]

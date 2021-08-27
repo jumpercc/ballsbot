@@ -1,10 +1,10 @@
-from math import pi, ceil
+# from math import pi, ceil
 import sys
 import json
 
 from ballsbot.utils import keep_rps
 # from ballsbot.ndt import NDT
-import ballsbot.drawing as drawing
+from ballsbot import drawing
 from ballsbot.lidar import apply_transformation_to_cloud
 
 
@@ -31,7 +31,7 @@ class TrackerLight:
                     'teta': current['teta'],
                 })
             else:
-                dt = current['ts'] - previous['ts']
+                dt = current['ts'] - previous['ts']  # pylint: disable=E1136
                 if dt == 0.:
                     continue
                 try:
@@ -70,7 +70,7 @@ class TrackerLight:
     def _upgrade_current(self, current):
         pass
 
-    def _get_transformation(self, dt, current, previous):
+    def _get_transformation(self, dt, current, previous):  # pylint: disable=R0201, W0613
         dx_raw = current['odometry_dx']
         dy_raw = current['odometry_dy']
         raw_result = (dx_raw, dy_raw, current['teta'])
@@ -88,6 +88,7 @@ class TrackerLight:
 
 
 class Tracker(TrackerLight):
+    # pylint: disable=R0913
     def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=False, keep_readings=False):
         super().__init__(imu, odometry, fps)
         self.lidar = lidar
@@ -99,7 +100,7 @@ class Tracker(TrackerLight):
         self.keep_readings = keep_readings
 
     def _get_current(self):
-        result = super(Tracker, self)._get_current()
+        result = super()._get_current()
         result['points'] = self.lidar.get_lidar_points()
         result['ts'] = self.lidar.points_ts
         return result
@@ -108,10 +109,10 @@ class Tracker(TrackerLight):
         self.poses[-1]['points'] = current['points']
 
     def _get_transformation(self, dt, current, previous):
-        raw_result = super(Tracker, self)._get_transformation(dt, current, previous)
+        raw_result = super()._get_transformation(dt, current, previous)
         if not self.fix_pose_with_lidar:
             return raw_result
-
+        return None  # FIXME
         # dteta_raw = current['teta'] - previous['teta']
         # dx_raw = current['odometry_dx']
         # dy_raw = current['odometry_dy']

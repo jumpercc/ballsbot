@@ -1,6 +1,6 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.patches as patches
+from matplotlib import patches
 from matplotlib.transforms import Affine2D
 from io import BytesIO
 
@@ -11,7 +11,7 @@ from ballsbot.config import LIDAR_CALIBRATION_WITHOUT_MANIPULATOR, ENABLE_MULTIP
 def update_image_abs_coords(
         image, poses, lidar_points, self_position, only_nearby_meters, figsize=None,
         tail_points=None, tail_lines=None, lines=None
-):
+):  # pylint: disable=R0913, R0914
     if figsize is None:
         figsize = figsize_from_image_size(image)
     poses_x_points = [x['x'] for x in poses]
@@ -145,12 +145,13 @@ class ManipulatorPoseDrawing:
             drawer = DrawInAnotherProcess.get_instance('get_manipulator_drawing_images')
             values = drawer.draw('get_manipulator_drawing_images', *params)
         else:
-            values = get_picture_self_coords(*params)
+            values = get_picture_self_coords(*params)  # pylint: disable=E1120
 
         for image_type, value in values.items():
             images[image_type].value = value
 
 
+# pylint: disable=E1130, R0914, R0915
 def get_manipulator_drawing_images(figsizes, manipulator_pose, override_crop_half_size=None):
     if override_crop_half_size:
         crop_half_size = override_crop_half_size
@@ -227,13 +228,13 @@ def get_manipulator_drawing_images(figsizes, manipulator_pose, override_crop_hal
 
         prev_first = 0.
         prev_second = 0.
-        for i in range(len(first_points)):
+        for i, first_points_i in enumerate(first_points):
             ax.plot(
-                [prev_first, first_points[i]],
+                [prev_first, first_points_i],
                 [prev_second, second_points[i]],
                 c=color[i], linewidth=3
             )
-            prev_first = first_points[i]
+            prev_first = first_points_i
             prev_second = second_points[i]
 
         ax.scatter(first_points, second_points, marker='o', s=15, c='b')

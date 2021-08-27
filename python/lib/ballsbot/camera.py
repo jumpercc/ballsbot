@@ -1,10 +1,10 @@
 import cv2
-import ipywidgets.widgets as widgets
+from ipywidgets import widgets
 import traitlets
 from traitlets.config.configurable import SingletonConfigurable
-from ballsbot.utils import run_as_thread
 import numpy as np
 
+from ballsbot.utils import run_as_thread
 from ballsbot.utils import keep_rps, bgr8_to_jpeg
 from ballsbot.config import MANIPULATOR
 
@@ -12,8 +12,9 @@ from ballsbot.config import MANIPULATOR
 class CSICamera(SingletonConfigurable):
     value = traitlets.Any()
 
+    # pylint: disable=R0913
     def __init__(self, capture_width, capture_height, image_width, image_height, fps=5, sensor_id=0):
-        super(CSICamera, self).__init__()
+        super().__init__()
         self.capture_width = capture_width
         self.capture_height = capture_height
         self.image_width = image_width
@@ -38,7 +39,7 @@ class CSICamera(SingletonConfigurable):
         )
 
     def _capture_frames(self):
-        self.cap = cv2.VideoCapture(self._get_csi_gsreamer_str(), cv2.CAP_GSTREAMER)
+        self.cap = cv2.VideoCapture(self._get_csi_gsreamer_str(), cv2.CAP_GSTREAMER)  # pylint: disable=E1101, W0201
 
         ts = None
         while True:
@@ -71,7 +72,7 @@ def get_images_and_cameras(image_width=640, image_height=480, fps=5):
         traitlets.dlink(
             (camera, 'value'),
             (image, 'value'),
-            transform=lambda x: bgr8_to_jpeg(x),
+            transform=bgr8_to_jpeg,
         )
         result.append((image, camera))
 

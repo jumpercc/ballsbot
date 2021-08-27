@@ -71,7 +71,7 @@ class Odometry:
         return result
 
     def update_odometry_cycle(self):
-        import RPi.GPIO as GPIO
+        from RPi import GPIO  # pylint: disable=C0415
         GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
 
         GPIO.setup(ODOMETRY_PRIMARY_PIN, GPIO.IN)
@@ -113,18 +113,17 @@ class Odometry:
                     # reset state if no events (car stopped)
                     self.odometry_last_interval = None
                     self.direction = 0.
-                    for k in detections.keys():
+                    for k in detections:
                         detections[k] = None
                 elif detections['primary_falling'] is not None and detections['secondary_rising'] is not None \
                         and (detections['primary_rising'] is not None or detections['secondary_falling'] is not None):
                     # select events to determine direction
                     select_rising = False
                     if detections['primary_rising'] is not None and detections['secondary_falling'] is not None:
-                        if abs(detections['primary_rising'] - detections['secondary_rising']) < \
-                                abs(detections['primary_falling'] - detections['secondary_falling']):
-                            select_rising = True
-                        else:
-                            select_rising = False
+                        select_rising = bool(
+                            abs(detections['primary_rising'] - detections['secondary_rising']) <
+                            abs(detections['primary_falling'] - detections['secondary_falling'])
+                        )
                     # determine direction
                     if select_rising and detections['primary_rising'] is not None:
                         self.direction = 1. if detections['primary_rising'] < detections['secondary_rising'] else -1.
