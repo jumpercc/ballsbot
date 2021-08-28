@@ -1,13 +1,13 @@
 import math
 
-LIDAR_CALIBRATION = {
+LIDAR_CALIBRATION = {  # FIXME
     'angle_fix': 3.083771826820918,
     'fl_x': 0.3371084301852129,
     'fl_y': 0.16540299714227663,
     'rr_x': -0.1044873414628473,
     'rr_y': -0.1589888544588804
 }
-LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {
+LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {  # FIXME
     'angle_fix': 3.083771826820918,
     'fl_x': 0.29,
     'fl_y': 0.16540299714227663,
@@ -17,19 +17,30 @@ LIDAR_CALIBRATION_WITHOUT_MANIPULATOR = {
 LIDAR_CALIBRATION_RANGE_LIMIT = 0.5
 FROM_LIDAR_TO_CENTER = 0.203
 
-TURN_DIAMETER = 1.25
+TURN_DIAMETER = 1.25  # FIXME
 
 # meters per count of primary or secondary peaks
-#ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
+# ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
 
-# steering
-SERVOS_LEFT_PULSE = 470
-SERVOS_RIGHT_PULSE = 320
-
-# throttle
-SERVOS_MIN_PULSE = 354  # 150
-SERVOS_ZERO_PULSE = 379  # 375
-SERVOS_MAX_PULSE = 394  # 600
+CAR_CONTROLS = {
+    'steering': {
+        "channel": 0,
+        "min_pulse": 470,
+        "max_pulse": 320,
+        "default_position": 0.,
+        "control": {"axis": 0},
+    },
+    'throttle': {
+        "channel": 1,
+        "min_turbo_pulse": 344,
+        "min_pulse": 354,  # 150
+        "zero_pulse": 379,  # 375
+        "max_pulse": 394,  # 600
+        "max_turbo_pulse": 404,
+        "default_position": 0.,
+        "control": {"axis": 1, "reverse": True},
+    },
+}
 
 LASER_SENSOR_FRONT_ENABLED = False
 LASER_SENSOR_FRONT_OFFSET = 275  # mm from lidar center

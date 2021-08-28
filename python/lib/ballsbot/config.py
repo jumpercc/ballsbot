@@ -27,17 +27,23 @@ PCA9685_I2C_BUSNUM = 0  # for T208 and pins 27, 28
 # PCA9685_I2C_BUSNUM = 1  # for T200 and pins 3, 5
 PCA9685_I2C_ADDR = 0x40  # 9865, over rides only if needed, ie. TX2..
 
-STEERING_CHANNEL = 0
-THROTTLE_CHANNEL = 1
-
-# steering
-SERVOS_LEFT_PULSE = 450
-SERVOS_RIGHT_PULSE = 330
-
-# throttle
-SERVOS_MIN_PULSE = 330
-SERVOS_MAX_PULSE = 390
-SERVOS_ZERO_PULSE = 360
+CAR_CONTROLS = {
+    'steering': {
+        "channel": 0,
+        "min_pulse": 450,
+        "max_pulse": 330,
+        "default_position": 0.,
+        "control": {"axis": 0},
+    },
+    'throttle': {
+        "channel": 1,
+        "min_pulse": 330,
+        "zero_pulse": 360,
+        "max_pulse": 390,
+        "default_position": 0.,
+        "control": {"axis": 1, "reverse": True},
+    },
+}
 
 LASER_SENSOR_FRONT_ENABLED = True
 LASER_SENSOR_FRONT_OFFSET = 190  # mm from lidar center
@@ -55,8 +61,13 @@ ENABLE_MULTIPROCESSING = True
 if os.path.isfile(os.environ['HOME'] + '/ballsbot_config_override.py'):
     sys.path.append(os.environ['HOME'])
     # noinspection PyUnresolvedReferences
-    from ballsbot_config_override import *
+    from ballsbot_config_override import *  # pylint: disable=E0401, W0401
     if sys.path[-1] == os.environ['HOME']:
         sys.path.pop()
 
 CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))
+
+if 'min_turbo_pulse' not in CAR_CONTROLS['throttle']:
+    CAR_CONTROLS['throttle']['min_turbo_pulse'] = CAR_CONTROLS['throttle']['min_pulse']
+if 'max_turbo_pulse' not in CAR_CONTROLS['throttle']:
+    CAR_CONTROLS['throttle']['max_turbo_pulse'] = CAR_CONTROLS['throttle']['max_pulse']

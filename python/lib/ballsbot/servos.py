@@ -1,6 +1,5 @@
 import time
-from ballsbot.config import PCA9685_I2C_BUSNUM, STEERING_CHANNEL, THROTTLE_CHANNEL, \
-    SERVOS_LEFT_PULSE, SERVOS_RIGHT_PULSE, SERVOS_ZERO_PULSE, SERVOS_MIN_PULSE, SERVOS_MAX_PULSE, PCA9685_I2C_ADDR
+from ballsbot.config import PCA9685_I2C_BUSNUM, PCA9685_I2C_ADDR, CAR_CONTROLS
 
 
 def map_range(x, x_min, x_max, y_min, y_max):
@@ -74,10 +73,12 @@ class PWMSteering:
     LEFT_ANGLE = -1
     RIGHT_ANGLE = 1
 
-    def __init__(self,
-                 controller=None,
-                 left_pulse=SERVOS_LEFT_PULSE,
-                 right_pulse=SERVOS_RIGHT_PULSE):
+    def __init__(
+        self,
+        controller=None,
+        left_pulse=CAR_CONTROLS['steering']['min_pulse'],
+        right_pulse=CAR_CONTROLS['steering']['max_pulse']
+    ):
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
@@ -123,12 +124,13 @@ class PWMThrottle:
     MIN_THROTTLE = -1
     MAX_THROTTLE = 1
 
-    def __init__(self,
-                 controller=None,
-                 max_pulse=SERVOS_MAX_PULSE,
-                 min_pulse=SERVOS_MIN_PULSE,
-                 zero_pulse=SERVOS_ZERO_PULSE):
-
+    def __init__(
+        self,
+        controller=None,
+        max_pulse=CAR_CONTROLS['throttle']['max_pulse'],
+        min_pulse=CAR_CONTROLS['throttle']['min_pulse'],
+        zero_pulse=CAR_CONTROLS['throttle']['zero_pulse']
+    ):
         self.controller = controller
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
@@ -174,12 +176,12 @@ class PWMThrottle:
 
 
 def get_controls():
-    steering_controller = PCA9685(STEERING_CHANNEL)
+    steering_controller = PCA9685(CAR_CONTROLS['steering']['channel'])
     steering = PWMSteering(
         controller=steering_controller,
     )
 
-    throttle_controller = PCA9685(THROTTLE_CHANNEL)
+    throttle_controller = PCA9685(CAR_CONTROLS['throttle']['channel'])
     throttle = PWMThrottle(
         controller=throttle_controller,
     )
