@@ -9,12 +9,16 @@ def link_controller(controller):
     steering_config = CAR_CONTROLS['steering']['control']
     throttle_config = CAR_CONTROLS['throttle']['control']
     throttle_reverse = throttle_config.get('reverse')
+    turbo_button = CAR_CONTROLS['throttle']['turbo_control']['button']
 
     def update_steering(value):
         car_controls['steering'].run(value['new'])
 
     def update_throttle(value):
-        car_controls['throttle'].run(-value['new'] if throttle_reverse else value['new'])
+        car_controls['throttle'].run(
+            -value['new'] if throttle_reverse else value['new'],
+            controller.buttons[turbo_button].value
+        )
 
     def link_controls():
         ts = None

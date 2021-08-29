@@ -79,4 +79,9 @@ MANIPULATOR = {
             "claw": True,
         },
     ],
+    "fold": {
+        "button_fold": 0,
+        "button_unfold": 3,
+        "button_stop": 2,
+    },
 }

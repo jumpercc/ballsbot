@@ -73,15 +73,10 @@ class PWMSteering:
     LEFT_ANGLE = -1
     RIGHT_ANGLE = 1
 
-    def __init__(
-        self,
-        controller=None,
-        left_pulse=CAR_CONTROLS['steering']['min_pulse'],
-        right_pulse=CAR_CONTROLS['steering']['max_pulse']
-    ):
+    def __init__(self, *, controller, config):
         self.controller = controller
-        self.left_pulse = left_pulse
-        self.right_pulse = right_pulse
+        self.left_pulse = config['min_pulse']
+        self.right_pulse = config['max_pulse']
         self.scale = 2.
         self.pulse = scaled_map_range(
             0,
@@ -124,21 +119,18 @@ class PWMThrottle:
     MIN_THROTTLE = -1
     MAX_THROTTLE = 1
 
-    def __init__(
-        self,
-        controller=None,
-        max_pulse=CAR_CONTROLS['throttle']['max_pulse'],
-        min_pulse=CAR_CONTROLS['throttle']['min_pulse'],
-        zero_pulse=CAR_CONTROLS['throttle']['zero_pulse']
-    ):
+    def __init__(self, *, controller, config):
         self.controller = controller
-        self.max_pulse = max_pulse
-        self.min_pulse = min_pulse
-        self.zero_pulse = zero_pulse
-        self.pulse = zero_pulse
+        self.max_turbo_pulse = config['max_turbo_pulse']
+        self.max_pulse = config['max_pulse']
+        self.zero_pulse = config['zero_pulse']
+        self.min_pulse = config['min_pulse']
+        self.min_turbo_pulse = config['min_turbo_pulse']
+        self.pulse = self.zero_pulse
         self.scale = 2.
         self.throttle = 0.
-        self.zero_throttle = map_range(zero_pulse, self.min_pulse, self.max_pulse, self.MIN_THROTTLE, self.MAX_THROTTLE)
+        self.zero_throttle = map_range(
+            self.zero_pulse, self.min_pulse, self.max_pulse, self.MIN_THROTTLE, self.MAX_THROTTLE)
 
         # send zero pulse to calibrate ESC
         self.controller.set_pulse(self.zero_pulse)
@@ -149,7 +141,7 @@ class PWMThrottle:
         while self.running:
             self.controller.set_pulse(self.pulse)
 
-    def run_threaded(self, throttle):
+    def run_threaded(self, throttle, turbo):
         # self.throttle = throttle
         # self.pulse = map_range(throttle,
         #                        self.MIN_THROTTLE, self.MAX_THROTTLE,
@@ -157,6 +149,13 @@ class PWMThrottle:
         if abs(throttle - self.zero_throttle) < 0.25:
             self.throttle = 0.
             self.pulse = self.zero_pulse
+        elif turbo:
+            self.pulse = scaled_map_range(
+                throttle,
+                self.MIN_THROTTLE, self.MAX_THROTTLE,
+                self.min_turbo_pulse, self.max_turbo_pulse,
+                self.scale
+            )
         else:
             self.pulse = scaled_map_range(
                 throttle,
@@ -165,8 +164,8 @@ class PWMThrottle:
                 self.scale
             )
 
-    def run(self, throttle):
-        self.run_threaded(throttle)
+    def run(self, throttle, turbo=False):
+        self.run_threaded(throttle, turbo)
         self.controller.set_pulse(self.pulse)
 
     def shutdown(self):
@@ -176,14 +175,14 @@ class PWMThrottle:
 
 
 def get_controls():
-    steering_controller = PCA9685(CAR_CONTROLS['steering']['channel'])
     steering = PWMSteering(
-        controller=steering_controller,
+        controller=PCA9685(CAR_CONTROLS['steering']['channel']),
+        config=CAR_CONTROLS['steering'],
     )
 
-    throttle_controller = PCA9685(CAR_CONTROLS['throttle']['channel'])
     throttle = PWMThrottle(
-        controller=throttle_controller,
+        controller=PCA9685(CAR_CONTROLS['throttle']['channel']),
+        config=CAR_CONTROLS['throttle'],
     )
 
     throttle.run(0)

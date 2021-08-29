@@ -88,9 +88,9 @@ class Manipulator:
         run_as_thread(
             self._watch_fold,
             controller=controller,
-            button_fold=0,
-            button_unfold=3,
-            button_stop=2,
+            button_fold=MANIPULATOR['fold']['button_fold'],
+            button_unfold=MANIPULATOR['fold']['button_unfold'],
+            button_stop=MANIPULATOR['fold']['button_stop'],
         )
 
     @staticmethod

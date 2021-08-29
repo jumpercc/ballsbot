@@ -39,6 +39,7 @@ CAR_CONTROLS = {
         "max_turbo_pulse": 404,
         "default_position": 0.,
         "control": {"axis": 1, "reverse": True},
+        "turbo_control": {"button": 1},
     },
 }
 
@@ -119,4 +120,9 @@ MANIPULATOR = {
             "claw": True,
         },
     ],
+    "fold": {
+        "button_fold": 0,
+        "button_unfold": 3,
+        "button_stop": 2,
+    },
 }
