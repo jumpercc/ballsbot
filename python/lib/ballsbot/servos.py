@@ -174,21 +174,27 @@ class PWMThrottle:
         self.running = False
 
 
+_car_controls = None
+
+
 def get_controls():
-    steering = PWMSteering(
-        controller=PCA9685(CAR_CONTROLS['steering']['channel']),
-        config=CAR_CONTROLS['steering'],
-    )
+    nonlocal _car_controls
+    if not _car_controls:
+        steering = PWMSteering(
+            controller=PCA9685(CAR_CONTROLS['steering']['channel']),
+            config=CAR_CONTROLS['steering'],
+        )
 
-    throttle = PWMThrottle(
-        controller=PCA9685(CAR_CONTROLS['throttle']['channel']),
-        config=CAR_CONTROLS['throttle'],
-    )
+        throttle = PWMThrottle(
+            controller=PCA9685(CAR_CONTROLS['throttle']['channel']),
+            config=CAR_CONTROLS['throttle'],
+        )
 
-    throttle.run(0)
-    steering.run(0)
+        throttle.run(0)
+        steering.run(0)
 
-    return {
-        'steering': steering,
-        'throttle': throttle,
-    }
+        _car_controls = {
+            'steering': steering,
+            'throttle': throttle,
+        }
+    return _car_controls

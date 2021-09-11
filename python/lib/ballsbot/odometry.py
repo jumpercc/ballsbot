@@ -71,7 +71,7 @@ class Odometry:
         return result
 
     def update_odometry_cycle(self):
-        from RPi import GPIO  # pylint: disable=C0415
+        from Jetson import GPIO  # pylint: disable=C0415
         GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
 
         GPIO.setup(ODOMETRY_PRIMARY_PIN, GPIO.IN)
