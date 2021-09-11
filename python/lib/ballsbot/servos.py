@@ -178,7 +178,7 @@ _car_controls = None
 
 
 def get_controls():
-    nonlocal _car_controls
+    global _car_controls
     if not _car_controls:
         steering = PWMSteering(
             controller=PCA9685(CAR_CONTROLS['steering']['channel']),
