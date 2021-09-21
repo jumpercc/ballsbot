@@ -1,6 +1,6 @@
 from Jetson import GPIO
 import sys
-sys.path.append('/home/jumper/projects/ballsbot/lib')
+sys.path.append('/home/ballsbot/projects/ballsbot/lib')
 
 from ballsbot.utils import keep_rps
 from ballsbot.config import ODOMETRY_PRIMARY_PIN, ODOMETRY_SECONDARY_PIN
