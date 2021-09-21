@@ -1,6 +1,6 @@
 from Jetson import GPIO
 import sys
-sys.path.append('/home/ballsbot/projects/ballsbot/lib')
+sys.path.append('/home/ballsbot/projects/ballsbot/python/lib')
 
 from ballsbot.utils import keep_rps
 from ballsbot.config import ODOMETRY_PRIMARY_PIN, ODOMETRY_SECONDARY_PIN
@@ -30,7 +30,8 @@ def main():
 
         ts = None
         while True:
-            ts = keep_rps(ts, fps=2)
+            ts = keep_rps(ts, fps=1)
+            print('nope')
 
     finally:
         GPIO.remove_event_detect(ODOMETRY_PRIMARY_PIN)
