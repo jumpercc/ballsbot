@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   LaserDistance.msg
+  EncoderAngle.msg
 )
 
 generate_messages(
@@ -34,7 +35,7 @@ include_directories(
   src
 )
 
-add_executable(tca9548_controller src/tca9548_controller.cpp src/tca9548.cpp)
+add_executable(tca9548_controller src/tca9548_controller.cpp src/tca9548.cpp src/magnetic_encoder_driver.cpp)
 target_link_libraries(tca9548_controller ${catkin_LIBRARIES} ${I2C})
 add_dependencies(tca9548_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 

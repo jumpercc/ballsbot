@@ -1,5 +1,6 @@
 #include "tca9548.h"
 #include "VL53L0X.h"
+#include "magnetic_encoder_driver.h"
 #include <stdint.h>
 #include <cstdlib>
 #include <iostream>
@@ -7,12 +8,13 @@
 #include <string>
 #include "ros/ros.h"
 #include "ballsbot_tca9548/LaserDistance.h"
+#include "ballsbot_tca9548/EncoderAngle.h"
 #include <memory>
-#include <stdexcept>
 
 enum kDeviceType {
     kLaserRangingSensor = 0,
-    kMagneticEncoder = 1,
+    kMagneticEncoderAS5600 = 1,
+    kMagneticEncoderAS5048B = 2,
 };
 
 struct I2CDevice {
@@ -56,6 +58,18 @@ std::unique_ptr<VL53L0X> GetLaserSensor(uint8_t bus_number) {
     return sensor;
 }
 
+std::unique_ptr<EncoderBase> GetEncoder(uint8_t bus_number, kDeviceType device_type) {
+    std::unique_ptr<EncoderBase> result;
+    if (device_type == kMagneticEncoderAS5600) {
+        result = std::make_unique<AMS_AS5600>(bus_number);
+    } else {
+        std::make_unique<AMS_AS5048B>(bus_number);
+    }
+    result->OpenSensor();
+    result->SetClockWise(false);
+    return result;
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "USAGE: publisher_tca9548 <bus_number> <device_address>\n";
@@ -67,7 +81,11 @@ int main(int argc, char* argv[]) {
     std::vector<ConfigItem> config = {
         {0b10000000u, {{kLaserRangingSensor, "front"}}},
         {0b01000000u, {{kLaserRangingSensor, "rear"}}},
-        {0b00100000u, {{kLaserRangingSensor, "manipulator"}}},
+        {0b00100000u,
+         {
+             {kLaserRangingSensor, "manipulator"},
+             {kMagneticEncoderAS5600, "m0"},
+         }},
     };
 
     ros::init(argc, argv, "ballsbot_tca9548");
@@ -79,6 +97,9 @@ int main(int argc, char* argv[]) {
     ld_msg.bus_number = bus_number;
     uint16_t distance;
 
+    ballsbot_tca9548::EncoderAngle enc_msg;
+    double angle;
+
     ros::NodeHandle n;
     ros::Rate loop_rate(10);
     while (ros::ok()) {
@@ -89,8 +110,10 @@ int main(int argc, char* argv[]) {
                     if (device.device_type_ == kLaserRangingSensor) {
                         device.publisher_ = std::make_shared<ros::Publisher>(
                             n.advertise<ballsbot_tca9548::LaserDistance>(device.device_name_, 1));
-                    } else if (device.device_type_ == kMagneticEncoder) {
-                        throw std::runtime_error("not implemented");
+                    } else if (device.device_type_ == kMagneticEncoderAS5600 ||
+                               device.device_type_ == kMagneticEncoderAS5048B) {
+                        device.publisher_ = std::make_shared<ros::Publisher>(
+                            n.advertise<ballsbot_tca9548::EncoderAngle>(device.device_name_, 1));
                     }
                 }
 
@@ -108,12 +131,20 @@ int main(int argc, char* argv[]) {
 
                     ld_msg.distance_in_mm = distance;
                     ld_msg.direction = device.device_name_;
-                    ROS_INFO("%i, %s: %i mm", argc, ld_msg.direction.c_str(),
-                             ld_msg.distance_in_mm);
+                    ROS_INFO("%s: %i mm", ld_msg.direction.c_str(), ld_msg.distance_in_mm);
                     ROS_INFO("-");
                     device.publisher_->publish(ld_msg);
-                } else if (device.device_type_ == kMagneticEncoder) {
-                    throw std::runtime_error("not implemented");
+                } else if (device.device_type_ == kMagneticEncoderAS5600 ||
+                           device.device_type_ == kMagneticEncoderAS5048B) {
+                    auto encoder = GetEncoder(bus_number, device.device_type_);
+                    angle = encoder->GetAngle(U_RAD, true);
+                    encoder->CloseSensor();
+
+                    enc_msg.angle = angle;
+                    enc_msg.encoder_name = device.device_name_;
+                    ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
+                    ROS_INFO("-");
+                    device.publisher_->publish(enc_msg);
                 }
             }
         }
