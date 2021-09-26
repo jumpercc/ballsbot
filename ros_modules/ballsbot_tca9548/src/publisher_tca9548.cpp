@@ -63,7 +63,7 @@ std::unique_ptr<EncoderBase> GetEncoder(uint8_t bus_number, kDeviceType device_t
     if (device_type == kMagneticEncoderAS5600) {
         result = std::make_unique<AMS_AS5600>(bus_number);
     } else {
-        std::make_unique<AMS_AS5048B>(bus_number);
+        result = std::make_unique<AMS_AS5048B>(bus_number);
     }
     result->OpenSensor();
     result->SetClockWise(false);

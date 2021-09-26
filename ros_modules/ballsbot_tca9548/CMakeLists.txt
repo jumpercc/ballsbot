@@ -35,10 +35,10 @@ include_directories(
   src
 )
 
-add_executable(tca9548_controller src/tca9548_controller.cpp src/tca9548.cpp src/magnetic_encoder_driver.cpp)
+add_executable(tca9548_controller src/tca9548_controller.cpp src/tca9548.cpp)
 target_link_libraries(tca9548_controller ${catkin_LIBRARIES} ${I2C})
 add_dependencies(tca9548_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(publisher_tca9548 src/publisher_tca9548.cpp src/tca9548.cpp src/VL53L0X.cpp)
+add_executable(publisher_tca9548 src/publisher_tca9548.cpp src/tca9548.cpp src/VL53L0X.cpp src/magnetic_encoder_driver.cpp)
 target_link_libraries(publisher_tca9548 ${catkin_LIBRARIES} ${I2C})
 add_dependencies(publisher_tca9548 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
