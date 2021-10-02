@@ -266,8 +266,9 @@ class Explorer:
 
         if self.distance_sensors is not None:
             self.cached_distances = self.distance_sensors.get_distances()
-            for direction_name, angle in {'front': 0., 'rear': pi}.items():
-                a_distance = self.cached_distances.get(direction_name)
+            for sensor_name, direction_name in self.distance_sensors.get_distances().items():
+                angle = 0. if direction_name == "forward" else pi  # TODO other directions
+                a_distance = self.cached_distances.get(sensor_name)
                 if a_distance is not None:
                     a_distance /= 1000.  # to meters
                     nearby_points.append({'distance': a_distance, 'angle': angle})

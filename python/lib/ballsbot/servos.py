@@ -174,11 +174,11 @@ class PWMThrottle:
         self.running = False
 
 
-_car_controls = None
+_car_controls = None  # pylint: disable=C0103
 
 
 def get_controls():
-    global _car_controls
+    global _car_controls  # pylint: disable=W0603,C0103
     if not _car_controls:
         steering = PWMSteering(
             controller=PCA9685(CAR_CONTROLS['steering']['channel']),

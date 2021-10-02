@@ -7,8 +7,7 @@
 int main(int argc, char **argv) {
     unsigned char bus = 0;
     std::string encoder_name("default");
-    std::string topic_name("magnetic_encoder_");
-    topic_name += encoder_name;
+    std::string topic_name("magnetic_encoder");
 
     if (argc >= 2) {
         bus = atoi(argv[1]);

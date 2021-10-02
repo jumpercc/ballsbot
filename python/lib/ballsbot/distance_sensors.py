@@ -6,14 +6,19 @@ sys.path.append('/usr/lib/python2.7/dist-packages')
 sys.path.append('/home/ballsbot/catkin_ws/devel/lib/python2.7/dist-packages')
 
 import rospy
-from ballsbot_laser_ranging_sensor.msg import LaserDistance
-from ballsbot.config import LASER_SENSOR_FRONT_ENABLED, LASER_SENSOR_REAR_ENABLED, \
-    LASER_SENSOR_FRONT_OFFSET, LASER_SENSOR_REAR_OFFSET
+from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
+from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch
+from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE
 from ballsbot.utils import run_as_thread
+
+MESSAGE_CLASS_BY_TYPE = {
+    "ballsbot_laser_ranging_sensor": LaserDistanceStraight,
+    "ballsbot_tca9548": LaserDistanceSwitch,
+}
 
 
 def has_distance_sensors():
-    return LASER_SENSOR_FRONT_ENABLED or LASER_SENSOR_REAR_ENABLED
+    return len(DISTANCE_SENSORS.keys())
 
 
 class DistanceSensors:
@@ -24,29 +29,26 @@ class DistanceSensors:
             self.start()
 
     def start(self):
-        if LASER_SENSOR_FRONT_ENABLED:
-            self.distances['front'] = {
-                'shift': LASER_SENSOR_FRONT_OFFSET,
-            }
-            run_as_thread(self.get_auto_update('front'))
+        if has_distance_sensors():
+            for sensor_name, sensor_config in DISTANCE_SENSORS.items():
+                self.distances[sensor_name] = {
+                    'shift': sensor_config['offset'],
+                }
+            run_as_thread(self.get_auto_update())
 
-        if LASER_SENSOR_REAR_ENABLED:
-            self.distances['rear'] = {
-                'shift': LASER_SENSOR_REAR_OFFSET,
-            }
-            run_as_thread(self.get_auto_update('rear'))
+    def get_auto_update(self):
+        message_class = MESSAGE_CLASS_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]
 
-    def get_auto_update(self, direction):
         def result():
             while True:
                 try:
-                    data = rospy.wait_for_message('/laser_distance_' + direction, LaserDistance, timeout=5)
+                    data = rospy.wait_for_message('/laser_distance', message_class, timeout=5)
                 except KeyboardInterrupt:
                     break
                 except rospy.exceptions.ROSException:
                     data = None
                 if data is not None:
-                    it = self.distances[data.direction]
+                    it = self.distances[data.sensor_name]
                     if 'values' in it:
                         it['values'][it['index']] = data.distance_in_mm
                         it['index'] = (it['index'] + 1) % self.avg_points_count
@@ -70,3 +72,7 @@ class DistanceSensors:
                     if result[k] < 0:
                         result[k] = 0.
         return result
+
+    @classmethod
+    def get_directions(cls):
+        return {k: v['direction'] for k, v in DISTANCE_SENSORS.items()}

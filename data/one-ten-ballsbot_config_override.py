@@ -43,10 +43,21 @@ CAR_CONTROLS = {
     },
 }
 
-LASER_SENSOR_FRONT_ENABLED = False
-LASER_SENSOR_FRONT_OFFSET = 275  # mm from lidar center
-LASER_SENSOR_REAR_ENABLED = False
-LASER_SENSOR_REAR_OFFSET = 80  # mm from lidar center
+DISTANCE_SENSORS = {
+    "front": {
+        "offset": 275,  # mm from lidar center
+        "direction": "forward",
+    },
+    "rear": {
+        "offset": 80,  # mm from lidar center
+        "direction": "backward",
+    },
+    "manipulator": {
+        "offset": 325,  # mm from lidar center
+        "direction": "forward",
+    },
+}
+DISTANCE_SENSORS_MESSAGE_TYPE = "ballsbot_tca9548"
 
 MANIPULATOR = {
     "enabled": True,

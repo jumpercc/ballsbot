@@ -18,13 +18,8 @@ enum kDeviceType {
 };
 
 struct I2CDevice {
-    I2CDevice(kDeviceType device_type, std::string device_name)
-        : device_type_(device_type), device_name_(device_name) {
-    }
-
     kDeviceType device_type_;
     std::string device_name_;
-    std::shared_ptr<ros::Publisher> publisher_ = nullptr;
 };
 
 struct ConfigItem {
@@ -89,34 +84,26 @@ int main(int argc, char* argv[]) {
     };
 
     ros::init(argc, argv, "ballsbot_tca9548");
+    ros::NodeHandle n;
 
     TCA9548 controller(bus_number, address);
     controller.Start();
 
     ballsbot_tca9548::LaserDistance ld_msg;
-    ld_msg.bus_number = bus_number;
     uint16_t distance;
+    auto laser_distance_publisher = n.advertise<ballsbot_tca9548::LaserDistance>(
+        "laser_distance", 10);  // FIXME constant
 
     ballsbot_tca9548::EncoderAngle enc_msg;
     double angle;
+    auto magnetic_encoder_publisher = n.advertise<ballsbot_tca9548::EncoderAngle>(
+        "magnetic_encoder", 10);  // FIXME constant
 
-    ros::NodeHandle n;
     ros::Rate loop_rate(10);
     while (ros::ok()) {
         for (auto config_item : config) {
             controller.SetState(config_item.state_bits);
             for (auto device : config_item.devices) {
-                if (device.publisher_ == nullptr) {
-                    if (device.device_type_ == kLaserRangingSensor) {
-                        device.publisher_ = std::make_shared<ros::Publisher>(
-                            n.advertise<ballsbot_tca9548::LaserDistance>(device.device_name_, 1));
-                    } else if (device.device_type_ == kMagneticEncoderAS5600 ||
-                               device.device_type_ == kMagneticEncoderAS5048B) {
-                        device.publisher_ = std::make_shared<ros::Publisher>(
-                            n.advertise<ballsbot_tca9548::EncoderAngle>(device.device_name_, 1));
-                    }
-                }
-
                 if (device.device_type_ == kLaserRangingSensor) {
                     auto laser_sensor = GetLaserSensor(bus_number);
                     distance = laser_sensor->readRangeSingleMillimeters();
@@ -130,10 +117,10 @@ int main(int argc, char* argv[]) {
                     laser_sensor->closeVL53L0X();
 
                     ld_msg.distance_in_mm = distance;
-                    ld_msg.direction = device.device_name_;
-                    ROS_INFO("%s: %i mm", ld_msg.direction.c_str(), ld_msg.distance_in_mm);
+                    ld_msg.sensor_name = device.device_name_;
+                    ROS_INFO("%s: %i mm", ld_msg.sensor_name.c_str(), ld_msg.distance_in_mm);
                     ROS_INFO("-");
-                    device.publisher_->publish(ld_msg);
+                    laser_distance_publisher.publish(ld_msg);
                 } else if (device.device_type_ == kMagneticEncoderAS5600 ||
                            device.device_type_ == kMagneticEncoderAS5048B) {
                     auto encoder = GetEncoder(bus_number, device.device_type_);
@@ -144,7 +131,7 @@ int main(int argc, char* argv[]) {
                     enc_msg.encoder_name = device.device_name_;
                     ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
                     ROS_INFO("-");
-                    device.publisher_->publish(enc_msg);
+                    magnetic_encoder_publisher.publish(enc_msg);
                 }
             }
         }
