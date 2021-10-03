@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     unsigned char bus = 0;
     uint8_t address = FRONT_ADDRESS;
     std::string direction("unknown");
-    std::string topic_name("laser_distance");
+    std::string topic_name("laser_distance_");
 
     if (argc >= 2) {
         bus = atoi(argv[1]);
@@ -69,6 +69,7 @@ int main(int argc, char** argv) {
             address = REAR_ADDRESS;
         }
     }
+    topic_name += direction;
 
     ros::init(argc, argv, "ballsbot_laser_ranging_sensor");
 

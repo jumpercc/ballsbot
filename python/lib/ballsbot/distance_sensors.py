@@ -11,9 +11,15 @@ from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch
 from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE
 from ballsbot.utils import run_as_thread
 
-MESSAGE_CLASS_BY_TYPE = {
-    "ballsbot_laser_ranging_sensor": LaserDistanceStraight,
-    "ballsbot_tca9548": LaserDistanceSwitch,
+CONFIG_BY_TYPE = {
+    "ballsbot_laser_ranging_sensor": {
+        "class": LaserDistanceStraight,
+        "get_topic": lambda sensor_name: '/laser_distance_' + sensor_name,
+    },
+    "ballsbot_tca9548": {
+        "class": LaserDistanceSwitch,
+        "get_topic": lambda _: '/laser_distance',
+    },
 }
 
 
@@ -34,15 +40,19 @@ class DistanceSensors:
                 self.distances[sensor_name] = {
                     'shift': sensor_config['offset'],
                 }
-            run_as_thread(self.get_auto_update())
+                if DISTANCE_SENSORS_MESSAGE_TYPE == "ballsbot_laser_ranging_sensor":
+                    run_as_thread(self.get_auto_update(sensor_name))
+            if DISTANCE_SENSORS_MESSAGE_TYPE != "ballsbot_laser_ranging_sensor":
+                run_as_thread(self.get_auto_update(None))
 
-    def get_auto_update(self):
-        message_class = MESSAGE_CLASS_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]
+    def get_auto_update(self, sensor_name):
+        message_class = CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["class"]
+        topic = CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["get_topic"](sensor_name)
 
         def result():
             while True:
                 try:
-                    data = rospy.wait_for_message('/laser_distance', message_class, timeout=5)
+                    data = rospy.wait_for_message(topic, message_class, timeout=5)
                 except KeyboardInterrupt:
                     break
                 except rospy.exceptions.ROSException:
