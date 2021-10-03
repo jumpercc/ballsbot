@@ -30,7 +30,7 @@ PCA9685_I2C_ADDR = 0x40  # 9865, over rides only if needed, ie. TX2..
 CAR_CONTROLS = {
     'steering': {
         "channel": 0,
-        "min_pulse": 330,
+        "min_pulse": 340,
         "max_pulse": 450,
         "default_position": 0.,
         "control": {"axis": 0},
@@ -41,7 +41,7 @@ CAR_CONTROLS = {
         "zero_pulse": 360,
         "max_pulse": 390,
         "default_position": 0.,
-        "control": {"axis": 1, "reverse": True},
+        "control": {"axis": 3, "reverse": True},
         "turbo_control": {"button": 1},
     },
 }

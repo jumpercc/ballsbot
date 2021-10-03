@@ -8,6 +8,25 @@ LIDAR_CALIBRATION = {
     'rr_y': -0.14349584614860772,
 }
 
+CAR_CONTROLS = {
+    'steering': {
+        "channel": 0,
+        "min_pulse": 340,
+        "max_pulse": 450,
+        "default_position": 0.,
+        "control": {"axis": 0},
+    },
+    'throttle': {
+        "channel": 1,
+        "min_pulse": 330,
+        "zero_pulse": 360,
+        "max_pulse": 390,
+        "default_position": 0.,
+        "control": {"axis": 1, "reverse": True},
+        "turbo_control": {"button": 1},
+    },
+}
+
 MANIPULATOR = {
     "enabled": True,
     "has_camera": False,
