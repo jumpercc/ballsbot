@@ -11,7 +11,7 @@ LIDAR_CALIBRATION = {
 CAR_CONTROLS = {
     'steering': {
         "channel": 0,
-        "min_pulse": 340,
+        "min_pulse": 350,
         "max_pulse": 450,
         "default_position": 0.,
         "control": {"axis": 0},
