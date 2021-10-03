@@ -20,7 +20,7 @@ FROM_LIDAR_TO_CENTER = 0.203
 TURN_DIAMETER = 1.43
 
 # meters per count of primary or secondary peaks
-# ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
+ODOMETRY_METERS_PER_ROTATION = 4.71 / 43.
 
 CAR_CONTROLS = {
     'steering': {
