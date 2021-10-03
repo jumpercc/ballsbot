@@ -4,7 +4,7 @@
 
 class TCA9548 {
 public:
-    TCA9548(const uint8_t bus_number = 0, const uint8_t device_address = 0x77u)
+    TCA9548(const uint8_t bus_number = 1, const uint8_t device_address = 0x77u)
         : bus_number_(bus_number), device_address_(device_address) {
     }
     TCA9548(const TCA9548&) = delete;

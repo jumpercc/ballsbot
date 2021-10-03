@@ -74,13 +74,13 @@ int main(int argc, char* argv[]) {
     uint8_t address = atoi(argv[2]);
 
     std::vector<ConfigItem> config = {
-        {0b10000000u, {{kLaserRangingSensor, "front"}}},
-        {0b01000000u, {{kLaserRangingSensor, "rear"}}},
-        {0b00100000u,
-         {
-             {kLaserRangingSensor, "manipulator"},
-             {kMagneticEncoderAS5600, "m0"},
-         }},
+        {0b10000000u, {{kLaserRangingSensor, "rear"}}},
+        {0b01000000u, {{kLaserRangingSensor, "front"}}},
+//        {0b00100000u,
+//         {
+//             {kLaserRangingSensor, "manipulator"},
+//             {kMagneticEncoderAS5600, "m0"},
+//         }},
     };
 
     ros::init(argc, argv, "ballsbot_tca9548");

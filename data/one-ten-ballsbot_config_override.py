@@ -52,10 +52,10 @@ DISTANCE_SENSORS = {
         "offset": 80,  # mm from lidar center
         "direction": "backward",
     },
-    "manipulator": {
-        "offset": 325,  # mm from lidar center
-        "direction": "forward",
-    },
+    # "manipulator": {
+    #     "offset": 325,  # mm from lidar center
+    #     "direction": "forward",
+    # },
 }
 DISTANCE_SENSORS_MESSAGE_TYPE = "ballsbot_tca9548"
 
