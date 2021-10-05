@@ -21,6 +21,10 @@ def radial_to_cartesian(magnitude, angle):
     return [x, y]
 
 
+def radial_points_to_cartesian(points):
+    return [radial_to_cartesian(x['distance'], x['angle']) for x in points]
+
+
 def apply_transformation_to_cloud(a_cloud, transformation):
     result = []
 
@@ -116,18 +120,14 @@ class Lidar:
         self.points = []
         return points
 
-    @staticmethod
-    def radial_points_to_cartesian(points):
-        return [radial_to_cartesian(x['distance'], x['angle']) for x in points]
-
     def get_lidar_points(self):
         if len(self.points) == 0 and len(self.radial_points) > 0:
-            self.points = self.radial_points_to_cartesian(self.radial_points)  # FIXME race condition?
+            self.points = radial_points_to_cartesian(self.radial_points)  # FIXME race condition?
         return self.points
 
     def _get_lidar_points(self):
         points = self._get_radial_lidar_points()
-        points = self.radial_points_to_cartesian(points)
+        points = radial_points_to_cartesian(points)
         self.points = points
         return points
 

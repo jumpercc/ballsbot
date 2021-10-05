@@ -3,7 +3,7 @@ import ballsbot.utils as ballsbot_utils
 ballsbot_utils.keep_rps = lambda ts, fps: ts
 
 from ballsbot.ai.explorer import Explorer
-from ballsbot.lidar import Lidar
+from ballsbot.lidar import Lidar, radial_points_to_cartesian
 
 
 class TrackFeedBase:
@@ -24,13 +24,13 @@ class LidarMock:
         return self.lidar.calibration_to_xywh(self.lidar.calibration)
 
     def get_lidar_points(self):
-        return self.radial_points_to_cartesian(self.get_radial_lidar_points(False))
+        return radial_points_to_cartesian(self.get_radial_lidar_points(False))
 
     def get_radial_lidar_points(self, range_limit=None, cached=False):  # pylint: disable=W0613
         return self.feed.get_current_frame()['points']
 
-    def radial_points_to_cartesian(self, points):
-        return self.lidar.radial_points_to_cartesian(points)
+    def radial_points_to_cartesian(self, points):  # pylint: disable=R0201
+        return radial_points_to_cartesian(points)
 
 
 class CarControlsMock:

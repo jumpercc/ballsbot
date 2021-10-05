@@ -22,6 +22,8 @@ TURN_DIAMETER = 1.43
 # meters per count of primary or secondary peaks
 ODOMETRY_METERS_PER_ROTATION = 4.67 / 42.
 
+ENGINE_NEED_MANUAL_BREAKING = False
+
 CAR_CONTROLS = {
     'steering': {
         "channel": 0,
@@ -49,7 +51,7 @@ DISTANCE_SENSORS = {
         "direction": "forward",
     },
     "rear": {
-        "offset": 80,  # mm from lidar center
+        "offset": 60,  # mm from lidar center
         "direction": "backward",
     },
     # "manipulator": {
@@ -58,6 +60,9 @@ DISTANCE_SENSORS = {
     # },
 }
 DISTANCE_SENSORS_MESSAGE_TYPE = "ballsbot_tca9548"
+
+DETECTION_MAX_DISTANCE_FROM_CENTER_Y = 0.35
+DETECTION_CLOSE_ENOUGH = 0.15 * 0.1
 
 MANIPULATOR = {
     "enabled": True,

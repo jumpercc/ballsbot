@@ -18,6 +18,8 @@ FROM_LIDAR_TO_CENTER = 0.07
 # meters per count of primary or secondary peaks
 ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
 
+ENGINE_NEED_MANUAL_BREAKING = True
+
 # ODOMETRY_PRIMARY_PIN = 18  # BOARD pin 12 T200 default
 ODOMETRY_PRIMARY_PIN = 20  # BOARD pin 38 T208 default
 
@@ -66,6 +68,10 @@ SECONDS_TO_UNFOLD_MANIPULATOR = 6
 
 ENABLE_MULTIPROCESSING = True
 
+DETECTION_MAX_DISTANCE_FROM_CENTER_X = 0.15
+DETECTION_MAX_DISTANCE_FROM_CENTER_Y = 0.25
+DETECTION_CLOSE_ENOUGH = 0.15 * 0.15
+
 if os.path.isfile(os.environ['HOME'] + '/ballsbot_config_override.py'):
     sys.path.append(os.environ['HOME'])
     # noinspection PyUnresolvedReferences
@@ -74,6 +80,7 @@ if os.path.isfile(os.environ['HOME'] + '/ballsbot_config_override.py'):
         sys.path.pop()
 
 CAR_WIDTH = 2. * max(abs(LIDAR_CALIBRATION['fl_y']), abs(LIDAR_CALIBRATION['rr_y']))
+CAR_LENGTH = abs(LIDAR_CALIBRATION['fl_x']) + abs(LIDAR_CALIBRATION['rr_x'])
 
 if 'min_turbo_pulse' not in CAR_CONTROLS['throttle']:
     CAR_CONTROLS['throttle']['min_turbo_pulse'] = CAR_CONTROLS['throttle']['min_pulse']
