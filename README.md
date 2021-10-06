@@ -53,7 +53,7 @@
   - HUAWEI ME906e with antennas [aliexpress](https://www.aliexpress.com/item/1850815686.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
   - NGFF M.2 Key B to USB 3.0 Adapter Expansion Card [aliexpress](https://www.aliexpress.com/item/4001209010055.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
   - usb cable [aliexpress](https://www.aliexpress.com/item/4001289900478.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
-- 3x laser distance sensors VL53L0X [aliexpress](https://www.aliexpress.com/item/32842745623.html?spm=a2g0s.9042311.0.0.769233edHZLl5S&_ga=2.52956256.932233813.1612635851-254637839.1604956961)
+- 7x laser distance sensors VL53L0X [aliexpress](https://www.aliexpress.com/item/32842745623.html?spm=a2g0s.9042311.0.0.769233edHZLl5S&_ga=2.52956256.932233813.1612635851-254637839.1604956961)
 - TCA9548 I2C 8-way multi-channel Expansion Board [aliexpress](https://www.aliexpress.com/item/4000067621113.html?spm=a2g0s.9042311.0.0.27424c4dPYaIDF)
 
 ### Software
