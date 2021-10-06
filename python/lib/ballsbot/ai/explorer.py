@@ -80,8 +80,8 @@ class Explorer:
 
     RIGHT = 1.
     LEFT = -1.
-    A_BIT_RIGHT = 0.25
-    A_BIT_LEFT = -0.25
+    A_BIT_RIGHT = 0.5
+    A_BIT_LEFT = -0.5
 
     def __init__(self, test_run=False, profile_mocks=None):
         if profile_mocks is None:

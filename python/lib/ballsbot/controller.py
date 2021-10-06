@@ -4,7 +4,7 @@ from ballsbot.config import CAR_CONTROLS
 
 
 def link_controller(controller):
-    car_controls = get_controls()
+    car_controls = get_controls(scale=2.)
 
     steering_config = CAR_CONTROLS['steering']['control']
     throttle_config = CAR_CONTROLS['throttle']['control']

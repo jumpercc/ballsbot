@@ -73,11 +73,11 @@ class PWMSteering:
     LEFT_ANGLE = -1
     RIGHT_ANGLE = 1
 
-    def __init__(self, *, controller, config):
+    def __init__(self, *, controller, config, scale=1.):
         self.controller = controller
         self.left_pulse = config['min_pulse']
         self.right_pulse = config['max_pulse']
-        self.scale = 2.
+        self.scale = scale
         self.pulse = scaled_map_range(
             0,
             self.LEFT_ANGLE, self.RIGHT_ANGLE,
@@ -119,7 +119,7 @@ class PWMThrottle:
     MIN_THROTTLE = -1
     MAX_THROTTLE = 1
 
-    def __init__(self, *, controller, config):
+    def __init__(self, *, controller, config, scale=1.):
         self.controller = controller
         self.max_turbo_pulse = config['max_turbo_pulse']
         self.max_pulse = config['max_pulse']
@@ -127,7 +127,7 @@ class PWMThrottle:
         self.min_pulse = config['min_pulse']
         self.min_turbo_pulse = config['min_turbo_pulse']
         self.pulse = self.zero_pulse
-        self.scale = 2.
+        self.scale = scale
         self.throttle = 0.
         self.zero_throttle = map_range(
             self.zero_pulse, self.min_pulse, self.max_pulse, self.MIN_THROTTLE, self.MAX_THROTTLE)
@@ -177,17 +177,19 @@ class PWMThrottle:
 _car_controls = None  # pylint: disable=C0103
 
 
-def get_controls():
+def get_controls(scale=1.):
     global _car_controls  # pylint: disable=W0603,C0103
     if not _car_controls:
         steering = PWMSteering(
             controller=PCA9685(CAR_CONTROLS['steering']['channel']),
             config=CAR_CONTROLS['steering'],
+            scale=scale,
         )
 
         throttle = PWMThrottle(
             controller=PCA9685(CAR_CONTROLS['throttle']['channel']),
             config=CAR_CONTROLS['throttle'],
+            scale=scale,
         )
 
         throttle.run(0)
