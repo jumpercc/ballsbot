@@ -1,4 +1,4 @@
-# from math import pi, ceil
+from math import sin, cos, pi
 import sys
 import json
 
@@ -6,15 +6,19 @@ from ballsbot.utils import keep_rps
 # from ballsbot.ndt import NDT
 from ballsbot import drawing
 from ballsbot.lidar import apply_transformation_to_cloud
+from ballsbot.odometry import Odometry
+from ballsbot.imu import IMU
 
 
 class TrackerLight:
-    def __init__(self, imu, odometry, fps=20):
-        self.imu = imu
-        self.odometry = odometry
+    def __init__(self, fps=20):
+        self.imu = IMU()
+        self.odometry = Odometry()
         self.fps = fps
         self.poses = []
         self.errors = []
+        self.teta_eps = 0.01
+        self.prev = None
 
     def start(self):
         previous = None
@@ -35,7 +39,7 @@ class TrackerLight:
                 if dt == 0.:
                     continue
                 try:
-                    current['odometry_dx'], current['odometry_dy'] = self.odometry.get_dx_dy(
+                    current['odometry_dx'], current['odometry_dy'] = self._get_dx_dy(
                         dt, current['teta']
                     )
                 except Exception as e:
@@ -58,6 +62,43 @@ class TrackerLight:
                 self._upgrade_current(current)
 
             previous = current
+
+    def _get_dx_dy(self, dt, teta):
+        current = {
+            'teta': teta,
+            'w_z': self.imu.get_w_z(),
+            'dt': dt,
+        }
+
+        if self.prev is None:
+            result = [0., 0.]
+        else:
+            dteta = teta - self.prev['teta']
+            if dteta > pi:
+                dteta -= 2 * pi
+            elif dteta < -pi:
+                dteta += 2 * pi
+            current['dteta'] = dteta
+
+            if self.odometry.get_speed() == 0. or self.odometry.direction == 0:
+                result = [0., 0.]
+            else:
+                speed = self.odometry.direction * self.odometry.get_speed()
+                if abs(dteta) < self.teta_eps:
+                    dx = speed * cos(teta) * dt
+                    dy = speed * sin(teta) * dt
+                else:
+                    w_z = current['w_z']
+                    prev_teta = self.prev['teta']
+                    if w_z == 0.:
+                        dx = dy = 0.
+                    else:
+                        dx = speed / w_z * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
+                        dy = speed / w_z * (cos(prev_teta) - cos(prev_teta + w_z * dt))
+                result = [dx, dy]
+
+        self.prev = current
+        return result
 
     def _get_current(self):
         return {
@@ -89,8 +130,8 @@ class TrackerLight:
 
 class Tracker(TrackerLight):
     # pylint: disable=R0913
-    def __init__(self, imu, lidar, odometry, fps=2, max_distance=15., fix_pose_with_lidar=False, keep_readings=False):
-        super().__init__(imu, odometry, fps)
+    def __init__(self, lidar, fps=2, max_distance=15., fix_pose_with_lidar=False, keep_readings=False):
+        super().__init__(fps)
         self.lidar = lidar
         self.max_distance = max_distance
         if fix_pose_with_lidar:
