@@ -4,8 +4,6 @@ from time import time, sleep
 import numpy as np
 from math import pi
 import sys
-import os
-import pwd
 
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
 sys.path.append('/usr/lib/python2.7/dist-packages')
@@ -13,10 +11,6 @@ sys.path.append('/home/ballsbot/catkin_ws/devel/lib/python2.7/dist-packages')
 
 import rospy
 from ballsbot_imu.msg import ImuState
-
-
-def get_username():
-    return pwd.getpwuid(os.getuid())[0]
 
 
 s = RTIMU.Settings("RTIMULib")
@@ -70,7 +64,7 @@ def publisher():
 
     pub = rospy.Publisher('imu', ImuState, queue_size=2)
     rospy.init_node('ballsbot_imu')
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(4)
     zero_duration = rospy.rostime.Duration(0, 0)
     while not rospy.is_shutdown():
         if imu.imu.IMURead():
