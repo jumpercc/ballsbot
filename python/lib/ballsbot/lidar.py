@@ -1,15 +1,12 @@
 from math import cos, sin, pi
 import numpy as np
 from ballsbot import drawing
-import sys
 from time import time
 from random import random
 
 from ballsbot.utils import keep_rps
 from ballsbot.config import LIDAR_CALIBRATION, LIDAR_CALIBRATION_RANGE_LIMIT
-
-sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
-sys.path.append('/usr/lib/python2.7/dist-packages')
+import ballsbot.session  # pylint: disable=W0611
 
 import rospy
 from sensor_msgs.msg import LaserScan

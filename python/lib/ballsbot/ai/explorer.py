@@ -6,8 +6,6 @@ from ballsbot.augmented_lidar import AugmentedLidar
 from ballsbot.servos import get_controls
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.geometry import distance
-from ballsbot.odometry import Odometry
-from ballsbot.imu import IMU_Threaded
 from ballsbot.tracking import TrackerLight
 from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 from ballsbot.detection import Detector
@@ -96,9 +94,8 @@ class Explorer:
 
         if not test_run:
             self.car_controls = get_controls()
-            self.imu = IMU_Threaded()
-            self.odometry = Odometry(self.imu, self.car_controls['throttle'])
-            self.tracker = TrackerLight(self.imu, self.odometry)
+            self.tracker = TrackerLight()
+            self.odometry = self.tracker.odometry
             self.detector = Detector()
             if has_distance_sensors():
                 distance_sensors = DistanceSensors(autostart=False)
@@ -106,9 +103,8 @@ class Explorer:
                 distance_sensors = None
         elif profile_mocks is not None:
             self.car_controls = profile_mocks['car_controls']
-            self.imu = None
-            self.odometry = profile_mocks['odometry']
             self.tracker = profile_mocks['tracker']
+            self.odometry = profile_mocks['odometry']
             self.detector = None
             distance_sensors = None
         else:
