@@ -1,7 +1,7 @@
 from math import pi
 
 from ballsbot.utils import keep_rps
-from ballsbot.lidar import Lidar, radial_points_to_cartesian
+from ballsbot.lidar import Lidar, radial_points_to_cartesian, cartesian_to_radial
 from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 
 
@@ -20,12 +20,18 @@ class AugmentedLidar:
 
         if self.distance_sensors is not None:
             self.cached_distances = self.distance_sensors.get_distances()
-            for sensor_name, direction_name in self.distance_sensors.get_directions().items():
-                angle = 0. if direction_name == "forward" else pi  # TODO other directions
-                a_distance = self.cached_distances.get(sensor_name)
-                if a_distance is not None:
-                    a_distance /= 1000.  # to meters
-                    nearby_points.append({'distance': a_distance, 'angle': angle})
+            for it in self.cached_distances.values():
+                if not it or it['direction'] not in {"forward", "backward"}:
+                    continue
+                if it['offset_y']:
+                    x = it['distance'] if it['direction'] == "forward" else -it['distance']
+                    y = it['offset_y']
+                    distance, angle = cartesian_to_radial(x, y)
+                else:
+                    angle = 0. if it['direction'] == "forward" else pi
+                    distance = it['distance']
+                distance = distance / 1000.  # to meters
+                nearby_points.append({'distance': distance, 'angle': angle})
 
         return nearby_points
 

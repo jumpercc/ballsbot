@@ -32,7 +32,6 @@ int main(int argc, char **argv) {
                      msg.data[i].confidence, msg.data[i].bottom_left.x, msg.data[i].bottom_left.y,
                      msg.data[i].top_right.x, msg.data[i].top_right.y);
         }
-        ROS_INFO("-");
 
         chatter_pub.publish(msg);
 

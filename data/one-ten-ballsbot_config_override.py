@@ -46,17 +46,40 @@ CAR_CONTROLS = {
 }
 
 DISTANCE_SENSORS = {
-    "front": {
-        "offset": 275,  # mm from lidar center
+    "front-center": {
+        "offset_x": 275,  # mm from lidar center
+        "offset_y": 0,
         "direction": "forward",
     },
-    "rear": {
-        "offset": 60,  # mm from lidar center
+    "front-left": {
+        "offset_x": 275,
+        "offset_y": 80,
+        "direction": "forward",
+    },
+    "front-right": {
+        "offset_x": 275,
+        "offset_y": -80,
+        "direction": "forward",
+    },
+
+    "rear-center": {
+        "offset_x": 60,
+        "offset_y": 0,
         "direction": "backward",
     },
+    "rear-left": {
+        "offset_x": 60,
+        "offset_y": 80,
+        "direction": "backward",
+    },
+    "rear-right": {
+        "offset_x": 60,
+        "offset_y": -80,
+        "direction": "backward",
+    },
+
     # "manipulator": {
-    #     "offset": 325,  # mm from lidar center
-    #     "direction": "forward",
+    #     "offset_x": 325,  # mm from lidar center
     # },
 }
 DISTANCE_SENSORS_MESSAGE_TYPE = "ballsbot_tca9548"

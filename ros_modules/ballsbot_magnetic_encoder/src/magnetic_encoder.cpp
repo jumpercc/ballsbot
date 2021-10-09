@@ -31,7 +31,6 @@ int main(int argc, char **argv) {
         msg.encoder_name = encoder_name;
 
         ROS_INFO("%s: %0.4f", msg.encoder_name.c_str(), msg.angle);
-        ROS_INFO("-");
 
         chatter_pub.publish(msg);
         ros::spinOnce();

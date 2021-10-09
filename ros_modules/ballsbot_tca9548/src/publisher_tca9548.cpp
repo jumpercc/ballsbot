@@ -74,13 +74,17 @@ int main(int argc, char* argv[]) {
     uint8_t address = atoi(argv[2]);
 
     std::vector<ConfigItem> config = {
-        {0b10000000u, {{kLaserRangingSensor, "rear"}}},
-        {0b01000000u, {{kLaserRangingSensor, "front"}}},
-//        {0b00100000u,
-//         {
-//             {kLaserRangingSensor, "manipulator"},
-//             {kMagneticEncoderAS5600, "m0"},
-//         }},
+        {0b00000001u, {{kLaserRangingSensor, "rear-right"}}},
+        {0b00000010u, {{kLaserRangingSensor, "rear-left"}}},
+        {0b00000100u, {{kLaserRangingSensor, "front-left"}}},
+        {0b00001000u, {{kLaserRangingSensor, "front-right"}}},
+        //        {0b00100000u,
+        //         {
+        //             {kLaserRangingSensor, "manipulator"},
+        //             {kMagneticEncoderAS5600, "m0"},
+        //         }},
+        {0b01000000u, {{kLaserRangingSensor, "front-center"}}},
+        {0b10000000u, {{kLaserRangingSensor, "rear-center"}}},
     };
 
     ros::init(argc, argv, "ballsbot_tca9548");
@@ -92,14 +96,14 @@ int main(int argc, char* argv[]) {
     ballsbot_tca9548::LaserDistance ld_msg;
     uint16_t distance;
     auto laser_distance_publisher = n.advertise<ballsbot_tca9548::LaserDistance>(
-        "laser_distance", 10);  // FIXME constant
+        "laser_distance", 6);
 
     ballsbot_tca9548::EncoderAngle enc_msg;
     double angle;
     auto magnetic_encoder_publisher = n.advertise<ballsbot_tca9548::EncoderAngle>(
-        "magnetic_encoder", 10);  // FIXME constant
+        "magnetic_encoder", 4);
 
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(4);
     while (ros::ok()) {
         for (auto config_item : config) {
             controller.SetState(config_item.state_bits);
@@ -112,14 +116,13 @@ int main(int argc, char* argv[]) {
                         laser_sensor = nullptr;
                         continue;
                     } else if (distance > 2500) {
-                        distance = 0xFFFF;
+                        distance = 2500;
                     }
                     laser_sensor->closeVL53L0X();
 
                     ld_msg.distance_in_mm = distance;
                     ld_msg.sensor_name = device.device_name_;
                     ROS_INFO("%s: %i mm", ld_msg.sensor_name.c_str(), ld_msg.distance_in_mm);
-                    ROS_INFO("-");
                     laser_distance_publisher.publish(ld_msg);
                 } else if (device.device_type_ == kMagneticEncoderAS5600 ||
                            device.device_type_ == kMagneticEncoderAS5048B) {
@@ -130,7 +133,6 @@ int main(int argc, char* argv[]) {
                     enc_msg.angle = angle;
                     enc_msg.encoder_name = device.device_name_;
                     ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
-                    ROS_INFO("-");
                     magnetic_encoder_publisher.publish(enc_msg);
                 }
             }

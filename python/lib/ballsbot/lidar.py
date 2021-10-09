@@ -1,4 +1,4 @@
-from math import cos, sin, pi
+from math import cos, sin, pi, atan2, sqrt
 import numpy as np
 from ballsbot import drawing
 from time import time
@@ -16,6 +16,12 @@ def radial_to_cartesian(magnitude, angle):
     x = magnitude * cos(angle)
     y = magnitude * sin(angle)
     return [x, y]
+
+
+def cartesian_to_radial(x, y):
+    angle = atan2(y, x)
+    magnitude = sqrt(x * x + y * y)
+    return [magnitude, angle]
 
 
 def radial_points_to_cartesian(points):
