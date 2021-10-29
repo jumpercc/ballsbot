@@ -1,4 +1,4 @@
-project(ballsbot_routing)
+project(ballsbot_localization)
 
 cmake_minimum_required(VERSION 3.8)
 
@@ -8,13 +8,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Catch REQUIRED)
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${EIGEN3_LIBRARIES})
 
 add_executable(test
-        test.cpp
-        ballsbot/point_cloud.cpp ballsbot/geometry.cpp ballsbot/grid.cpp
+        src/test.cpp
+        src/grid.cpp src/point_cloud.cpp src/geometry.cpp src/free_distances.cpp
         )
 set_target_properties(test PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(test
-        contrib_catch_main
-        )
+target_link_libraries(test ${EIGEN3})

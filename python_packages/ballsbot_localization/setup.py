@@ -5,7 +5,6 @@ from Cython.Distutils import build_ext
 from setuptools import setup, Extension
 
 import subprocess
-import sys
 
 setup_requires = []
 install_requires = [
@@ -23,7 +22,7 @@ ext_args = defaultdict(list)
 
 for flag in pkgconfig('--cflags-only-I'):
     ext_args['include_dirs'].append(flag[2:])
-ext_args['include_dirs'].append("/usr/include/opencv4")
+ext_args['include_dirs'].append("/usr/include/eigen3")
 
 ext_args['library_dirs'].append('/usr/lib')
 
@@ -37,12 +36,10 @@ for flag in pkgconfig('--cflags-only-other'):
 ext_args['extra_compile_args'].append("-std=c++17")
 ext_args['library_dirs'].append("/usr/lib/aarch64-linux-gnu")
 ext_args['library_dirs'].append("/usr/lib/x86_64-linux-gnu/")
-ext_args['library_dirs'].append("./ballsbot_routing")
+ext_args['library_dirs'].append("./ballsbot_localization")
 
 for flag in pkgconfig('--libs-only-l'):
     ext_args['libraries'].append(flag[2:])
-ext_args['libraries'].append('opencv_core')
-ext_args['libraries'].append('opencv_videoio')
 
 for flag in pkgconfig('--libs-only-L'):
     ext_args['library_dirs'].append(flag[2:])
@@ -52,25 +49,28 @@ for flag in pkgconfig('--libs-only-other'):
 
 module = [
     Extension(
-        "ballsbot_routing.ballsbot_routing",
+        "ballsbot_localization.ballsbot_localization",
         [
-            "ballsbot_routing.pyx",
-            "ballsbot/geometry.cpp", "ballsbot/point_cloud.cpp", "ballsbot/grid.cpp",
+            "ballsbot_localization.pyx",
+            "src/grid.cpp", "src/point_cloud.cpp", "src/geometry.cpp", "src/free_distances.cpp",
         ],
         language="c++",
         **ext_args
     ),
 ]
 
+# sudo rm -rf ballsbot_localization.cpp build && python3 setup.py build_ext
+# sudo python3 setup.py install -f
+
 setup(
-    name='ballsbot_routing',
-    description='Python bindings for ballsbot_routing functions.',
+    name='ballsbot_localization',
+    description='Python bindings for ballsbot_localization functions.',
     version='0.1',
     author='Oleg Nurtdinov',
     author_email='j@jumper.cc',
     license='BSD',
     packages=[
-        "ballsbot_routing",
+        "ballsbot_localization",
     ],
     zip_safe=False,
     setup_requires=setup_requires,

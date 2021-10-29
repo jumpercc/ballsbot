@@ -1,4 +1,3 @@
 std_msgs/Header header
-float32 teta_ts
-float32 teta
-float32 w_z
+float64 teta
+float64 w_z

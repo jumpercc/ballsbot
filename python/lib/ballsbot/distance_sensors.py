@@ -1,21 +1,7 @@
-import ballsbot.session  # pylint: disable=W0611
+from copy import deepcopy
 
-import rospy
-from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
-from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch
-from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE
-from ballsbot.utils import run_as_thread
-
-CONFIG_BY_TYPE = {
-    "ballsbot_laser_ranging_sensor": {
-        "class": LaserDistanceStraight,
-        "get_topic": lambda sensor_name: '/laser_distance_' + sensor_name,
-    },
-    "ballsbot_tca9548": {
-        "class": LaserDistanceSwitch,
-        "get_topic": lambda _: '/laser_distance',
-    },
-}
+from ballsbot.ros_messages import get_ros_messages
+from ballsbot.config import DISTANCE_SENSORS
 
 
 def has_distance_sensors():
@@ -23,57 +9,40 @@ def has_distance_sensors():
 
 
 class DistanceSensors:
-    def __init__(self, autostart=True):
-        self.distances = {}
-        if autostart:
-            self.start()
+    def __init__(self):
+        self.default_distances = {}
+        self.messenger = get_ros_messages()
 
     def start(self):
         if has_distance_sensors():
             for sensor_name, sensor_config in DISTANCE_SENSORS.items():
-                self.distances[sensor_name] = {
-                    'offset_x': sensor_config['offset_x'],
-                    'offset_y': sensor_config.get('offset_y', 0),
+                self.default_distances[sensor_name] = {
+                    'offset_x': sensor_config['offset_x'] / 1000.,
+                    'offset_y': sensor_config.get('offset_y', 0.) / 1000.,
                     'direction': sensor_config['direction'],
                     'value': None,
+                    'ts': None,
                 }
-                if DISTANCE_SENSORS_MESSAGE_TYPE == "ballsbot_laser_ranging_sensor":
-                    run_as_thread(self.get_auto_update(sensor_name))
-            if DISTANCE_SENSORS_MESSAGE_TYPE != "ballsbot_laser_ranging_sensor":
-                run_as_thread(self.get_auto_update(None))
-
-    def get_auto_update(self, sensor_name):
-        message_class = CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["class"]
-        topic = CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["get_topic"](sensor_name)
-
-        def result():
-            while True:
-                try:
-                    data = rospy.wait_for_message(topic, message_class, timeout=5)
-                except KeyboardInterrupt:
-                    break
-                except rospy.exceptions.ROSException:
-                    data = None
-                if data is not None:
-                    self.distances[data.sensor_name]['value'] = data.distance_in_mm
-
-        return result
 
     def get_distances(self):
-        result = {}
-        for k, it in self.distances.items():
-            if it['value'] is None:
+        data_by_name = self.messenger.get_message_data('laser_distance')
+        result = deepcopy(self.default_distances)
+        if data_by_name:
+            for sensor_name, data in data_by_name.items():
+                result[sensor_name]['value'] = data.distance_in_mm / 1000.
+                result[sensor_name]['ts'] = data.header.stamp.to_sec()
+
+        for k in self.default_distances:
+            if result[k]['value'] is None:
                 result[k] = None
             else:
-                value = it['value']
-                if value >= 2500.:
+                value = result[k]['value']
+                if value >= 2.5:
                     result[k] = None
                 else:
-                    result[k] = {
-                        'distance': value + self.distances[k]['offset_x'],
-                        'direction': it['direction'],
-                        'offset_y': it['offset_y'],
-                    }
+                    result[k]['distance'] = value + result[k]['offset_x']
                     if result[k]['distance'] < 0:
                         result[k]['distance'] = 0.
+                    del result[k]['value']
+                    del result[k]['offset_x']
         return result

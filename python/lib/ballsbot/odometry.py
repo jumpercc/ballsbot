@@ -1,31 +1,35 @@
-from ballsbot.utils import run_as_thread
-import ballsbot.session  # pylint: disable=W0611
-
-import rospy
-from ballsbot_wheel_odometry.msg import OdometryState
+from ballsbot.ros_messages import get_ros_messages
 
 
 class Odometry:
     def __init__(self):
-        self.odometry_counter = 0
-        self.direction = 0.
-        self.speed = 0.
-        run_as_thread(self.start)
+        self.messenger = get_ros_messages()
 
-    def start(self):
-        while True:
-            try:
-                data = rospy.wait_for_message('/wheel_odometry', OdometryState, timeout=5)
-                self.odometry_counter = data.odometry_counter
-                self.direction = data.direction
-                self.speed = data.speed
-            except KeyboardInterrupt:
-                return None
-            except Exception:  # pylint: disable=W0703
-                pass
+    def _get_data(self):
+        data = self.messenger.get_message_data('wheel_odometry')
+        if data:
+            return {
+                'odometry_counter': data.odometry_counter,
+                'direction': data.direction,
+                'speed': data.speed,
+                'ts': data.header.stamp.to_sec(),
+            }
+        else:
+            return {
+                'odometry_counter': 0,
+                'direction': 0.,
+                'speed': 0.,
+                'ts': None,
+            }
 
     def get_speed(self):
-        return self.speed
+        return self._get_data()['speed']
 
     def get_direction(self):
-        return self.direction
+        return self._get_data()['direction']
+
+    def get_ts(self):
+        return self._get_data()['ts']
+
+    def get_odometry_counter(self):
+        return self._get_data()['odometry_counter']

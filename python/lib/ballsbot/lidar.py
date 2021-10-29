@@ -1,15 +1,10 @@
 from math import cos, sin, pi, atan2, sqrt
 import numpy as np
-from ballsbot import drawing
-from time import time
 from random import random
 
-from ballsbot.utils import keep_rps
 from ballsbot.config import LIDAR_CALIBRATION, LIDAR_CALIBRATION_RANGE_LIMIT
-import ballsbot.session  # pylint: disable=W0611
-
-import rospy
-from sensor_msgs.msg import LaserScan
+from ballsbot.utils import keep_rps
+from ballsbot.ros_messages import get_ros_messages
 
 
 def radial_to_cartesian(magnitude, angle):
@@ -46,6 +41,24 @@ def apply_transformation_to_cloud(a_cloud, transformation):
     return result
 
 
+def revert_transformation_to_cloud(a_cloud, transformation):
+    result = []
+
+    tx, ty, fi = transformation
+    rotate_m = np.linalg.inv(np.array([
+        [cos(fi), -sin(fi)],
+        [sin(fi), cos(fi)]
+    ]))
+    move_m = np.array([tx, ty]).reshape((2, 1))
+
+    for point in a_cloud:
+        point = np.array(point).reshape((2, 1))
+        point = rotate_m @ (point - move_m)
+        result.append(point[:, 0].tolist())
+
+    return result
+
+
 class TestLidarData:
     def __init__(self):
         self.angle_min = 0.
@@ -56,32 +69,33 @@ class TestLidarData:
         self.angle_increment = (self.angle_max - self.angle_min) / points_count
 
 
+def default_calibration():
+    return LIDAR_CALIBRATION
+
+
 class Lidar:
     def __init__(self, test_run=False):
-        self.calibration = self._default_calibration()
+        self.calibration = default_calibration()
         self.angle_min = -pi
         self.angle_max = pi
         self.radial_points = []
         self.points = []
-        self.points_ts = time()
+        self.points_ts = None
         self.test_run = test_run
+        self.messenger = get_ros_messages()
 
-    @staticmethod
-    def _default_calibration():
-        return LIDAR_CALIBRATION
+    def get_calibration(self):
+        return self.calibration
 
     def _get_raw_lidar_points(self):
         data = None
         if not self.test_run:
-            while data is None:
-                try:
-                    data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
-                    self.angle_min = data.angle_min
-                    self.angle_max = data.angle_max
-                except KeyboardInterrupt:
-                    return None
-                except Exception:  # pylint: disable=W0703
-                    break
+            ts = None
+            while not data:
+                ts = keep_rps(ts, fps=0.5)
+                data = self.messenger.get_message_data('lidar')
+            self.angle_min = data.angle_min
+            self.angle_max = data.angle_max
         else:
             data = TestLidarData()
             self.angle_min = data.angle_min
@@ -99,84 +113,34 @@ class Lidar:
             my_angle = self.angle_min + my_angle - self.angle_max
         return my_angle
 
-    def get_radial_lidar_points(self, range_limit=None, cached=True):
+    def _get_radial_lidar_points(self, range_limit, cached):
         if not cached:
-            self._get_radial_lidar_points()
+            data = self._get_raw_lidar_points()
+            self.points_ts = data.header.stamp.to_sec()
+            if data is None:
+                self.radial_points = []
+                return self.radial_points
+            points = []
+            angle = data.angle_min
+            for i, intensities_i in enumerate(data.intensities):
+                if intensities_i > 0:
+                    points.append({'distance': data.ranges[i], 'angle': self._fix_angle(angle)})
+                angle += data.angle_increment
+
+            self.radial_points = points
+            self.points = []
         if range_limit is None:
             return self.radial_points
         return list(filter(lambda x: x['distance'] <= range_limit, self.radial_points))
 
-    def _get_radial_lidar_points(self):
-        data = self._get_raw_lidar_points()
-        self.points_ts = time()
-        if data is None:
-            self.radial_points = []
-            return self.radial_points
-        points = []
-        angle = data.angle_min
-        for i, intensities_i in enumerate(data.intensities):
-            if intensities_i > 0:
-                points.append({'distance': data.ranges[i], 'angle': self._fix_angle(angle)})
-            angle += data.angle_increment
-
-        self.radial_points = points
-        self.points = []
-        return points
-
-    def get_lidar_points(self):
-        if len(self.points) == 0 and len(self.radial_points) > 0:
+    def get_lidar_points(self, range_limit=None, cached=False):
+        if not cached:
+            points = self._get_radial_lidar_points(cached=cached, range_limit=range_limit)
+            points = radial_points_to_cartesian(points)
+            self.points = points
+        elif len(self.points) == 0 and len(self.radial_points) > 0:
             self.points = radial_points_to_cartesian(self.radial_points)  # FIXME race condition?
         return self.points
-
-    def _get_lidar_points(self):
-        points = self._get_radial_lidar_points()
-        points = radial_points_to_cartesian(points)
-        self.points = points
-        return points
-
-    @staticmethod
-    def calibration_to_xywh(calibration):
-        if calibration['fl_x'] > calibration['rr_x']:
-            x = calibration['rr_x']
-            w = calibration['fl_x'] - calibration['rr_x']
-        else:
-            x = calibration['fl_x']
-            w = calibration['rr_x'] - calibration['fl_x']
-
-        if calibration['fl_y'] > calibration['rr_y']:
-            y = calibration['rr_y']
-            h = calibration['fl_y'] - calibration['rr_y']
-        else:
-            y = calibration['fl_y']
-            h = calibration['rr_y'] - calibration['fl_y']
-
-        return {'x': x, 'y': y, 'w': w, 'h': h, }
-
-    def _update_picture(self, image, points, only_nearby_meters=4, additional_points=None):
-        if self.calibration is None:
-            self_position = None
-        else:
-            self_position = self.calibration_to_xywh(self.calibration)
-        drawing.update_picture_self_coords(image, points, self_position, only_nearby_meters, additional_points)
-
-    def show_lidar_cloud(self, image, **kwargs):
-        self.auto_update_lidar_cloud(
-            cb=lambda points, only_nearby_meters: self._update_picture(
-                image, points, only_nearby_meters=only_nearby_meters
-            ),
-            **kwargs
-        )
-
-    def auto_update_lidar_cloud(self, only_nearby_meters=4, fps=2, cb=None):
-        ts = None
-        while True:
-            ts = keep_rps(ts, fps=fps)
-            points = self._get_lidar_points()
-            if len(points) == 0:
-                break
-
-            if cb is not None:
-                cb(points, only_nearby_meters=only_nearby_meters)
 
     def _get_my_corners(self):  # pylint: disable=R0914, R0915
         range_limit = LIDAR_CALIBRATION_RANGE_LIMIT
@@ -288,3 +252,21 @@ class Lidar:
             'rr_x': rr_x,
             'rr_y': rr_y,
         }
+
+
+def calibration_to_xywh(calibration):
+    if calibration['fl_x'] > calibration['rr_x']:
+        x = calibration['rr_x']
+        w = calibration['fl_x'] - calibration['rr_x']
+    else:
+        x = calibration['fl_x']
+        w = calibration['rr_x'] - calibration['fl_x']
+
+    if calibration['fl_y'] > calibration['rr_y']:
+        y = calibration['rr_y']
+        h = calibration['fl_y'] - calibration['rr_y']
+    else:
+        y = calibration['fl_y']
+        h = calibration['rr_y'] - calibration['fl_y']
+
+    return {'x': x, 'y': y, 'w': w, 'h': h, }

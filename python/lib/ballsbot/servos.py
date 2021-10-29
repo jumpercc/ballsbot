@@ -1,5 +1,9 @@
 import time
+import logging
 from ballsbot.config import PCA9685_I2C_BUSNUM, PCA9685_I2C_ADDR, CAR_CONTROLS
+
+
+logger = logging.getLogger(__name__)
 
 
 def map_range(x, x_min, x_max, y_min, y_max):
@@ -85,7 +89,7 @@ class PWMSteering:
             self.scale
         )
         self.running = True
-        print('PWM Steering created')
+        logger.debug('PWM Steering created')
 
     def update(self):
         while self.running:

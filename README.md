@@ -45,7 +45,7 @@
   - programming card
   - 3s accumulator (like Sunpadow Li-Po 3S1P 5200mAh) [market](https://market.yandex.ru/search?text=Sunpadow%20Li-Po%203S1P%205200mAh&cvredirect=2&cpa=1&onstock=0&local-offers-first=0)
 - 5x strong servos (I have 3x 30kg and 2x 20kg) [aliexpress](https://www.aliexpress.com/item/1943129663.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
-- 3x AS5600 magnetic encoders [aliexpress](https://www.aliexpress.com/item/4000507199893.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
+- 4x AS5600 magnetic encoders [aliexpress](https://www.aliexpress.com/item/4000507199893.html?spm=a2g0s.9042311.0.0.27424c4dI1W4Uq)
 - 4x scooter wheels (like HIPE 5spoke 100 mm) [market](https://market.yandex.ru/catalog--aksessuary-i-zapchasti/18071952/list?text=hipe%205spoke%20100&cpa=1&cvredirect=3&hid=12934577&track=srch_visual&glfilter=7893318%3A14870612&onstock=0&local-offers-first=0)
 - 1 meter thin hdmi cable
 - Arducam CSI to HDMI Cable Extension Module (pack of 2) [arducam](https://www.arducam.com/product/arducam-csi-hdmi-cable-extension-module-15pin-60mm-fpc-cable-raspberry-pi-camera-specific-pack-2-1-set/)

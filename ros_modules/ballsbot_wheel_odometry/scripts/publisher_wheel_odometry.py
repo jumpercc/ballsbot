@@ -43,9 +43,9 @@ class Odometry:
 def publisher():
     odometry = Odometry()
 
-    pub = rospy.Publisher('wheel_odometry', OdometryState, queue_size=2)
+    pub = rospy.Publisher('wheel_odometry', OdometryState, queue_size=1)
     rospy.init_node('ballsbot_wheel_odometry')
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
 
     GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
     GPIO.setup(ODOMETRY_PRIMARY_PIN, GPIO.IN)
@@ -99,16 +99,17 @@ def publisher():
                 # determine direction
                 if select_rising and detections['primary_rising'] is not None:
                     odometry.direction = 1. if detections['primary_rising'] < detections['secondary_rising'] else -1.
+                elif detections['primary_falling'] is not None and detections['secondary_falling'] is not None:
+                    odometry.direction = 1. if detections['primary_falling'] < detections['secondary_falling'] else -1.
                 else:
-                    odometry.direction = (
-                        1. if detections.get('primary_falling', 0.) < detections.get('secondary_falling', 0.) else -1.)
+                    odometry.direction = 0.
 
-            rate.last_time = rospy.rostime.get_rostime()
             message = OdometryState()
             message.speed = odometry.get_speed()
             message.direction = odometry.get_direction()
             message.odometry_counter = odometry.odometry_counter
-            rospy.loginfo(message.speed)
+            message.header.stamp = rospy.Time.now()
+            # rospy.loginfo(message.speed)
             pub.publish(message)
 
             rate.sleep()

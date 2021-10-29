@@ -14,6 +14,7 @@ LIDAR_CALIBRATION = LIDAR_CALIBRATION_WITHOUT_MANIPULATOR
 LIDAR_CALIBRATION_RANGE_LIMIT = 0.3
 TURN_DIAMETER = 0.88
 FROM_LIDAR_TO_CENTER = 0.07
+FROM_LIDAR_TO_PIVOT_CENTER = 0.02
 
 # meters per count of primary or secondary peaks
 ODOMETRY_METERS_PER_ROTATION = 3.9 / 47.
@@ -50,11 +51,13 @@ CAR_CONTROLS = {
 
 DISTANCE_SENSORS = {
     "front": {
-        "offset": 190,  # mm from lidar center
+        "offset_x": 190,  # mm from lidar center
+        "offset_y": 0,
         "direction": "forward",
     },
     "rear": {
-        "offset": 60,  # mm from lidar center
+        "offset_x": 60,  # mm from lidar center
+        "offset_y": 0,
         "direction": "backward",
     },
 }

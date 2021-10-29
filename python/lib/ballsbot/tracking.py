@@ -1,203 +1,131 @@
-from math import sin, cos, pi
-import sys
-import json
-
-from ballsbot.utils import keep_rps
-# from ballsbot.ndt import NDT
-from ballsbot import drawing
-from ballsbot.lidar import apply_transformation_to_cloud
-from ballsbot.odometry import Odometry
-from ballsbot.imu import IMU
+from collections import deque
+from ballsbot_localization import ballsbot_localization as grid
+from ballsbot.utils import keep_rps, run_as_thread
+from ballsbot.lidar import calibration_to_xywh
+from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH, CAR_LENGTH, ENGINE_NEED_MANUAL_BREAKING, \
+    FROM_LIDAR_TO_PIVOT_CENTER
+from ballsbot.ros_messages import get_ros_messages
 
 
-class TrackerLight:
-    def __init__(self, fps=20):
-        self.imu = IMU()
-        self.odometry = Odometry()
-        self.fps = fps
-        self.poses = []
-        self.errors = []
-        self.teta_eps = 0.01
-        self.prev = None
+class Tracker:
+    def __init__(self, lidar):
+        self.fps = 4
+        self.current_pose = None
+        self.lidar = lidar
+        self.lidar_frames_processed = 0
+        self.position = calibration_to_xywh(lidar.get_calibration())
+        self.lidar_deque = deque(maxlen=self.fps * 3)  # for 3 seconds
+        self.lidar_deque_empty_times = 0
+        self.pose_deque = deque(maxlen=self.fps * 3)  # for 3 seconds
+        self.pose_deque_empty_times = 0
+        self.sync_eps = 0.25  # seconds
+        self.running = False
+        self.messenger = get_ros_messages()
+
+    def stop(self):
+        self.running = False
 
     def start(self):
-        previous = None
+        self.running = True
+        self.lidar.start()
+        run_as_thread(self._start_tracking)
+
+    def _update_pose(self):
+        data = self.messenger.get_message_data('pose')
+        if data:
+            self.current_pose = {
+                'imu_ts': data.imu_ts.to_sec(),
+                'odometry_ts': data.odometry_ts.to_sec(),
+                'self_ts': data.header.stamp.to_sec(),
+                'x': data.x,
+                'y': data.y,
+                'teta': data.teta,
+            }
+            self.current_pose['ts'] = self.current_pose['imu_ts']
+            self.pose_deque.appendleft(self.current_pose)
+
+    def get_current_pose(self):
+        return self.current_pose
+
+    def _update_lidar_points(self):
+        pose = self.get_current_pose()
+        if pose:
+            self.lidar_deque.appendleft(self.lidar.tick_get_points())
+
+    def _start_tracking(self):
         ts = None
         while True:
             ts = keep_rps(ts, fps=self.fps)
-
-            current = self._get_current()
-
-            if previous is None:
-                self.poses.append({
-                    'x': current['odometry_dx'],
-                    'y': current['odometry_dy'],
-                    'teta': current['teta'],
-                })
-            else:
-                dt = current['ts'] - previous['ts']  # pylint: disable=E1136
-                if dt == 0.:
-                    continue
-                try:
-                    current['odometry_dx'], current['odometry_dy'] = self._get_dx_dy(
-                        dt, current['teta']
-                    )
-                except Exception as e:
-                    self.errors.append('odometry: {}'.format(e))
-                    raise
-
-                try:
-                    dx, dy, teta = self._get_transformation(dt, current, previous)
-                except Exception as e:
-                    print('_get_transformation failed with {}'.format(e), file=sys.stderr)
-                    raise
-
-                prev_pose = self.poses[-1]
-                self.poses.append({
-                    'ts': current['ts'],
-                    'x': prev_pose['x'] + dx,
-                    'y': prev_pose['y'] + dy,
-                    'teta': teta,
-                })
-                self._upgrade_current(current)
-
-            previous = current
-
-    def _get_dx_dy(self, dt, teta):
-        current = {
-            'teta': teta,
-            'w_z': self.imu.get_w_z(),
-            'dt': dt,
-        }
-
-        if self.prev is None:
-            result = [0., 0.]
-        else:
-            dteta = teta - self.prev['teta']
-            if dteta > pi:
-                dteta -= 2 * pi
-            elif dteta < -pi:
-                dteta += 2 * pi
-            current['dteta'] = dteta
-
-            if self.odometry.get_speed() == 0. or self.odometry.direction == 0:
-                result = [0., 0.]
-            else:
-                speed = self.odometry.direction * self.odometry.get_speed()
-                if abs(dteta) < self.teta_eps:
-                    dx = speed * cos(teta) * dt
-                    dy = speed * sin(teta) * dt
-                else:
-                    w_z = current['w_z']
-                    prev_teta = self.prev['teta']
-                    if w_z == 0.:
-                        dx = dy = 0.
+            if not self.running:
+                break
+            self._update_pose()
+            self._update_lidar_points()
+            if self.lidar_deque and self.pose_deque:  # let's find first close enough pose and points
+                lidar_it = self.lidar_deque.pop()
+                pose_it = self.pose_deque.pop()
+                while True:
+                    if abs(lidar_it['ts'] - pose_it['ts']) <= self.sync_eps:
+                        self.lidar.tick_update_grid(pose_it, lidar_it['points'], lidar_it['ts'])
+                        if pose_it != self.current_pose:
+                            self.lidar.tick_update_grid(self.current_pose, None, self.current_pose['ts'])
+                        self.lidar_frames_processed += 1
+                        pose_it = None
+                        lidar_it = None
+                        break
+                    elif lidar_it['ts'] > pose_it['ts']:
+                        if self.pose_deque:
+                            pose_it = self.pose_deque.pop()
+                        else:
+                            pose_it = None
+                            break
                     else:
-                        dx = speed / w_z * (-sin(prev_teta) + sin(prev_teta + w_z * dt))
-                        dy = speed / w_z * (cos(prev_teta) - cos(prev_teta + w_z * dt))
-                result = [dx, dy]
+                        if self.lidar_deque:
+                            lidar_it = self.lidar_deque.pop()
+                        else:
+                            lidar_it = None
+                            break
+                if lidar_it:  # return unused
+                    self.lidar_deque.append(lidar_it)
+                    self.pose_deque_empty_times += 1
+                elif pose_it:
+                    self.pose_deque.append(pose_it)
+                    self.lidar_deque_empty_times += 1
 
-        self.prev = current
-        return result
+    def get_picture_params(self, with_free_tiles=False):
+        if self.lidar_frames_processed:
+            points = self.lidar.get_lidar_points(cached=True, absolute_coords=True)
+            poses = grid.get_poses()
+            poses.append(self.get_current_pose())
+            if with_free_tiles:
+                grid.get_directions_weights(  # no result required
+                    self.lidar.get_points_ts(),
+                    get_car_info(),
+                )
+                free_tile_centers = grid.debug_get_free_tile_centers()
+                target_point = grid.debug_get_target_point()
+                return poses, points, self.position, free_tile_centers, target_point
+            else:
+                return poses, points, self.position, None, None
+        else:
+            return ()
 
-    def _get_current(self):
+    def get_track_frame(self):
         return {
-            'ts': self.imu.get_teta_ts(),
-            'teta': self.imu.get_teta(),
-            'odometry_dx': 0.,
-            'odometry_dy': 0.,
+            'current_pose': self.current_pose,
+            'lidar_frames_processed': self.lidar_frames_processed,
+            'lidar_deque_size': len(self.lidar_deque),
+            'lidar_deque_empty_times': self.lidar_deque_empty_times,
+            'pose_deque_size': len(self.pose_deque),
+            'pose_deque_empty_times': self.pose_deque_empty_times,
         }
 
-    def _upgrade_current(self, current):
-        pass
 
-    def _get_transformation(self, dt, current, previous):  # pylint: disable=R0201, W0613
-        dx_raw = current['odometry_dx']
-        dy_raw = current['odometry_dy']
-        raw_result = (dx_raw, dy_raw, current['teta'])
-        return raw_result
-
-    def update_picture(self, image, only_nearby_meters=10):
-        drawing.update_image_abs_coords(image, self.poses, [], None, only_nearby_meters)
-
-    def poses_to_a_file(self, file_path):
-        with open(file_path, 'w') as a_file:
-            a_file.write(json.dumps(self.poses))
-
-    def get_current_pose(self):
-        return self.poses[-1]
-
-
-class Tracker(TrackerLight):
-    # pylint: disable=R0913
-    def __init__(self, lidar, fps=2, max_distance=15., fix_pose_with_lidar=False, keep_readings=False):
-        super().__init__(fps)
-        self.lidar = lidar
-        self.max_distance = max_distance
-        if fix_pose_with_lidar:
-            raise NotImplementedError()
-        self.fix_pose_with_lidar = fix_pose_with_lidar
-        # self.ndt = NDT(grid_size=8., box_size=1., iterations_count=20, optim_step=(0.05, 0.05, 0.01), eps=0.01)
-        self.keep_readings = keep_readings
-
-    def _get_current(self):
-        result = super()._get_current()
-        result['points'] = self.lidar.get_lidar_points()
-        result['ts'] = self.lidar.points_ts
-        return result
-
-    def _upgrade_current(self, current):
-        self.poses[-1]['points'] = current['points']
-
-    def _get_transformation(self, dt, current, previous):
-        raw_result = super()._get_transformation(dt, current, previous)
-        if not self.fix_pose_with_lidar:
-            return raw_result
-        return None  # FIXME
-        # dteta_raw = current['teta'] - previous['teta']
-        # dx_raw = current['odometry_dx']
-        # dy_raw = current['odometry_dy']
-        #
-        # dx, dy, dteta, converged, score = self.ndt.get_optimal_transformation(
-        #     previous['points'],
-        #     current['points'],
-        #     start_point=[dx_raw, dy_raw, dteta_raw]
-        # )
-        #
-        # if converged != 1.:
-        #     return raw_result
-        #
-        # if score > 0.5:
-        #     return raw_result
-        #
-        # steps = ceil(dt / self.fps)
-        #
-        # max_dteta = steps * pi / 8
-        # if max_dteta > 2 * pi:
-        #     max_dteta = 2 * pi
-        # if abs(dteta - dteta_raw) > max_dteta:
-        #     return raw_result
-        #
-        # prev_pose = self.poses[-1]
-        # max_dxy = dt * 0.2  # m/s
-        # if abs(dx_raw - dx) > max_dxy or abs(prev_pose['x'] + dx) > self.max_distance:
-        #     return raw_result
-        # if abs(dy_raw - dy) > max_dxy or abs(prev_pose['y'] + dy) > self.max_distance:
-        #     return raw_result
-        #
-        # teta = prev_pose['teta'] + dteta
-        # if teta >= 2 * pi:
-        #     teta -= 2 * pi
-        # elif teta <= -2 * pi:
-        #     teta += 2 * pi
-        #
-        # return dx, dy, teta
-
-    def update_picture(self, image, only_nearby_meters=10):
-        pose = self.poses[-1]
-        points = apply_transformation_to_cloud(
-            self.lidar.get_lidar_points(),
-            [pose['x'], pose['y'], pose['teta']]
-        )
-        self_position = self.lidar.calibration_to_xywh(self.lidar.calibration)
-        drawing.update_image_abs_coords(image, self.poses, points, self_position, only_nearby_meters)
+def get_car_info():
+    return {
+        'to_car_center': FROM_LIDAR_TO_CENTER,
+        'turn_radius': TURN_DIAMETER / 2.,
+        'to_pivot_center': FROM_LIDAR_TO_PIVOT_CENTER,
+        'car_width': CAR_WIDTH,
+        'car_length': CAR_LENGTH,
+        'engine_need_manual_breaking': ENGINE_NEED_MANUAL_BREAKING,
+    }

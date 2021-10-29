@@ -8,12 +8,28 @@ from ballsbot.utils import figsize_from_image_size
 from ballsbot.config import LIDAR_CALIBRATION_WITHOUT_MANIPULATOR, ENABLE_MULTIPROCESSING
 
 
-def update_image_abs_coords(
-        image, poses, lidar_points, self_position, only_nearby_meters, figsize=None,
-        tail_points=None, tail_lines=None, lines=None
+class BotPoseDrawing:
+    def __init__(self, image):
+        self.image = image
+
+    def update_image(self, poses, lidar_points, self_position, tail_points=None, target_point=None,  # pylint: disable=R0913
+                     only_nearby_meters=6.):
+        figsize = figsize_from_image_size(self.image)
+        params = [poses, lidar_points, self_position, only_nearby_meters, figsize, tail_points, target_point]
+
+        if ENABLE_MULTIPROCESSING:
+            drawer = DrawInAnotherProcess.get_instance('get_manipulator_drawing_images')
+            value = drawer.draw('get_image_abs_coords', *params)
+        else:
+            value = get_image_abs_coords(*params)
+
+        self.image.value = value
+
+
+def get_image_abs_coords(
+        poses, lidar_points, self_position, only_nearby_meters, figsize,
+        tail_points=None, target_point=None, tail_lines=None, lines=None
 ):  # pylint: disable=R0913, R0914
-    if figsize is None:
-        figsize = figsize_from_image_size(image)
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
     if len(poses) == 0:
@@ -34,6 +50,10 @@ def update_image_abs_coords(
         tail_x_points = [x[0] for x in tail_points]
         tail_y_points = [x[1] for x in tail_points]
         ax.scatter(tail_x_points, tail_y_points, marker='o', s=5, c='lightblue')
+    if target_point:
+        target_x_points = [target_point[0]]
+        target_y_points = [target_point[1]]
+        ax.scatter(target_x_points, target_y_points, marker='x', s=5, c='red')
     if tail_lines:
         for a_line in tail_lines:
             x_points = [a_line[0][0], a_line[1][0]]
@@ -80,7 +100,11 @@ def update_image_abs_coords(
     canvas.draw()
     jpeg = BytesIO()
     canvas.print_jpg(jpeg)
-    image.value = jpeg.getvalue()
+    return jpeg.getvalue()
+
+
+def update_image_abs_coords(image, *args, **kwargs):
+    image.value = get_image_abs_coords(*args, **kwargs)
 
 
 def update_picture_self_coords(image, lidar_points, self_position, only_nearby_meters, additional_points):
@@ -145,7 +169,7 @@ class ManipulatorPoseDrawing:
             drawer = DrawInAnotherProcess.get_instance('get_manipulator_drawing_images')
             values = drawer.draw('get_manipulator_drawing_images', *params)
         else:
-            values = get_picture_self_coords(*params)  # pylint: disable=E1120
+            raise NotImplementedError()
 
         for image_type, value in values.items():
             images[image_type].value = value

@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
             msg.data[i].bottom_left.y = it.bottom_left.y;
             msg.data[i].top_right.x = it.top_right.x;
             msg.data[i].top_right.y = it.top_right.y;
-            ROS_INFO("%s (%f): (%f, %f), (%f, %f)", msg.data[i].object_class.c_str(),
-                     msg.data[i].confidence, msg.data[i].bottom_left.x, msg.data[i].bottom_left.y,
-                     msg.data[i].top_right.x, msg.data[i].top_right.y);
+            // ROS_INFO("%s (%f): (%f, %f), (%f, %f)", msg.data[i].object_class.c_str(),
+            //          msg.data[i].confidence, msg.data[i].bottom_left.x, msg.data[i].bottom_left.y,
+            //          msg.data[i].top_right.x, msg.data[i].top_right.y);
         }
 
         chatter_pub.publish(msg);

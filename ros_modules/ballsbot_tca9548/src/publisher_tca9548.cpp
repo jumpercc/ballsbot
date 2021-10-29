@@ -1,15 +1,22 @@
-#include "tca9548.h"
-#include "VL53L0X.h"
-#include "magnetic_encoder_driver.h"
 #include <stdint.h>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
 #include <string>
+#include <memory>
+#include <future>
+#include <thread>
+#include <chrono>
+#include <unordered_map>
 #include "ros/ros.h"
 #include "ballsbot_tca9548/LaserDistance.h"
 #include "ballsbot_tca9548/EncoderAngle.h"
-#include <memory>
+#include "tca9548.h"
+#include "VL53L0X.h"
+#include "magnetic_encoder_driver.h"
+using namespace std::chrono_literals;
+
+const uint16_t kNotAvailable = 0xFFFFu;
 
 enum kDeviceType {
     kLaserRangingSensor = 0,
@@ -27,8 +34,8 @@ struct ConfigItem {
     std::vector<I2CDevice> devices;
 };
 
-std::unique_ptr<VL53L0X> GetLaserSensor(uint8_t bus_number) {
-    auto sensor = std::make_unique<VL53L0X>(bus_number, 0x29);
+std::shared_ptr<VL53L0X> GetLaserSensor(uint8_t bus_number) {
+    auto sensor = std::make_shared<VL53L0X>(bus_number, 0x29);
     if (!sensor->openVL53L0X()) {
         ROS_INFO("Unable to open VL53L0X");
         exit(-1);
@@ -65,6 +72,66 @@ std::unique_ptr<EncoderBase> GetEncoder(uint8_t bus_number, kDeviceType device_t
     return result;
 }
 
+size_t CountDevices(const std::vector<ConfigItem>& config, kDeviceType device_type) {
+    size_t result = 0;
+    for (auto lane : config) {
+        for (auto device : lane.devices) {
+            if (device.device_type_ == device_type) {
+                result += 1;
+            }
+        }
+    }
+    return result;
+}
+
+std::unordered_map<uint8_t, std::shared_ptr<VL53L0X>> laser_sensors_cache;
+
+uint16_t GetDistanceFromLaserSensor(uint8_t bus_number, uint8_t sensor_key) {
+    if (laser_sensors_cache.find(sensor_key) == laser_sensors_cache.end()) {
+        laser_sensors_cache[sensor_key] = GetLaserSensor(bus_number);
+    }
+    auto laser_sensor = laser_sensors_cache[sensor_key];
+    uint16_t distance = laser_sensor->readRangeSingleMillimeters();
+    if (laser_sensor->timeoutOccurred()) {
+        ROS_INFO("Sensor timeout!");
+        laser_sensor->closeVL53L0X();
+        laser_sensors_cache.erase(laser_sensors_cache.find(sensor_key));
+        return kNotAvailable;
+    } else if (distance > 2500) {
+        distance = 2500;
+    }
+    return distance;
+}
+
+size_t timeouts_count = 0;
+
+uint16_t GetDistanceFromLaserSensorWithTimeout(uint8_t bus_number, uint8_t sensor_key) {
+    std::packaged_task<uint16_t(uint8_t, uint8_t)> task(GetDistanceFromLaserSensor);
+    auto future = task.get_future();
+    std::thread thr(std::move(task), bus_number, sensor_key);
+    if (future.wait_for(2s) != std::future_status::timeout) {
+        thr.join();
+        return future.get();
+    } else {
+        thr.detach();
+        ROS_INFO("Sensor timeout, thread still running!");
+        if (++timeouts_count > 15) {
+            throw std::runtime_error("timeouts limit exceeded");
+        }
+        auto laser_sensor = laser_sensors_cache[sensor_key];
+        laser_sensor->closeVL53L0X();
+        laser_sensors_cache.erase(laser_sensors_cache.find(sensor_key));
+        return kNotAvailable;
+    }
+}
+
+double GetAngleFromMagneticEncoder(uint8_t bus_number, kDeviceType device_type) {
+    auto encoder = GetEncoder(bus_number, device_type);
+    double angle = encoder->GetAngle(U_RAD, true);
+    encoder->CloseSensor();
+    return angle;
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "USAGE: publisher_tca9548 <bus_number> <device_address>\n";
@@ -96,43 +163,36 @@ int main(int argc, char* argv[]) {
     ballsbot_tca9548::LaserDistance ld_msg;
     uint16_t distance;
     auto laser_distance_publisher = n.advertise<ballsbot_tca9548::LaserDistance>(
-        "laser_distance", 6);
+        "laser_distance", CountDevices(config, kLaserRangingSensor) || 1);
 
     ballsbot_tca9548::EncoderAngle enc_msg;
     double angle;
     auto magnetic_encoder_publisher = n.advertise<ballsbot_tca9548::EncoderAngle>(
-        "magnetic_encoder", 4);
+        "magnetic_encoder", CountDevices(config, kMagneticEncoderAS5600) || 1);
 
-    ros::Rate loop_rate(4);
+    ros::Rate loop_rate(8);
     while (ros::ok()) {
         for (auto config_item : config) {
             controller.SetState(config_item.state_bits);
             for (auto device : config_item.devices) {
                 if (device.device_type_ == kLaserRangingSensor) {
-                    auto laser_sensor = GetLaserSensor(bus_number);
-                    distance = laser_sensor->readRangeSingleMillimeters();
-                    if (laser_sensor->timeoutOccurred()) {
-                        ROS_INFO("Sensor timeout!");
-                        laser_sensor = nullptr;
+                    distance =
+                        GetDistanceFromLaserSensorWithTimeout(bus_number, config_item.state_bits);
+                    if (distance == kNotAvailable) {
                         continue;
-                    } else if (distance > 2500) {
-                        distance = 2500;
                     }
-                    laser_sensor->closeVL53L0X();
-
                     ld_msg.distance_in_mm = distance;
                     ld_msg.sensor_name = device.device_name_;
-                    ROS_INFO("%s: %i mm", ld_msg.sensor_name.c_str(), ld_msg.distance_in_mm);
+                    ld_msg.header.stamp = ros::Time::now();
+                    // ROS_INFO("%s: %i mm", ld_msg.sensor_name.c_str(), ld_msg.distance_in_mm);
                     laser_distance_publisher.publish(ld_msg);
                 } else if (device.device_type_ == kMagneticEncoderAS5600 ||
                            device.device_type_ == kMagneticEncoderAS5048B) {
-                    auto encoder = GetEncoder(bus_number, device.device_type_);
-                    angle = encoder->GetAngle(U_RAD, true);
-                    encoder->CloseSensor();
-
+                    angle = GetAngleFromMagneticEncoder(bus_number, device.device_type_);
                     enc_msg.angle = angle;
                     enc_msg.encoder_name = device.device_name_;
-                    ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
+                    enc_msg.header.stamp = ros::Time::now();
+                    // ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
                     magnetic_encoder_publisher.publish(enc_msg);
                 }
             }

@@ -12,6 +12,7 @@ LinearCoefficients GetLinearCoefficients(const Point p1, const Point p2);
 double PointToLineDistance(Point p0, LinearCoefficients abc);
 
 double Distance(Point one, Point two);
+double Distance(double x_one, double y_one, double x_two, double y_two);
 
 LinearCoefficients NormalToLineInPoint(LinearCoefficients a_line, Point a_point);
 

@@ -1,7 +1,4 @@
-from math import pi
-
-from ballsbot.utils import keep_rps
-from ballsbot.lidar import Lidar, radial_points_to_cartesian, cartesian_to_radial
+from ballsbot.lidar import Lidar
 from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
 
 
@@ -10,64 +7,63 @@ class AugmentedLidar:
         self.lidar = lidar
         self.distance_sensors = distance_sensors
         self.cached_distances = None
+        self.sync_eps = 0.5  # seconds
+        self.distances_merged_count = 0
+        self.distances_ignored_count = 0
+        self.distances_ignored_old_count = 0
+        self.distances_ignored_new_count = 0
+
+    def get_calibration(self):
+        return self.lidar.get_calibration()
 
     def start(self):
         if self.distance_sensors is not None:
             self.distance_sensors.start()
 
-    def get_radial_lidar_points(self, range_limit=None, cached=True):
-        nearby_points = self.lidar.get_radial_lidar_points(range_limit, cached=cached)
-
+    def get_lidar_points(self, range_limit=None, cached=False):
+        nearby_points = self.lidar.get_lidar_points(range_limit=range_limit, cached=cached)
         if self.distance_sensors is not None:
-            self.cached_distances = self.distance_sensors.get_distances()
-            for it in self.cached_distances.values():
-                if not it or it['direction'] not in {"forward", "backward"}:
-                    continue
-                if it['offset_y']:
-                    x = it['distance'] if it['direction'] == "forward" else -it['distance']
-                    y = it['offset_y']
-                    distance, angle = cartesian_to_radial(x, y)
-                else:
-                    angle = 0. if it['direction'] == "forward" else pi
-                    distance = it['distance']
-                distance = distance / 1000.  # to meters
-                nearby_points.append({'distance': distance, 'angle': angle})
+            if not cached:
+                self.cached_distances = self.distance_sensors.get_distances()
+            if self.cached_distances:
+                lidar_ts = self.get_points_ts()
+                for it in self.cached_distances.values():
+                    if not it or it['direction'] not in {"forward", "backward"}:
+                        continue
+                    if abs(lidar_ts - it['ts']) <= self.sync_eps:
+                        x = it['distance'] if it['direction'] == "forward" else -it['distance']
+                        y = it['offset_y']
+                        nearby_points.append([x, y])
+                        self.distances_merged_count += 1
+                    else:
+                        self.distances_ignored_count += 1
+                        if lidar_ts > it['ts']:
+                            self.distances_ignored_old_count += 1
+                        else:
+                            self.distances_ignored_new_count += 1
 
         return nearby_points
 
-    def _get_lidar_points(self):
-        points = self.get_radial_lidar_points(cached=False)
-        points = radial_points_to_cartesian(points)
-        return points
+    def get_points_ts(self):
+        return self.lidar.points_ts
 
-    def get_lidar_points(self):
-        return self.lidar.get_lidar_points()
-
-    def show_lidar_cloud(self, image, **kwargs):
-        self.auto_update_lidar_cloud(
-            cb=lambda points, only_nearby_meters: self.lidar._update_picture(  # pylint: disable=W0212
-                image, points, only_nearby_meters=only_nearby_meters
-            ),
-            **kwargs
-        )
-
-    def auto_update_lidar_cloud(self, only_nearby_meters=4, fps=2, cb=None):
-        ts = None
-        while True:
-            ts = keep_rps(ts, fps=fps)
-            points = self._get_lidar_points()
-            if len(points) == 0:
-                break
-
-            if cb is not None:
-                cb(points, only_nearby_meters=only_nearby_meters)
+    def get_track_frame(self):
+        return {
+            'points_ts': self.get_points_ts(),
+            'distances': self.cached_distances,
+            'augmented_points': self.get_lidar_points(cached=True),
+            'distances_merged_count': self.distances_merged_count,
+            'distances_ignored_count': self.distances_ignored_count,
+            'distances_ignored_old_count': self.distances_ignored_old_count,
+            'distances_ignored_new_count': self.distances_ignored_new_count,
+        }
 
 
 def get_augmented_lidar():
     lidar = Lidar()
 
     if has_distance_sensors():
-        distance_sensors = DistanceSensors(autostart=True)
+        distance_sensors = DistanceSensors()
     else:
         distance_sensors = None
 

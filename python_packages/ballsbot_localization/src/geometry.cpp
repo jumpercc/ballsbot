@@ -11,8 +11,12 @@ double PointToLineDistance(Point p0, LinearCoefficients a_line) {
            sqrt(a_line.a * a_line.a + a_line.b * a_line.b);
 }
 
+double Distance(double x_one, double y_one, double x_two, double y_two) {
+    return sqrt((x_one - x_two) * (x_one - x_two) + (y_one - y_two) * (y_one - y_two));
+}
+
 double Distance(Point one, Point two) {
-    return sqrt((one.x - two.x) * (one.x - two.x) + (one.y - two.y) * (one.y - two.y));
+    return Distance(one.x, one.y, two.x, two.y);
 }
 
 LinearCoefficients NormalToLineInPoint(LinearCoefficients a_line, Point a_point) {

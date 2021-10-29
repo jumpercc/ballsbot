@@ -1,363 +1,126 @@
-from math import pi
 import json
-
-from ballsbot.lidar import Lidar, radial_points_to_cartesian
-from ballsbot.augmented_lidar import AugmentedLidar
+from time import time
+import logging
+from ballsbot.lidar_with_memory import LidarWithMemory
 from ballsbot.servos import get_controls
-from ballsbot.utils import keep_rps, run_as_thread
-from ballsbot.geometry import distance
-from ballsbot.tracking import TrackerLight
-from ballsbot.distance_sensors import DistanceSensors, has_distance_sensors
+from ballsbot.utils import keep_rps
+from ballsbot.tracking import Tracker, get_car_info
 from ballsbot.detection import Detector
-from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH, CAR_LENGTH, ENGINE_NEED_MANUAL_BREAKING, \
+from ballsbot.config import ENGINE_NEED_MANUAL_BREAKING, \
     DETECTION_MAX_DISTANCE_FROM_CENTER_X, DETECTION_MAX_DISTANCE_FROM_CENTER_Y, DETECTION_CLOSE_ENOUGH
-from ballsbot_routing import ballsbot_routing
+from ballsbot_localization import ballsbot_localization as grid
+
+logger = logging.getLogger(__name__)
+
+
+class ExplorerDriverWithAutoBreaking:
+    @staticmethod
+    def fix_next_move(next_move, _):
+        return next_move
 
 
 class ExplorerDriverWithManualBreaking:
     STOP = 0.
-    FORWARD_THROTTLE = 0.5
-    BACKWARD_THROTTLE = -0.5
+    FORWARD_THROTTLE = 1.
+    BACKWARD_THROTTLE = -1.
     FORWARD_BRAKE = -0.4
     BACKWARD_BRAKE = 0.4
 
-    def __init__(self):
-        self.cached_direction = None
+    def fix_next_move(self, next_move, prev_move):
+        if prev_move['throttle'] == next_move['throttle'] or prev_move['throttle'] == self.STOP:
+            return next_move
+        elif prev_move['throttle'] in {self.FORWARD_BRAKE, self.BACKWARD_BRAKE}:
+            return {'steering': next_move['steering'], 'throttle': self.STOP}
+        elif prev_move['throttle'] == self.FORWARD_THROTTLE:
+            return {'steering': next_move['steering'], 'throttle': self.FORWARD_BRAKE}
+        elif prev_move['throttle'] == self.BACKWARD_THROTTLE:
+            return {'steering': next_move['steering'], 'throttle': self.BACKWARD_BRAKE}
 
-    def get_next_move_fix_with_odometry(self, prev_direction, steps_with_direction, odometry):
-        self.cached_direction = odometry.get_direction()
-        if prev_direction['throttle'] == self.FORWARD_BRAKE or prev_direction['throttle'] == self.BACKWARD_BRAKE:
-            if self.cached_direction > 0. and prev_direction['throttle'] == self.FORWARD_BRAKE \
-                    or self.cached_direction < 0. and prev_direction['throttle'] == self.BACKWARD_BRAKE:
-                return prev_direction, 1
-            else:
-                return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 1
-        elif prev_direction['throttle'] == self.FORWARD_THROTTLE \
-                or prev_direction['throttle'] == self.BACKWARD_THROTTLE:
-            if self.cached_direction == 0. and steps_with_direction > 3:  # stop when jammed or on driver error
-                return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 4
-        return None
-
-    def get_next_move_fix_with_can_move(self, prev_direction, can_move):
-        if prev_direction['throttle'] == self.FORWARD_THROTTLE \
-                and len(list(filter(lambda x: x[0][1] == 1. and x[1] > 0., can_move.items()))) == 0:
-            return {'steering': prev_direction['steering'], 'throttle': self.FORWARD_BRAKE}, 1
-        elif prev_direction['throttle'] == self.BACKWARD_THROTTLE \
-                and len(list(filter(lambda x: x[0][1] == -1. and x[1] > 0., can_move.items()))) == 0:
-            return {'steering': prev_direction['steering'], 'throttle': self.BACKWARD_BRAKE}, 1
-        elif len(list(filter(lambda x: x > 0., can_move.values()))) == 0:
-            return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 1
-        return None
-
-
-class ExplorerDriverWithAutoBreaking:
-    STOP = 0.
-    FORWARD_THROTTLE = 1.
-    BACKWARD_THROTTLE = -1.
-    FORWARD_BRAKE = STOP
-    BACKWARD_BRAKE = STOP
-
-    def get_next_move_fix_with_odometry(self, *_):  # pylint: disable=R0201
-        return None
-
-    def get_next_move_fix_with_can_move(self, prev_direction, can_move):
-        if len(list(filter(lambda x: x > 0., can_move.values()))) == 0:
-            return {'steering': prev_direction['steering'], 'throttle': self.STOP}, 1
-        return None
+        raise RuntimeError(f'invalid translation {prev_move} -> {next_move}')
 
 
 class Explorer:
-    CHECK_RADIUS = 2. * CAR_LENGTH / 0.28
-    A_BIT_CENTER_Y = CHECK_RADIUS / 2. * 2.5
-    STOP_DISTANCE = 0.35
-    STOP_DISTANCE_REFERENCE_SPEED = 0.5  # FIXME
-    FEAR_DISTANCE = 0.05
-    INNER_OFFSET = 0.03
+    FORWARD_THROTTLE = 1.
+    BACKWARD_THROTTLE = -1.
+    STOP = 0.
 
-    HALF_CAR_WIDTH = CAR_WIDTH / 2
-
-    RIGHT = 1.
-    LEFT = -1.
-    A_BIT_RIGHT = 0.5
-    A_BIT_LEFT = -0.5
-
-    def __init__(self, test_run=False, profile_mocks=None):
-        if profile_mocks is None:
-            lidar = Lidar(test_run)
+    def __init__(self):
+        if ENGINE_NEED_MANUAL_BREAKING:
+            self.direction_translator = ExplorerDriverWithManualBreaking()
         else:
-            test_run = True
-            lidar = profile_mocks['lidar']
-        self.BODY_POSITION = lidar.calibration_to_xywh(lidar.calibration)
-        self.test_run = test_run
+            self.direction_translator = ExplorerDriverWithAutoBreaking()
 
-        self.grid = ballsbot_routing
+        self.lidar = LidarWithMemory()
+        self.car_controls = get_controls()
+        self.tracker = Tracker(self.lidar)
+        self.detector = Detector()
 
-        if not test_run:
-            self.car_controls = get_controls()
-            self.tracker = TrackerLight()
-            self.odometry = self.tracker.odometry
-            self.detector = Detector()
-            if has_distance_sensors():
-                distance_sensors = DistanceSensors(autostart=False)
-            else:
-                distance_sensors = None
-        elif profile_mocks is not None:
-            self.car_controls = profile_mocks['car_controls']
-            self.tracker = profile_mocks['tracker']
-            self.odometry = profile_mocks['odometry']
-            self.detector = None
-            distance_sensors = None
-        else:
-            raise RuntimeError('profile_mocks must be set if test_run=True')
-        self.augmented_lidar = AugmentedLidar(lidar, distance_sensors)
-
-        self.track_info = []
-        self.cached_speed = None
-        self.cached_pose = None
-        self.cached_points = None
         self.cached_weights = None
         self.cached_detected_object = None
-        self.cached_distances = None
         self.prev_seen_class = "no one"
-        self.save_track_info = False
-        self.raw_grid = None
-        self.driver = (
-            ExplorerDriverWithManualBreaking() if ENGINE_NEED_MANUAL_BREAKING else ExplorerDriverWithAutoBreaking())
+        self.cached_direction = None
+        self.running = False
 
-    def run(self, save_track_info=False):
-        self.save_track_info = save_track_info
+    def stop(self):
+        self.running = False
+        self.tracker.stop()
 
-        def tracker_run():
-            self.tracker.start()
+    def run(self, save_track_to=None):
+        if save_track_to:
+            track_fh = open(save_track_to, 'w')  # pylint: disable=R1732
+        else:
+            track_fh = None
 
-        def detector_run():
-            self.detector.start()
+        self.tracker.start()
 
-        if not self.test_run:
-            run_as_thread(tracker_run)
-            run_as_thread(detector_run)
-            self.augmented_lidar.start()
-
+        self.running = True
+        self.cached_direction = {'steering': 0., 'throttle': 0.}
         ts = None
-        direction = {'steering': 0., 'throttle': self.driver.STOP}
-        steps_with_direction = 0
-        keep_for = 0
         while True:
-            ts = keep_rps(ts, fps=4)
-            prev_direction = direction
-            if keep_for <= 0:
-                direction, keep_for = self._get_next_move(direction, steps_with_direction)
-            keep_for -= 1
-            # print('direction: {}, turn: {}, speed {:0.4f}'.format(
-            #     direction['throttle'], direction['steering'], self.odometry.get_speed()
-            # ))
-            self._follow_direction(direction)
-
-            if save_track_info:
-                self.track_info.append({
-                    'state': {
-                        'speed': self.cached_speed,
-                        'pose': self.cached_pose,
-                        'steps_with_direction': steps_with_direction,
-                        'prev_direction': prev_direction,
-                        'prev_seen_class': self.prev_seen_class,
-                        'raw_grid': self.raw_grid,
-                    },
-                    'in': {
-                        'points': self.cached_points,
-                        'weights': self.cached_weights,
-                        'detected_object': self.cached_detected_object,
-                        'distances': self.cached_distances,
-                    },
-                    'out': direction,
-                })
-
-            if prev_direction == direction:
-                steps_with_direction += 1
+            ts = keep_rps(ts, fps=2)
+            running = self.running
+            if running:
+                self.cached_direction = self.direction_translator.fix_next_move(
+                    self._get_next_move(self.cached_direction),
+                    self.cached_direction
+                )
             else:
-                steps_with_direction = 0
+                self.cached_direction = {'steering': 0., 'throttle': 0.}
+            self._follow_direction(self.cached_direction)
+            if track_fh is not None:
+                self._store_track_frame(track_fh)
+            if not running:
+                break
 
-    def _can_move_straight_forward(self, nearby_points):
-        min_y = self.BODY_POSITION['y'] - self.FEAR_DISTANCE
-        max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
-        min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
-        max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self._get_stop_distance()
-        min_x -= self.INNER_OFFSET
+        if track_fh is not None:
+            track_fh.close()
 
-        nearest_x = max_x
-        for a_point in nearby_points:
-            if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
-                if a_point[0] < stop_x:
-                    return 0.
-                elif nearest_x > a_point[0]:
-                    nearest_x = a_point[0]
-        return nearest_x
-
-    def _can_move_straight_backward(self, nearby_points):
-        min_y = self.BODY_POSITION['y'] - self.FEAR_DISTANCE
-        max_y = self.BODY_POSITION['y'] + self.BODY_POSITION['h'] + self.FEAR_DISTANCE
-        max_x = self.BODY_POSITION['x']
-        min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self._get_stop_distance()
-        max_x += self.INNER_OFFSET
-
-        nearest_x = min_x
-        for a_point in nearby_points:
-            if min_x < a_point[0] < max_x and min_y <= a_point[1] <= max_y:
-                if a_point[0] > stop_x:
-                    return 0.
-                elif nearest_x < a_point[0]:
-                    nearest_x = a_point[0]
-        return -nearest_x
-
-    def _filter_right_points(self, nearby_points):
-        _, right_center, column_radius = self._get_columns()
-        outer_radius = column_radius + 2 * (self.HALF_CAR_WIDTH + self.FEAR_DISTANCE)
-
-        def on_a_curve(a_point):
-            return distance(right_center, a_point) < outer_radius
-
-        return list(filter(on_a_curve, nearby_points))
-
-    def _filter_left_points(self, nearby_points):
-        left_center, _, column_radius = self._get_columns()
-        outer_radius = column_radius + 2 * (self.HALF_CAR_WIDTH + self.FEAR_DISTANCE)
-
-        def on_a_curve(a_point):
-            return distance(left_center, a_point) < outer_radius
-
-        return list(filter(on_a_curve, nearby_points))
-
-    def _filter_a_bit_left_points(self, nearby_points):
-        left_center = [0, self.A_BIT_CENTER_Y]
-        center_radius = self.A_BIT_CENTER_Y
-        outer_radius = center_radius + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
-        inner_radius = center_radius - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
-
-        def on_a_curve(a_point):
-            return inner_radius < distance(left_center, a_point) < outer_radius
-
-        return list(filter(on_a_curve, nearby_points))
-
-    def _filter_a_bit_right_points(self, nearby_points):
-        right_center = [0, -self.A_BIT_CENTER_Y]
-        center_radius = self.A_BIT_CENTER_Y
-        outer_radius = center_radius + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
-        inner_radius = center_radius - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
-
-        def on_a_curve(a_point):
-            return inner_radius < distance(right_center, a_point) < outer_radius
-
-        return list(filter(on_a_curve, nearby_points))
-
-    def _can_move_some_forward(self, nearby_points, a_filter):
-        nearby_points = a_filter(nearby_points)
-        min_x = self.BODY_POSITION['x'] + self.BODY_POSITION['w']
-        max_x = min_x + self.CHECK_RADIUS
-        stop_x = min_x + self._get_stop_distance()
-        min_x -= self.INNER_OFFSET
-
-        nearest_x = max_x
-        for a_point in nearby_points:
-            if min_x < a_point[0]:
-                if a_point[0] < stop_x:
-                    return 0.
-                elif nearest_x > a_point[0]:
-                    nearest_x = a_point[0]
-        return nearest_x
-
-    def _can_move_right_forward(self, nearby_points):
-        return self._can_move_some_forward(nearby_points, self._filter_right_points)
-
-    def _can_move_left_forward(self, nearby_points):
-        return self._can_move_some_forward(nearby_points, self._filter_left_points)
-
-    def _can_move_a_bit_right_forward(self, nearby_points):
-        return self._can_move_some_forward(nearby_points, self._filter_a_bit_right_points)
-
-    def _can_move_a_bit_left_forward(self, nearby_points):
-        return self._can_move_some_forward(nearby_points, self._filter_a_bit_left_points)
-
-    def _can_move_some_backward(self, nearby_points, a_filter):
-        nearby_points = a_filter(nearby_points)
-        max_x = self.BODY_POSITION['x']
-        min_x = max_x - self.CHECK_RADIUS
-        stop_x = max_x - self._get_stop_distance()
-        max_x += self.INNER_OFFSET
-
-        nearest_x = min_x
-        for a_point in nearby_points:
-            if a_point[0] < max_x:
-                if a_point[0] > stop_x:
-                    return 0.
-                elif nearest_x < a_point[0]:
-                    nearest_x = a_point[0]
-        return -nearest_x
-
-    def _can_move_right_backward(self, nearby_points):
-        return self._can_move_some_backward(nearby_points, self._filter_right_points)
-
-    def _can_move_left_backward(self, nearby_points):
-        return self._can_move_some_backward(nearby_points, self._filter_left_points)
-
-    def _can_move_a_bit_right_backward(self, nearby_points):
-        return self._can_move_some_backward(nearby_points, self._filter_a_bit_right_points)
-
-    def _can_move_a_bit_left_backward(self, nearby_points):
-        return self._can_move_some_backward(nearby_points, self._filter_a_bit_left_points)
-
-    def _get_can_move_map(self, debug_radial_points=None):
-        nearby_points = self._get_nearby_points(debug_radial_points)
-        nearby_points = self._filter_nearby_points(nearby_points)
-
-        return {
-            (0., 1.): self._can_move_straight_forward(nearby_points),
-            (self.RIGHT, 1.): self._can_move_right_forward(nearby_points),
-            (self.LEFT, 1.): self._can_move_left_forward(nearby_points),
-            (self.A_BIT_RIGHT, 1.): self._can_move_a_bit_right_forward(nearby_points),
-            (self.A_BIT_LEFT, 1.): self._can_move_a_bit_left_forward(nearby_points),
-            (0., -1.): self._can_move_straight_backward(nearby_points),
-            (self.RIGHT, -1.): self._can_move_right_backward(nearby_points),
-            (self.LEFT, -1.): self._can_move_left_backward(nearby_points),
-            (self.A_BIT_RIGHT, -1.): self._can_move_a_bit_right_backward(nearby_points),
-            (self.A_BIT_LEFT, -1.): self._can_move_a_bit_left_backward(nearby_points),
-        }
-
-    def _get_next_move(self, prev_direction, steps_with_direction):  # pylint: disable=R0915
-        result = self.driver.get_next_move_fix_with_odometry(prev_direction, steps_with_direction, self.odometry)
-        if result:
-            return result
-        can_move = self._get_can_move_map()
-        self.cached_pose = self.tracker.get_current_pose()
-        self.grid.update_grid(self.augmented_lidar.get_lidar_points(), self.cached_pose)
-        if self.save_track_info:
-            self.raw_grid = self.grid.debug_get_grid()
-
-        result = self.driver.get_next_move_fix_with_can_move(prev_direction, can_move)
-        if result:
-            return result
-
-        weights = self.grid.get_directions_weights(
-            self.cached_pose,
-            {'to_car_center': FROM_LIDAR_TO_CENTER, 'turn_radius': TURN_DIAMETER / 2.},
-            can_move
+    def _get_next_move(self, prev_direction):
+        if not self.lidar.get_points_ts():
+            return {'steering': 0., 'throttle': 0.}
+        pose_lag = time() - self.lidar.get_points_ts()
+        if pose_lag >= 1.:
+            logger.warning('pose_lag=%s, waiting', pose_lag)
+            return {'steering': 0., 'throttle': 0.}
+        weights = grid.get_directions_weights(
+            self.lidar.get_points_ts(),
+            get_car_info()
         )
 
         self.cached_detected_object = self.detector.get_seen_object()
         if self.cached_detected_object is None:
             if self.prev_seen_class is not None:
-                print("I'll find ya!")
+                logger.info("I'll find ya!")
                 self.prev_seen_class = None
             for sector_key in weights.keys():
-                if sector_key[1] > 0. and prev_direction['throttle'] == self.driver.FORWARD_THROTTLE \
-                        or sector_key[1] < 0. and prev_direction['throttle'] == self.driver.BACKWARD_THROTTLE:
-                    weights[sector_key] *= 5.  # trying to keep prev direction
+                if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
+                        or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
+                    weights[sector_key] *= 1.1  # trying to keep prev direction
                 if sector_key[0] == prev_direction['steering']:
-                    weights[sector_key] *= 1.2  # trying to keep wheel movements smooth
+                    weights[sector_key] *= 1.05  # trying to keep wheel movements smooth
         else:
             if self.prev_seen_class is None or self.prev_seen_class != self.cached_detected_object['object_class']:
-                print('See ya! (a ' + self.cached_detected_object['object_class'] + ')')
+                logger.info('See ya! (a %s)', self.cached_detected_object['object_class'])
                 self.prev_seen_class = self.cached_detected_object['object_class']
             directions = self._get_preferred_directions(self.cached_detected_object)
             if directions is None:
@@ -374,130 +137,27 @@ class Explorer:
         weights = dict(filter(lambda x: x[1] > 0., weights.items()))
         if len(weights.keys()) > 0:
             sector_key = list(sorted(weights.items(), key=lambda x: x[1]))[-1][0]
-        elif self.cached_detected_object is None:  # fallback
-            if prev_direction['throttle'] == self.driver.BACKWARD_THROTTLE:
-                filter_value = -1.
-            else:
-                filter_value = 1.
-
-            can_move_filtered = list(filter(lambda x: x[1] > 0. and x[0][1] == filter_value, can_move.items()))
-            if len(can_move_filtered) == 0:
-                can_move_filtered = list(filter(lambda x: x[1] > 0., can_move.items()))
-
-            sector_key = list(sorted(
-                can_move_filtered,
-                key=lambda y: (
-                    y[1],  # max distance
-                    -abs(y[0][0]),  # prefer straight
-                )
-            ))[-1][0]
         else:
             sector_key = (0., 0.)
 
         steering = sector_key[0]
         if sector_key[1] > 0.:
-            throttle = self.driver.FORWARD_THROTTLE
+            throttle = self.FORWARD_THROTTLE
         elif sector_key[1] < 0.:
-            throttle = self.driver.BACKWARD_THROTTLE
+            throttle = self.BACKWARD_THROTTLE
         else:
             throttle = 0.
 
-        if prev_direction['throttle'] == self.driver.FORWARD_THROTTLE and throttle == self.driver.BACKWARD_THROTTLE:
-            throttle = self.driver.FORWARD_BRAKE
-        elif prev_direction['throttle'] == self.driver.BACKWARD_THROTTLE and throttle == self.driver.FORWARD_THROTTLE:
-            throttle = self.driver.BACKWARD_BRAKE
+        if prev_direction['throttle'] == self.FORWARD_THROTTLE and throttle == self.BACKWARD_THROTTLE:
+            throttle = self.STOP
+        elif prev_direction['throttle'] == self.BACKWARD_THROTTLE and throttle == self.FORWARD_THROTTLE:
+            throttle = self.STOP
 
-        return {'steering': steering, 'throttle': throttle}, 1
-
-    def _get_columns(self):
-        return [0., TURN_DIAMETER], [0., -TURN_DIAMETER], \
-               TURN_DIAMETER - self.HALF_CAR_WIDTH - self.FEAR_DISTANCE
-
-    def _get_nearby_points(self, debug_radial_points=None):
-        range_limit = self.CHECK_RADIUS + self.HALF_CAR_WIDTH + self.FEAR_DISTANCE
-        range_limit += abs(FROM_LIDAR_TO_CENTER)
-        if debug_radial_points is None:
-            nearby_points = self.augmented_lidar.get_radial_lidar_points(range_limit, cached=False)
-            self.cached_distances = self.augmented_lidar.cached_distances
-        else:
-            nearby_points = list(filter(lambda x: x['distance'] <= range_limit, debug_radial_points))
-        self.cached_points = self.augmented_lidar.get_radial_lidar_points()  # cached, no limit
-        return nearby_points
-
-    def _filter_nearby_points(self, nearby_points):
-        nearby_points = list(filter(self._ellipse_like_range_filter, nearby_points))
-
-        nearby_points = radial_points_to_cartesian(nearby_points)
-        left_center, right_center, column_radius = self._get_columns()
-
-        def not_in_columns_and_a_car(a_point):
-            if a_point[1] > 0.:
-                if distance(left_center, a_point) < column_radius:
-                    return False
-                elif a_point[1] > left_center[1] \
-                        and left_center[0] - column_radius < a_point[0] < left_center[0] + column_radius:
-                    return False
-            elif a_point[1] < 0.:
-                if distance(right_center, a_point) < column_radius:
-                    return False
-                elif a_point[1] < right_center[1] \
-                        and right_center[0] - column_radius < a_point[0] < right_center[0] + column_radius:
-                    return False
-
-            if self.BODY_POSITION['x'] + self.INNER_OFFSET <= a_point[0] <= \
-                    self.BODY_POSITION['x'] + self.BODY_POSITION['w'] - self.INNER_OFFSET \
-                    and self.BODY_POSITION['y'] + self.INNER_OFFSET <= a_point[1] <= \
-                    self.BODY_POSITION['y'] + self.BODY_POSITION['h'] - self.INNER_OFFSET:
-                return False
-
-            return True
-
-        return list(filter(not_in_columns_and_a_car, nearby_points))
-
-    def _ellipse_like_range_filter(self, a_point):
-        angle = a_point['angle']
-        angle %= 2 * pi
-        if angle < 0:
-            angle = -angle
-
-        if pi / 2 <= angle <= 3 * pi / 2:
-            lidar_to_center = 0.
-        else:
-            lidar_to_center = FROM_LIDAR_TO_CENTER
-
-        if angle >= pi:
-            angle -= pi
-        if angle > pi / 2:
-            angle = pi - angle
-
-        range_limit = (
-                self.CHECK_RADIUS +
-                self.FEAR_DISTANCE +
-                self.HALF_CAR_WIDTH * angle +
-                lidar_to_center * (pi / 2 - angle)
-        )
-        return a_point['distance'] < range_limit
+        return {'steering': steering, 'throttle': throttle}
 
     def _follow_direction(self, direction):
         self.car_controls['steering'].run(direction['steering'])
         self.car_controls['throttle'].run(direction['throttle'])
-
-    def _get_stop_distance(self):
-        self.cached_speed = self.odometry.get_speed()
-        if ENGINE_NEED_MANUAL_BREAKING and self.cached_speed > self.STOP_DISTANCE_REFERENCE_SPEED:
-            return self.STOP_DISTANCE * self.cached_speed / self.STOP_DISTANCE_REFERENCE_SPEED
-        else:
-            return self.STOP_DISTANCE
-
-    def track_info_to_a_file(self, file_path):
-        for it in self.track_info:
-            if 'in' in it and 'weights' in it['in']:
-                it['in']['weights'] = {'{:+0.01f},{:+0.01f}'.format(*x[0]): x[1] for x in it['in']['weights'].items()}
-            if 'state' in it and 'raw_grid' in it['state']:
-                it['state']['raw_grid'] = {
-                    '{:+01d},{:+01d}'.format(*x[0]): x[1] for x in it['state']['raw_grid'].items()}
-        with open(file_path, 'w') as a_file:
-            a_file.write(json.dumps(self.track_info))
 
     @staticmethod
     def _get_detection_segment(detected_object):
@@ -567,3 +227,17 @@ class Explorer:
                         result.add((st, 1.))
 
         return result
+
+    def _store_track_frame(self, track_fh):
+        weights = {f'({k[0]},{k[1]})': v for k, v in self.cached_weights.items()} if self.cached_weights else None
+        frame = {
+            'ts': time(),
+            'directions_weights': weights,
+            'detected_object': self.cached_detected_object,
+            'direction': self.cached_direction,
+            'lidar': self.lidar.get_track_frame(),
+            'tracker': self.tracker.get_track_frame(),
+        }
+        json.dump(frame, track_fh)
+        track_fh.write('\n')
+        track_fh.flush()

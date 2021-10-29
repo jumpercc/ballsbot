@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 
         msg.distance_in_mm = distance;
         msg.sensor_name = direction;
-        ROS_INFO("%s: %i mm", msg.sensor_name.c_str(), msg.distance_in_mm);
+        // ROS_INFO("%s: %i mm", msg.sensor_name.c_str(), msg.distance_in_mm);
 
         chatter_pub.publish(msg);
         ros::spinOnce();

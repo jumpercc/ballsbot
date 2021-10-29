@@ -14,3 +14,4 @@ struct CloudTransformation {
 using PointCloud = std::vector<Point>;
 
 PointCloud ApplyTransformation(const PointCloud& source_cloud, CloudTransformation transformation);
+PointCloud RevertTransformation(const PointCloud& source_cloud, CloudTransformation transformation);

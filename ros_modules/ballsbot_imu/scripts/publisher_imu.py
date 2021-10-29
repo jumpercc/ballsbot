@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import RTIMU
-from time import time, sleep
+from time import sleep
 import numpy as np
 from math import pi
 import sys
@@ -31,7 +31,6 @@ class IMU:
         self.poll_interval = imu.IMUGetPollInterval()
         self.initial_position = np.zeros((3,))
         self.teta = 0.
-        self.teta_ts = time()
         self.w_z = 0.
 
     def calibrate(self):
@@ -41,9 +40,10 @@ class IMU:
             if self.imu.IMURead():
                 data = self.imu.getIMUData()
                 if data["fusionPose"][0] != 0. or data["fusionPose"][1] != 0. or data["fusionPose"][2] != 0.:
-                    my_sum += np.array(data["fusionPose"])
+                    if iterations > 10:
+                        my_sum += np.array(data["fusionPose"])
                     iterations += 1
-                    if iterations == 10:
+                    if iterations == 20:
                         break
             sleep(self.poll_interval * 1.0 / 1000.0)
         self.initial_position = my_sum / iterations
@@ -54,17 +54,14 @@ class IMU:
     def get_w_z(self):
         return self.w_z
 
-    def get_teta_ts(self):
-        return self.teta_ts
-
 
 def publisher():
     imu = IMU()
     imu.calibrate()
 
-    pub = rospy.Publisher('imu', ImuState, queue_size=2)
+    pub = rospy.Publisher('imu', ImuState, queue_size=1)
     rospy.init_node('ballsbot_imu')
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
     zero_duration = rospy.rostime.Duration(0, 0)
     while not rospy.is_shutdown():
         if imu.imu.IMURead():
@@ -75,7 +72,6 @@ def publisher():
                 if teta > pi:
                     teta -= 2 * pi
                 imu.teta = teta
-                imu.teta_ts = time()
                 imu.w_z = data['gyro'][2]  # FIXME move axis via quaternions at al
 
         if rate.remaining() <= zero_duration:
@@ -83,8 +79,8 @@ def publisher():
             message = ImuState()
             message.teta = imu.get_teta()
             message.w_z = imu.get_w_z()
-            message.teta_ts = imu.get_teta_ts()
-            rospy.loginfo(message.teta)
+            message.header.stamp = rospy.Time.now()
+            # rospy.loginfo(message.teta)
             pub.publish(message)
 
         rospy.sleep(imu.poll_interval * 1.0 / 1000.0)

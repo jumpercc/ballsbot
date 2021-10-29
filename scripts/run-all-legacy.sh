@@ -29,6 +29,15 @@ sleep 1
 $DIR/run-ballsbot_laser_sensor_rear.sh > ~/sensor_rear.log 2>&1 &
 sleep 1
 
+$DIR/run-ballsbot_imu.sh > ~/imu.log 2>&1 &
+sleep 1
+
+$DIR/run-ballsbot_wheel_odometry.sh > ~/wheel_odometry.log 2>&1 &
+sleep 1
+
+$DIR/run-ballsbot_pose.sh > ~/pose.log 2>&1 &
+sleep 1
+
 if [ -z ${NO_DETECTION+x} ]; then
     $DIR/run-ballsbot_detection.sh > ~/detection.log 2>&1 &
     sleep 1
@@ -36,8 +45,11 @@ fi
 
 $DIR/run-jupyter.sh
 
-kill %1 2>/dev/null
 kill %2 2>/dev/null
 kill %3 2>/dev/null
 kill %4 2>/dev/null
+kill %5 2>/dev/null
+kill %6 2>/dev/null
+kill %7 2>/dev/null
 
+kill %1 2>/dev/null
