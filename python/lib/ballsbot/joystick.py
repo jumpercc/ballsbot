@@ -1,7 +1,6 @@
 from ballsbot.config import MANIPULATOR, CAR_CONTROLS
 from ballsbot.utils import keep_rps, run_as_thread
 
-STEP = 0.003
 IGNORE_LIMIT = 0.25
 
 

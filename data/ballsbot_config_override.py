@@ -1,18 +1,18 @@
 import math
 
-LIDAR_CALIBRATION = {
-    'angle_fix': 3.1237764080339154,
-    'fl_x': 0.23090432880217832,
-    'fl_y': 0.1539137515794161,
-    'rr_x': -0.08784647285380637,
-    'rr_y': -0.14349584614860772,
-}
+# LIDAR_CALIBRATION = {
+#     'angle_fix': 3.1237764080339154,
+#     'fl_x': 0.23090432880217832,
+#     'fl_y': 0.1539137515794161,
+#     'rr_x': -0.08784647285380637,
+#     'rr_y': -0.14349584614860772,
+# }
 
 CAR_CONTROLS = {
     'steering': {
         "channel": 0,
-        "min_pulse": 350,
-        "max_pulse": 450,
+        "min_pulse": 430,
+        "max_pulse": 350,
         "default_position": 0.,
         "control": {"axis": 0},
     },
@@ -28,7 +28,7 @@ CAR_CONTROLS = {
 }
 
 MANIPULATOR = {
-    "enabled": True,
+    "enabled": False,
     "has_camera": False,
     "servos": [
         {
