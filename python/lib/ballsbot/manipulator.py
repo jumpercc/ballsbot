@@ -1,55 +1,11 @@
-from warnings import warn
-
 from ballsbot.config import MANIPULATOR, SECONDS_TO_UNFOLD_MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry
 
-STEP = 0.003
-IGNORE_LIMIT = 0.25
-
-
-def get_controller_axis_value_getter(controller, axis, invert=False):
-    def get_value():
-        if len(controller.axes):
-            value = controller.axes[axis].value
-            if invert:
-                value = -value
-
-            if abs(value) > IGNORE_LIMIT:
-                return float_map_range(value, -1, 1, -STEP, STEP)
-        return 0.
-
-    return get_value
-
-
-def get_controller_two_buttons_value_getter(controller, button_up, button_down):
-    def get_value():
-        if len(controller.buttons):
-            if controller.buttons[button_up].value:
-                return STEP
-            elif controller.buttons[button_down].value:
-                return -STEP
-        return 0.
-
-    return get_value
-
-
-def get_controller_stub():
-    def do_nothing():
-        return 0.
-
-    return do_nothing()
-
-
-def get_controller_link(controller, config):
-    if not config:
-        return get_controller_stub()
-    elif "buttons" in config:
-        return get_controller_two_buttons_value_getter(controller, *config['buttons'])
-    elif "axis" in config:
-        return get_controller_axis_value_getter(controller, config['axis'], invert=config.get('invert', False))
-    raise NotImplementedError(config)
+RPS = 50
+STEP = 0.0016
+IGNORE_DIFF = 0.01
 
 
 def float_map_range(x, x_min, x_max, y_min, y_max):
@@ -60,114 +16,86 @@ def float_map_range(x, x_min, x_max, y_min, y_max):
 
 
 class Manipulator:
-    RPS = 50
-    FOLD_STEPS = RPS * float(SECONDS_TO_UNFOLD_MANIPULATOR)
-    _need_fold = False
-    _need_unfold = False
-
-    def __init__(self, controller, emulate_only=False):
+    def __init__(self, joystick_wrapper, emulate_only=False):
         if MANIPULATOR is None or not MANIPULATOR['enabled']:
-            warn("manipulator disabled by config")
             return
 
+        self.joystick_wrapper = joystick_wrapper
         self.emulate_only = emulate_only
         self.servo_values = {}
         self.servo_channel_to_index = {}
-        for i, it in enumerate(MANIPULATOR['servos']):
-            self.servo_values[it['channel']] = it['default_position']
-            self.servo_channel_to_index[it['channel']] = i
+        self.servos = []
+        for servo_number, servo_config in enumerate(MANIPULATOR['servos']):
+            self.servo_values[servo_config['channel']] = servo_config['default_position']
+            self.servo_channel_to_index[servo_config['channel']] = servo_number
+            self.servos.append(None if emulate_only else PCA9685(servo_config['channel']))
 
-        for servo_config in MANIPULATOR['servos']:
-            run_as_thread(
-                self._link_servo_to_function,
-                servo=(None if emulate_only else PCA9685(servo_config['channel'])),
-                servo_config=servo_config,
-                get_value_cb=get_controller_link(controller, servo_config.get('control')),
-            )
+        run_as_thread(self._start)
 
-        run_as_thread(
-            self._watch_fold,
-            controller=controller,
-            button_fold=MANIPULATOR['fold']['button_fold'],
-            button_unfold=MANIPULATOR['fold']['button_unfold'],
-            button_stop=MANIPULATOR['fold']['button_stop'],
-        )
-
-    @staticmethod
-    def _watch_fold(controller, button_fold, button_unfold, button_stop):
+    def _start(self):
         ts = None
         while True:
-            ts = keep_rps(ts, fps=Manipulator.RPS)
+            ts = keep_rps(ts, fps=RPS)
 
-            if len(controller.buttons):
-                if controller.buttons[button_fold].value:
-                    Manipulator._need_fold = True
-                    Manipulator._need_unfold = False
-                elif controller.buttons[button_unfold].value:
-                    Manipulator._need_unfold = True
-                    Manipulator._need_fold = False
-                elif controller.buttons[button_stop].value:
-                    Manipulator._need_fold = False
-                    Manipulator._need_unfold = False
-
-    @staticmethod
-    def _get_fold_increment(need_position, current_position):
-        return (need_position - current_position) / Manipulator.FOLD_STEPS
-
-    def _link_servo_to_function(self, servo, servo_config, get_value_cb):
-        current_position = servo_config['default_position']
-        fold_increment = None
-
-        ts = None
-        while True:
-            ts = keep_rps(ts, fps=Manipulator.RPS)
-
-            if Manipulator._need_fold:
-                if fold_increment is None:
-                    fold_increment = self._get_fold_increment(servo_config['default_position'], current_position)
-                if abs(servo_config['default_position'] - current_position) < fold_increment:
-                    increment = servo_config['default_position'] - current_position
-                    if increment == 0.:
-                        Manipulator._need_fold = False
-                        fold_increment = None
-                else:
-                    increment = fold_increment
-            elif Manipulator._need_unfold:
-                need_position = servo_config.get('unfold_position', servo_config['default_position'])
-                if fold_increment is None:
-                    fold_increment = self._get_fold_increment(need_position, current_position)
-                if abs(need_position - current_position) < fold_increment:
-                    increment = need_position - current_position
-                    if increment == 0.:
-                        Manipulator._need_unfold = False
-                        fold_increment = None
-                else:
-                    increment = fold_increment
+            if self.joystick_wrapper.manipulator_fold_pressed:
+                directions = [0 for _ in MANIPULATOR['servos']]
+                for servo_number, servo_config in enumerate(MANIPULATOR['servos']):
+                    current_position = self.servo_values[servo_config['channel']]
+                    diff = current_position - servo_config['default_position']
+                    if abs(diff) <= IGNORE_DIFF:
+                        directions[servo_number] = 0
+                    elif diff > 0:
+                        directions[servo_number] = -1
+                    else:
+                        directions[servo_number] = 1
+            elif self.joystick_wrapper.manipulator_unfold_pressed:
+                directions = [0 for _ in MANIPULATOR['servos']]
+                for servo_number, servo_config in enumerate(MANIPULATOR['servos']):
+                    current_position = self.servo_values[servo_config['channel']]
+                    diff = current_position - servo_config.get('unfold_position', servo_config['default_position'])
+                    if abs(diff) <= IGNORE_DIFF:
+                        directions[servo_number] = 0
+                    elif diff > 0:
+                        directions[servo_number] = -1
+                    else:
+                        directions[servo_number] = 1
             else:
-                fold_increment = None
-                increment = get_value_cb()
+                directions = self.joystick_wrapper.manipulator_directions.copy()
 
-            current_position += increment
-            if current_position < -1.:
-                current_position = -1.
-                Manipulator._need_fold = False
-                Manipulator._need_unfold = False
-                fold_increment = None
-            elif current_position > 1.:
-                current_position = 1.
-                Manipulator._need_fold = False
-                Manipulator._need_unfold = False
-                fold_increment = None
+            set_pulse_list = []
+            for servo_number, direction in enumerate(directions):
+                if direction:
+                    self._apply_direction(servo_number, direction)
+                    set_pulse_list.append(True)
+                else:
+                    set_pulse_list.append(False)
 
-            self.servo_values[servo_config['channel']] = current_position
-            pulse = map_range(
-                current_position,
-                -1., 1.,
-                servo_config['min_pulse'], servo_config['max_pulse']
-            )
-            # TODO check feasible
             if not self.emulate_only:
-                servo.set_pulse(pulse)
+                for servo_number, set_pulse in enumerate(set_pulse_list):
+                    if not set_pulse:
+                        continue
+                    servo_config = MANIPULATOR['servos'][servo_number]
+                    current_position = self.servo_values[servo_config['channel']]
+                    pulse = map_range(
+                        current_position,
+                        -1., 1.,
+                        servo_config['min_pulse'], servo_config['max_pulse']
+                    )
+                    servo = self.servos[servo_number]
+                    servo.set_pulse(pulse)
+
+    def _apply_direction(self, servo_number, direction):
+        servo_config = MANIPULATOR['servos'][servo_number]
+        current_position = self.servo_values[servo_config['channel']]
+
+        current_position += STEP if direction > 0 else -STEP
+        if current_position < -1.:
+            current_position = -1.
+        elif current_position > 1.:
+            current_position = 1.
+        # TODO check feasible
+
+        self.servo_values[servo_config['channel']] = current_position
 
     def get_servo_positions(self):
         return {self.servo_channel_to_index[k]: v for k, v in self.servo_values.copy().items()}
