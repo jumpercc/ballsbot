@@ -24,17 +24,20 @@ class ExplorerDriverWithManualBreaking:
     FORWARD_THROTTLE = 1.
     BACKWARD_THROTTLE = -1.
     FORWARD_BRAKE = -0.4
-    BACKWARD_BRAKE = 0.4
 
     def fix_next_move(self, next_move, prev_move):
-        if prev_move['throttle'] == next_move['throttle'] or prev_move['throttle'] == self.STOP:
+        if prev_move.get('steps_count', 0) > 0:
+            move = prev_move.copy()
+            move['steps_count'] -= 1
+            return move
+        elif prev_move['throttle'] == next_move['throttle'] or prev_move['throttle'] == self.STOP:
             return next_move
-        elif prev_move['throttle'] in {self.FORWARD_BRAKE, self.BACKWARD_BRAKE}:
+        elif prev_move['throttle'] == self.FORWARD_BRAKE:
             return {'steering': next_move['steering'], 'throttle': self.STOP}
         elif prev_move['throttle'] == self.FORWARD_THROTTLE:
-            return {'steering': next_move['steering'], 'throttle': self.FORWARD_BRAKE}
+            return {'steering': next_move['steering'], 'throttle': self.FORWARD_BRAKE, 'steps_count': 2}
         elif prev_move['throttle'] == self.BACKWARD_THROTTLE:
-            return {'steering': next_move['steering'], 'throttle': self.BACKWARD_BRAKE}
+            return next_move
 
         raise RuntimeError(f'invalid translation {prev_move} -> {next_move}')
 
@@ -60,6 +63,7 @@ class Explorer:
         self.prev_seen_class = "no one"
         self.cached_direction = None
         self.running = False
+        self.move_ts = None
 
     def stop(self):
         self.running = False
@@ -98,7 +102,8 @@ class Explorer:
     def _get_next_move(self, prev_direction):
         if not self.lidar.get_points_ts():
             return {'steering': 0., 'throttle': 0.}
-        pose_lag = time() - self.lidar.get_points_ts()
+        self.move_ts = time()  # FIXME differs from ROS time
+        pose_lag = self.move_ts - self.lidar.get_points_ts()
         if pose_lag >= 1.:
             logger.warning('pose_lag=%s, waiting', pose_lag)
             return {'steering': 0., 'throttle': 0.}
@@ -231,7 +236,7 @@ class Explorer:
     def _store_track_frame(self, track_fh):
         weights = {f'({k[0]},{k[1]})': v for k, v in self.cached_weights.items()} if self.cached_weights else None
         frame = {
-            'ts': time(),
+            'ts': self.move_ts,
             'directions_weights': weights,
             'detected_object': self.cached_detected_object,
             'direction': self.cached_direction,

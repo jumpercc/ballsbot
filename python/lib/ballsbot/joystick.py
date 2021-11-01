@@ -12,7 +12,7 @@ class JoystickWrapper:
 
         self.manipulator_fold_pressed = 0
         self.manipulator_unfold_pressed = 0
-        self.manipulator_directions = [0 for _ in MANIPULATOR['servos']]
+        self.manipulator_directions = [0 for _ in MANIPULATOR.get('servos', [])]
 
         self.joystick = joystick
 

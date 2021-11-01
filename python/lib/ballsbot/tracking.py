@@ -21,6 +21,8 @@ class Tracker:
         self.sync_eps = 0.25  # seconds
         self.running = False
         self.messenger = get_ros_messages()
+        self.free_tile_centers = None
+        self.target_point = None
 
     def stop(self):
         self.running = False
@@ -101,11 +103,15 @@ class Tracker:
                     self.lidar.get_points_ts(),
                     get_car_info(),
                 )
-                free_tile_centers = grid.debug_get_free_tile_centers()
-                target_point = grid.debug_get_target_point()
-                return poses, points, self.position, free_tile_centers, target_point
+                self.free_tile_centers = grid.debug_get_free_tile_centers()
+                self.target_point = grid.debug_get_target_point()
+                return (
+                    poses, points, self.position,
+                    self.free_tile_centers, self.target_point,
+                    f'{self.lidar_frames_processed}',
+                )
             else:
-                return poses, points, self.position, None, None
+                return poses, points, self.position, None, None, None
         else:
             return ()
 
@@ -117,6 +123,8 @@ class Tracker:
             'lidar_deque_empty_times': self.lidar_deque_empty_times,
             'pose_deque_size': len(self.pose_deque),
             'pose_deque_empty_times': self.pose_deque_empty_times,
+            'free_tile_centers': self.free_tile_centers or grid.debug_get_free_tile_centers(),
+            'target_point': self.target_point or grid.debug_get_target_point(),
         }
 
 

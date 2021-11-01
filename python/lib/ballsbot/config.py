@@ -67,7 +67,6 @@ MANIPULATOR = {
     "enabled": False,
     "has_camera": False,
 }
-SECONDS_TO_UNFOLD_MANIPULATOR = 6
 
 ENABLE_MULTIPROCESSING = True
 

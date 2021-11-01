@@ -1,4 +1,4 @@
-from ballsbot.config import MANIPULATOR, SECONDS_TO_UNFOLD_MANIPULATOR
+from ballsbot.config import MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry

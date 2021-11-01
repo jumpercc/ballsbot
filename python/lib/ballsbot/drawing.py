@@ -12,10 +12,11 @@ class BotPoseDrawing:
     def __init__(self, image):
         self.image = image
 
-    def update_image(self, poses, lidar_points, self_position, tail_points=None, target_point=None,  # pylint: disable=R0913
-                     only_nearby_meters=6.):
+    def update_image(self, poses, lidar_points, self_position, free_cells=None, target_point=None,  # pylint: disable=R0913
+                     image_text=None, only_nearby_meters=6.):
         figsize = figsize_from_image_size(self.image)
-        params = [poses, lidar_points, self_position, only_nearby_meters, figsize, tail_points, target_point]
+        params = [
+            poses, lidar_points, self_position, only_nearby_meters, figsize, free_cells, target_point, image_text]
 
         if ENABLE_MULTIPROCESSING:
             drawer = DrawInAnotherProcess.get_instance('get_manipulator_drawing_images')
@@ -28,7 +29,7 @@ class BotPoseDrawing:
 
 def get_image_abs_coords(
         poses, lidar_points, self_position, only_nearby_meters, figsize,
-        tail_points=None, target_point=None, tail_lines=None, lines=None
+        free_cells=None, target_point=None, image_text=None
 ):  # pylint: disable=R0913, R0914
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
@@ -46,28 +47,18 @@ def get_image_abs_coords(
 
     ax.scatter(poses_x_points, poses_y_points, marker='o', s=1, c='gray')
 
-    if tail_points:
-        tail_x_points = [x[0] for x in tail_points]
-        tail_y_points = [x[1] for x in tail_points]
+    if free_cells:
+        tail_x_points = [x[0] for x in free_cells]
+        tail_y_points = [x[1] for x in free_cells]
         ax.scatter(tail_x_points, tail_y_points, marker='o', s=5, c='lightblue')
     if target_point:
         target_x_points = [target_point[0]]
         target_y_points = [target_point[1]]
         ax.scatter(target_x_points, target_y_points, marker='x', s=5, c='red')
-    if tail_lines:
-        for a_line in tail_lines:
-            x_points = [a_line[0][0], a_line[1][0]]
-            y_points = [a_line[0][1], a_line[1][1]]
-            ax.plot(x_points, y_points, c='lightblue')
 
     lidar_x_points = [x[0] for x in lidar_points]
     lidar_y_points = [x[1] for x in lidar_points]
     ax.scatter(lidar_x_points, lidar_y_points, marker='o', s=5, c='blue')
-    if lines:
-        for a_line in lines:
-            x_points = [a_line[0][0], a_line[1][0]]
-            y_points = [a_line[0][1], a_line[1][1]]
-            ax.plot(x_points, y_points, c='orange', linewidth=3)
 
     if self_position is not None:
         rect = patches.Rectangle(
@@ -89,14 +80,12 @@ def get_image_abs_coords(
     else:
         ax.scatter([pose['x']], [pose['y']], marker='o', s=50, c='r')
 
-    ax.text(
-        -only_nearby_meters, -only_nearby_meters,
-        'x: {:0.02f}, y:{:0.02f}, teta: {:0.02f}, pose {}'.format(pose['x'], pose['y'], pose['teta'], len(poses)),
-        fontsize=10
-    )
+    if image_text is not None:
+        ax.text(-only_nearby_meters, -only_nearby_meters, image_text, fontsize=10)
 
     ax.grid(which='both', linestyle='--', alpha=0.5)
 
+    fig.tight_layout()
     canvas.draw()
     jpeg = BytesIO()
     canvas.print_jpg(jpeg)
