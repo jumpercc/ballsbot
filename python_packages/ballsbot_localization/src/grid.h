@@ -121,7 +121,7 @@ public:
 
 private:
     std::vector<TileKeysToDirections> AssignTilesToDirections(
-        CarInfo car_info, const std::unordered_set<TileKey>& nearby_tiles) const;
+        CarInfo car_info, const std::unordered_set<TileKey>& nearby_tiles, TileKey target_tile) const;
     double GetTileWeight(TileKey tile_key, double current_ts) const;
     std::unordered_set<TileKey> GetNearbyTiles();
     void UpdateTargetTile(double current_ts);

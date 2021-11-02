@@ -65,6 +65,7 @@ class Explorer:
         self.cached_direction = None
         self.running = False
         self.move_ts = None
+        self.move_ts_shift = 0.
 
     def stop(self):
         self.running = False
@@ -105,6 +106,9 @@ class Explorer:
             return {'steering': 0., 'throttle': 0.}
         self.move_ts = time()
         pose_lag = self.move_ts - self.lidar.get_points_ts()
+        if pose_lag < 0.:
+            self.move_ts_shift -= pose_lag
+            pose_lag = 0.
         if pose_lag >= 1.:
             logger.warning('pose_lag=%s, waiting', pose_lag)
             return {'steering': 0., 'throttle': 0.}
@@ -238,6 +242,7 @@ class Explorer:
         weights = {f'({k[0]},{k[1]})': v for k, v in self.cached_weights.items()} if self.cached_weights else None
         frame = {
             'ts': self.move_ts,
+            'ts_shift': self.move_ts_shift,
             'directions_weights': weights,
             'detected_object': self.cached_detected_object,
             'direction': self.cached_direction,

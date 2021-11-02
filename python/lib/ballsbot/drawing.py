@@ -66,7 +66,7 @@ def get_image_abs_coords(
             linewidth=3, edgecolor='r', facecolor='none'
         )
 
-        rotation_center = ax.transData.transform([
+        rotation_center = ax.transData.transform([  # FIXME wrong position when teta = -pi
             self_position['x'] + pose['x'] + self_position['w'] / 2,
             self_position['y'] + pose['y'] + self_position['h'] / 2,
         ])

@@ -242,7 +242,7 @@ double Grid::GetTileWeight(TileKey tile_key, double current_ts) const {
 }
 
 std::vector<TileKeysToDirections> Grid::AssignTilesToDirections(
-    CarInfo car_info, const std::unordered_set<TileKey>& nearby_tiles) const {
+    CarInfo car_info, const std::unordered_set<TileKey>& nearby_tiles, TileKey target_tile) const {
     auto pose = GetCurrentPose();
     double shift = car_info.to_car_center;
     Point center_point = {
@@ -277,7 +277,7 @@ std::vector<TileKeysToDirections> Grid::AssignTilesToDirections(
     TileKey tile_key;
     for (auto tile_pair : tiles_) {
         tile_key = tile_pair.first;
-        if (nearby_tiles.find(tile_key) == nearby_tiles.end()) {
+        if (tile_key == target_tile || nearby_tiles.find(tile_key) == nearby_tiles.end()) {
             continue;
         }
         Point tile_center = {
@@ -487,7 +487,7 @@ DirectionsWeights Grid::GetDirectionsWeights(double current_ts, CarInfo car_info
     free_tiles_ = GetFreeTiles(nearby_points, nearby_tiles, GetCurrentPose());
     UpdateTargetTile(current_ts);
 
-    auto tile_to_direction = AssignTilesToDirections(car_info, free_tiles_);
+    auto tile_to_direction = AssignTilesToDirections(car_info, free_tiles_, target_tile_key_);
     for (TileKeysToDirections& it : tile_to_direction) {
         double weight = GetTileWeight(it.tile_key, current_ts);
         double dist = it.distance;
