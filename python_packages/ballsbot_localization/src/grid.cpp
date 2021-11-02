@@ -277,7 +277,7 @@ std::vector<TileKeysToDirections> Grid::AssignTilesToDirections(
     TileKey tile_key;
     for (auto tile_pair : tiles_) {
         tile_key = tile_pair.first;
-        if (tile_key == target_tile || nearby_tiles.find(tile_key) == nearby_tiles.end()) {
+        if (!(tile_key == target_tile) && nearby_tiles.find(tile_key) == nearby_tiles.end()) {
             continue;
         }
         Point tile_center = {
@@ -374,7 +374,7 @@ std::pair<double, double> CartesianToRadial(double x, double y) {
     return result;
 }
 
-std::unordered_set<TileKey> GetFreeTiles(const PointCloud& absolute_points,
+std::unordered_set<TileKey> GetFreeTiles(const PointCloud& self_points,
                                          const std::unordered_set<TileKey>& nearby_tiles,
                                          Pose pose) {
     std::unordered_map<size_t, double> sector_mins;
@@ -384,7 +384,7 @@ std::unordered_set<TileKey> GetFreeTiles(const PointCloud& absolute_points,
     double angle_step = 2. * M_PI / static_cast<double>(kFreeTilesSectorsCount);
     double distance, angle;
     size_t index;
-    for (auto point : absolute_points) {
+    for (auto point : self_points) {
         auto it = CartesianToRadial(point.x, point.y);
         distance = it.first;
         angle = it.second;

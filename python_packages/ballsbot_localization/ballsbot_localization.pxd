@@ -34,7 +34,6 @@ cdef extern from "src/grid.h":
         double turn_radius
         double car_width
         double car_length
-        bool engine_need_manual_breaking
 
     cdef struct Voxel:
         Voxel(bool, double)

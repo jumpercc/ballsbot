@@ -94,7 +94,6 @@ cdef class Grid:
         cpp_car_info.turn_radius = car_info['turn_radius']
         cpp_car_info.car_width = car_info['car_width']
         cpp_car_info.car_length = car_info['car_length']
-        cpp_car_info.engine_need_manual_breaking = car_info['engine_need_manual_breaking']
 
         cdef DirectionsWeights cpp_result = self.thisobj.GetDirectionsWeights(
             cpp_ts, cpp_car_info)
@@ -123,7 +122,6 @@ cdef class Grid:
         cpp_car_info.turn_radius = car_info['turn_radius']
         cpp_car_info.car_width = car_info['car_width']
         cpp_car_info.car_length = car_info['car_length']
-        cpp_car_info.engine_need_manual_breaking = car_info['engine_need_manual_breaking']
         cdef _Grid cpp_grid = self.thisobj
 
         cdef DirectionsWeights cpp_result = DebugGetFreeDistances(

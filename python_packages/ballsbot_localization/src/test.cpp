@@ -52,7 +52,7 @@ void TestBasics() {
     }
 
     std::cout << std::endl;
-    CarInfo car_info = {0.203, -0.02, 1.43 / 2, 0.157 + 0.153, 0.344 + 0.073, false};
+    CarInfo car_info = {0.203, -0.02, 1.43 / 2, 0.157 + 0.153, 0.344 + 0.073};
     auto weights = grid.GetDirectionsWeights(100502, car_info);
     for (auto it : weights) {
         std::cout << "(" << it.first.steering << ", " << it.first.throttle << ") " << it.second
@@ -583,7 +583,7 @@ void TestRealSample() {
                         {3.217627507530805, 0.206547305869986},
                         {3.2260214861173306, 0.24418826533298235},
                         {-0.433, 0.08}};
-    CarInfo car_info = {0.203, 0.05, 0.715, 0.31427220977944387, 0.4170202921176725, false};
+    CarInfo car_info = {0.203, 0.05, 0.715, 0.31427220977944387, 0.4170202921176725};
     double ts_double = 1634397523.430856;
     int ts = static_cast<int>(ts_double);
     Grid grid;

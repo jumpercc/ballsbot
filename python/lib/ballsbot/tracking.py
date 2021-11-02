@@ -2,8 +2,7 @@ from collections import deque
 from ballsbot_localization import ballsbot_localization as grid
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.lidar import calibration_to_xywh
-from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH, CAR_LENGTH, ENGINE_NEED_MANUAL_BREAKING, \
-    FROM_LIDAR_TO_PIVOT_CENTER
+from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH, CAR_LENGTH, FROM_LIDAR_TO_PIVOT_CENTER
 from ballsbot.ros_messages import get_ros_messages
 
 
@@ -135,5 +134,4 @@ def get_car_info():
         'to_pivot_center': FROM_LIDAR_TO_PIVOT_CENTER,
         'car_width': CAR_WIDTH,
         'car_length': CAR_LENGTH,
-        'engine_need_manual_breaking': ENGINE_NEED_MANUAL_BREAKING,
     }

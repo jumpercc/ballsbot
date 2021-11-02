@@ -61,7 +61,6 @@ struct hash<TileKey> {
 
 struct CarInfo {
     double to_car_center, to_pivot_center, turn_radius, car_width, car_length;
-    bool engine_need_manual_breaking;
 };
 
 struct Direction {
