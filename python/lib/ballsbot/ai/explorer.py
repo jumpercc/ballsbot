@@ -23,7 +23,8 @@ class ExplorerDriverWithManualBreaking:
     STOP = 0.
     FORWARD_THROTTLE = 1.
     BACKWARD_THROTTLE = -1.
-    FORWARD_BRAKE = -0.4
+    FORWARD_BRAKE = -0.5
+    BACKWARD_BRAKE = 0.95  # not a break just a reverse
 
     def fix_next_move(self, next_move, prev_move):
         if prev_move.get('steps_count', 0) > 0:
@@ -32,12 +33,12 @@ class ExplorerDriverWithManualBreaking:
             return move
         elif prev_move['throttle'] == next_move['throttle'] or prev_move['throttle'] == self.STOP:
             return next_move
-        elif prev_move['throttle'] == self.FORWARD_BRAKE:
+        elif prev_move['throttle'] in {self.FORWARD_BRAKE, self.BACKWARD_BRAKE}:
             return {'steering': next_move['steering'], 'throttle': self.STOP}
         elif prev_move['throttle'] == self.FORWARD_THROTTLE:
             return {'steering': next_move['steering'], 'throttle': self.FORWARD_BRAKE, 'steps_count': 2}
         elif prev_move['throttle'] == self.BACKWARD_THROTTLE:
-            return next_move
+            return {'steering': next_move['steering'], 'throttle': self.BACKWARD_BRAKE}
 
         raise RuntimeError(f'invalid translation {prev_move} -> {next_move}')
 
@@ -102,7 +103,7 @@ class Explorer:
     def _get_next_move(self, prev_direction):
         if not self.lidar.get_points_ts():
             return {'steering': 0., 'throttle': 0.}
-        self.move_ts = time()  # FIXME differs from ROS time
+        self.move_ts = time()
         pose_lag = self.move_ts - self.lidar.get_points_ts()
         if pose_lag >= 1.:
             logger.warning('pose_lag=%s, waiting', pose_lag)

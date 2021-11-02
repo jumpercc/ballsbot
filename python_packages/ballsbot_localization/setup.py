@@ -65,7 +65,7 @@ module = [
 setup(
     name='ballsbot_localization',
     description='Python bindings for ballsbot_localization functions.',
-    version='0.1',
+    version='0.2',
     author='Oleg Nurtdinov',
     author_email='j@jumper.cc',
     license='BSD',

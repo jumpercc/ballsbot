@@ -322,6 +322,6 @@ FreeDistances GetFreeDistances(const PointCloud& points, CarInfo car_info) {
     return result;
 }
 
-FreeDistances DebugGetFreeDistances(const Grid& grid, int current_ts, CarInfo car_info) {
+FreeDistances DebugGetFreeDistances(const Grid& grid, double current_ts, CarInfo car_info) {
     return GetFreeDistances(grid.GetSparsePointCloud(current_ts, 0., false), car_info);
 }

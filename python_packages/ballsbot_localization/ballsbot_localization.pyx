@@ -30,7 +30,7 @@ cdef class Grid:
         cpp_pose.y = a_pose['y']
         cpp_pose.teta = a_pose['teta']
 
-        cdef int cpp_ts = ts
+        cdef double cpp_ts = ts
 
         self.thisobj.UpdateGrid(cpp_cloud, cpp_pose, cpp_ts)
 
@@ -61,7 +61,7 @@ cdef class Grid:
         return result
 
     def get_sparse_point_cloud(self, current_ts, range_limit, absolute_coords):
-        cdef int cpp_ts = current_ts
+        cdef double cpp_ts = current_ts
         cdef double cpp_range_limit = range_limit
         cdef bool cpp_absolute_coords = absolute_coords
         cdef PointCloud cpp_result = self.thisobj.GetSparsePointCloud(
@@ -87,7 +87,7 @@ cdef class Grid:
         return [cpp_result.x, cpp_result.y]
 
     def get_directions_weights(self, current_ts, car_info):
-        cdef int cpp_ts = current_ts
+        cdef double cpp_ts = current_ts
         cdef CarInfo cpp_car_info
         cpp_car_info.to_car_center = car_info['to_car_center']
         cpp_car_info.to_pivot_center = car_info['to_pivot_center']
@@ -116,7 +116,7 @@ cdef class Grid:
         return result
 
     def debug_get_free_distances(self, current_ts, car_info):
-        cdef int cpp_ts = current_ts
+        cdef double cpp_ts = current_ts
         cdef CarInfo cpp_car_info
         cpp_car_info.to_car_center = car_info['to_car_center']
         cpp_car_info.to_pivot_center = car_info['to_pivot_center']
@@ -135,7 +135,7 @@ cdef class Grid:
         return result
 
     def clean_up_grid(self, current_ts):
-        cdef int cpp_ts = current_ts
+        cdef double cpp_ts = current_ts
         self.thisobj.CleanUpGrid(cpp_ts)
 
 grid = None

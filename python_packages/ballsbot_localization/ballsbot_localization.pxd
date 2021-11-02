@@ -37,9 +37,9 @@ cdef extern from "src/grid.h":
         bool engine_need_manual_breaking
 
     cdef struct Voxel:
-        Voxel(bool, int)
+        Voxel(bool, double)
         bool occupied
-        int last_seen_occupied_ts
+        double last_seen_occupied_ts
 
     cdef struct TileKey:
         TileKey(int, int)
@@ -49,20 +49,20 @@ cdef extern from "src/grid.h":
     cdef cppclass Tile:
         Tile()
         vector[vector[Voxel]] DebugGetVoxels()
-        int GetVisitedTs()
+        double GetVisitedTs()
 
     cdef cppclass _Grid "Grid":
         _Grid()
-        void UpdateGrid(PointCloud, Pose, int)
+        void UpdateGrid(PointCloud, Pose, double)
         void UpdatePose(Pose)
         unordered_map[TileKey, Tile] DebugGetTiles()
-        PointCloud GetSparsePointCloud(int, double, bool)
-        DirectionsWeights GetDirectionsWeights(int, CarInfo)
-        void CleanUpGrid(int)
+        PointCloud GetSparsePointCloud(double, double, bool)
+        DirectionsWeights GetDirectionsWeights(double, CarInfo)
+        void CleanUpGrid(double)
         vector[Pose] GetPoses()
         PointCloud DebugGetFreeTileCenters(bool)
         Point DebugGetTargetPoint(bool)
 
 cdef extern from "src/free_distances.h":
-    cdef DirectionsWeights DebugGetFreeDistances(_Grid, int, CarInfo)
+    cdef DirectionsWeights DebugGetFreeDistances(_Grid, double, CarInfo)
 

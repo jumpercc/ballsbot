@@ -12,32 +12,32 @@ const double kHalfVoxelSize = kVoxelSize / 2.;
 const size_t kVoxelsPerTile = 10;
 const double kTileSize = kVoxelsPerTile * kVoxelSize;
 const double kHalfTileSize = kTileSize / 2.;
-const int kKeepOccupiedInterval = 5;      // seconds
-const int kCleanUpFreeTileInterval = 15;  // seconds
+const double kKeepOccupiedInterval = 5.;      // seconds
+const double kCleanUpFreeTileInterval = 15.;  // seconds
 const double kWeightDonorDistance = 1.2;
 const double kUseForWeightsRadius = 4.;  // meters
 const int kFreeTilesSectorsCount = 36;
-const size_t kVisitedMemory = 200;
 const double kNoTilesButDistanceWeight = 0.5;
+const double kTargetTTL = 15.;  // seconds
 
 Tile::Tile() : voxels_(kVoxelsPerTile) {
     for (size_t i = 0; i < voxels_.size(); ++i) {
         voxels_[i].resize(kVoxelsPerTile);
     }
-    visited_ts_ = 0;
+    visited_ts_ = 0.;
 }
 
-void Tile::SetVoxelOccupied(int voxel_x, int voxel_y, int ts) {
+void Tile::SetVoxelOccupied(int voxel_x, int voxel_y, double ts) {
     Voxel& voxel = voxels_[voxel_x][voxel_y];
     voxel.occupied = true;
     voxel.last_seen_occupied_ts = ts;
 }
 
-void Tile::SetVisited(int ts) {
+void Tile::SetVisited(double ts) {
     visited_ts_ = ts;
 }
 
-void Grid::UpdateGrid(PointCloud& cloud, Pose& pose, int ts) {
+void Grid::UpdateGrid(PointCloud& cloud, Pose& pose, double ts) {
     poses_.push_back(pose);
     if (poses_.size() > poses_to_keep_) {
         poses_.pop_front();
@@ -93,12 +93,12 @@ std::vector<Pose> Grid::GetPoses() const {
     return result;
 }
 
-PointCloud Grid::GetSparsePointCloud(int current_ts, double range_limit,
+PointCloud Grid::GetSparsePointCloud(double current_ts, double range_limit,
                                      bool absolute_coords) const {
     auto pose = GetCurrentPose();
     PointCloud result;
 
-    int min_ts = current_ts - kKeepOccupiedInterval;
+    double min_ts = current_ts - kKeepOccupiedInterval;
     TileKey tile_key;
     for (auto tile_pair : tiles_) {
         tile_key = tile_pair.first;
@@ -195,16 +195,19 @@ void Grid::CalculateTargetDistances() {
     }
 }
 
-void Grid::UpdateTargetTile() {
+void Grid::UpdateTargetTile(double current_ts) {
+    target_distances_ = {};
+    if (free_tiles_.empty()) {
+        return;
+    }
+
     Pose current_pose = GetCurrentPose();
     TileKey car_tile_key = {
         static_cast<int>(std::floor(current_pose.x / kTileSize)),
         static_cast<int>(std::floor(current_pose.y / kTileSize)),
     };
 
-    if ((target_tile_key_ == car_tile_key ||
-         free_tiles_.find(target_tile_key_) == free_tiles_.end()) &&
-        !free_tiles_.empty()) {
+    if (target_tile_key_ == car_tile_key || target_ts_ + kTargetTTL < current_ts) {
         Point car_point = {current_pose.x, current_pose.y};
         target_tile_key_ = *std::min_element(
             free_tiles_.begin(), free_tiles_.end(),
@@ -222,15 +225,15 @@ void Grid::UpdateTargetTile() {
                 }
                 return false;
             });
+        target_ts_ = current_ts;
     }
 
-    target_distances_ = {};
-    if (!free_tiles_.empty()) {
+    if (free_tiles_.find(target_tile_key_) != free_tiles_.end()) {
         CalculateTargetDistances();
     }
 }
 
-double Grid::GetTileWeight(TileKey tile_key, int current_ts) const {
+double Grid::GetTileWeight(TileKey tile_key, double current_ts) const {
     if (tile_key == target_tile_key_) {
         return 5.;
     }
@@ -467,7 +470,7 @@ void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances,
     }
 }
 
-DirectionsWeights Grid::GetDirectionsWeights(int current_ts, CarInfo car_info) {
+DirectionsWeights Grid::GetDirectionsWeights(double current_ts, CarInfo car_info) {
     DirectionsWeights result;
     for (auto it : kSectorKeys) {
         result[it.first] = 0.;
@@ -482,7 +485,7 @@ DirectionsWeights Grid::GetDirectionsWeights(int current_ts, CarInfo car_info) {
 
     auto nearby_tiles = GetNearbyTiles();
     free_tiles_ = GetFreeTiles(nearby_points, nearby_tiles, GetCurrentPose());
-    UpdateTargetTile();
+    UpdateTargetTile(current_ts);
 
     auto tile_to_direction = AssignTilesToDirections(car_info, free_tiles_);
     for (TileKeysToDirections& it : tile_to_direction) {
@@ -535,8 +538,8 @@ Point Grid::DebugGetTargetPoint(bool absolute) const {
     return RevertTransformation(points, transformation)[0];
 }
 
-void Grid::CleanUpGrid(int current_ts) {
-    int min_ts = current_ts - kCleanUpFreeTileInterval;
+void Grid::CleanUpGrid(double current_ts) {
+    double min_ts = current_ts - kCleanUpFreeTileInterval;
     std::vector<TileKey> tiles_to_remove;
     bool has_active_voxels;
     for (auto tile_pair : tiles_) {

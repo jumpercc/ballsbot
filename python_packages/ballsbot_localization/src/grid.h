@@ -16,16 +16,16 @@ struct Pose {
 
 struct Voxel {
     bool occupied = false;
-    int last_seen_occupied_ts = 0;
+    double last_seen_occupied_ts = 0.;
 };
 
 class Tile {
 public:
     friend class Grid;
     Tile();
-    void SetVoxelOccupied(int voxel_x, int voxel_y, int ts);
-    void SetVisited(int ts);
-    int GetVisitedTs() const {
+    void SetVoxelOccupied(int voxel_x, int voxel_y, double ts);
+    void SetVisited(double ts);
+    double GetVisitedTs() const {
         return visited_ts_;
     }
     std::vector<std::vector<Voxel>>& DebugGetVoxels() {
@@ -34,7 +34,7 @@ public:
 
 private:
     std::vector<std::vector<Voxel>> voxels_;
-    int visited_ts_;
+    double visited_ts_;
 };
 
 struct TileKey {
@@ -100,18 +100,18 @@ struct TileKeysToDirections {
 
 class Grid {
 public:
-    void UpdateGrid(PointCloud& cloud, Pose& pose, int ts);
+    void UpdateGrid(PointCloud& cloud, Pose& pose, double ts);
     void UpdatePose(Pose& pose);
 
-    void CleanUpGrid(int current_ts);
+    void CleanUpGrid(double current_ts);
 
     std::unordered_map<TileKey, Tile>& DebugGetTiles() {
         return this->tiles_;
     }
 
-    PointCloud GetSparsePointCloud(int current_ts, double range_limit, bool absolute_coords) const;
+    PointCloud GetSparsePointCloud(double current_ts, double range_limit, bool absolute_coords) const;
 
-    DirectionsWeights GetDirectionsWeights(int current_ts, CarInfo car_info);
+    DirectionsWeights GetDirectionsWeights(double current_ts, CarInfo car_info);
 
     Pose GetCurrentPose() const;
     std::vector<Pose> GetPoses() const;
@@ -122,9 +122,9 @@ public:
 private:
     std::vector<TileKeysToDirections> AssignTilesToDirections(
         CarInfo car_info, const std::unordered_set<TileKey>& nearby_tiles) const;
-    double GetTileWeight(TileKey tile_key, int current_ts) const;
+    double GetTileWeight(TileKey tile_key, double current_ts) const;
     std::unordered_set<TileKey> GetNearbyTiles();
-    void UpdateTargetTile();
+    void UpdateTargetTile(double current_ts);
     void CalculateTargetDistances();
 
     std::unordered_map<TileKey, Tile> tiles_;
@@ -132,6 +132,7 @@ private:
     std::deque<Pose> poses_;
     std::unordered_set<TileKey> free_tiles_;
     TileKey target_tile_key_;
+    double target_ts_ = 0.;
     std::unordered_map<TileKey, int> target_distances_;
 };
 
