@@ -107,7 +107,7 @@ class Explorer:
         if not self.lidar.get_points_ts():
             return {'steering': 0., 'throttle': 0.}
         self.move_ts = time()
-        pose_lag = self.move_ts - self.lidar.get_points_ts()
+        pose_lag = self.move_ts + self.move_ts_shift - self.lidar.get_points_ts()
         if pose_lag < 0.:
             self.move_ts_shift -= pose_lag
             pose_lag = 0.

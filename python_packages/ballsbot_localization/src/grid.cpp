@@ -17,8 +17,9 @@ const double kCleanUpFreeTileInterval = 15.;  // seconds
 const double kWeightDonorDistance = 1.2;
 const double kUseForWeightsRadius = 4.;  // meters
 const int kFreeTilesSectorsCount = 36;
-const double kNoTilesButDistanceWeight = 0.5;
+const double kNoTilesButDistanceWeight = 0.01;
 const double kTargetTTL = 15.;  // seconds
+const double kWideSectorDistance = kVoxelSize / tan(2. * M_PI / kFreeTilesSectorsCount);
 
 Tile::Tile() : voxels_(kVoxelsPerTile) {
     for (size_t i = 0; i < voxels_.size(); ++i) {
@@ -395,7 +396,21 @@ std::unordered_set<TileKey> GetFreeTiles(const PointCloud& self_points,
         if (index >= kFreeTilesSectorsCount) {
             throw std::runtime_error("index out of range");
         }
-        if (distance < sector_mins[index]) {
+        if (distance <= kWideSectorDistance) {
+            size_t nearby_index;
+            for (int i = static_cast<int>(index) - 1; i < static_cast<int>(index) + 1; ++i) {
+                if (i < 0) {
+                    nearby_index = static_cast<size_t>(i + kFreeTilesSectorsCount);
+                } else if (i >=kFreeTilesSectorsCount) {
+                    nearby_index = static_cast<size_t>(i - kFreeTilesSectorsCount);
+                } else {
+                    nearby_index = static_cast<size_t>(i);
+                }
+                if (distance < sector_mins[nearby_index]) {
+                    sector_mins[nearby_index] = distance;
+                }
+            }
+        } else if (distance < sector_mins[index]) {
             sector_mins[index] = distance;
         }
     }
