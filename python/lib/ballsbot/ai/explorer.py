@@ -67,7 +67,7 @@ class Explorer:
         self.cached_direction = None
         self.running = False
         self.move_ts = None
-        self.move_ts_shift = 0.
+        self.pose_lag = 0.
 
     def stop(self):
         self.running = False
@@ -106,13 +106,10 @@ class Explorer:
     def _get_next_move(self, prev_direction):
         if not self.lidar.get_points_ts():
             return {'steering': 0., 'throttle': 0.}
-        self.move_ts = time() + self.move_ts_shift
-        pose_lag = self.move_ts - self.lidar.get_points_ts()
-        if pose_lag < 0.:
-            self.move_ts_shift -= pose_lag
-            pose_lag = 0.
-        if pose_lag >= 1.:
-            logger.warning('pose_lag=%s, waiting', pose_lag)
+        self.move_ts = time()
+        self.pose_lag = self.move_ts - self.lidar.get_points_ts()
+        if self.pose_lag >= 1.:
+            logger.warning('pose_lag=%s, waiting', self.pose_lag)
             return {'steering': 0., 'throttle': 0.}
         weights = grid.get_directions_weights(
             self.lidar.get_points_ts(),
@@ -244,7 +241,7 @@ class Explorer:
         weights = {f'({k[0]},{k[1]})': v for k, v in self.cached_weights.items()} if self.cached_weights else None
         frame = {
             'ts': self.move_ts,
-            'ts_shift': self.move_ts_shift,
+            'pose_lag': self.pose_lag,
             'directions_weights': weights,
             'detected_object': self.cached_detected_object,
             'direction': self.cached_direction,

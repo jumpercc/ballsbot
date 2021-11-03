@@ -204,10 +204,12 @@ double CanMoveStraightForward(const PointCloud& nearby_points, BodyPosition body
     for (auto point : nearby_points) {
         if (min_x < point.x && point.x < max_x && min_y <= point.y && point.y <= max_y) {
             distance = std::abs(point.x - min_x);
-            if (distance < stop_distance) {
-                return 0.;
-            } else {
-                result = distance;
+            if (distance < result) {
+                if (distance < stop_distance) {
+                    return 0.;
+                } else {
+                    result = distance;
+                }
             }
         }
     }
@@ -254,10 +256,12 @@ double CanMoveStraightBackward(const PointCloud& nearby_points, BodyPosition bod
     for (auto point : nearby_points) {
         if (min_x < point.x && point.x < max_x && min_y <= point.y && point.y <= max_y) {
             distance = std::abs(max_x - point.x);
-            if (distance < stop_distance) {
-                return 0.;
-            } else {
-                result = distance;
+            if (distance < result) {
+                if (distance < stop_distance) {
+                    return 0.;
+                } else {
+                    result = distance;
+                }
             }
         }
     }

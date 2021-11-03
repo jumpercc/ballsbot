@@ -14,7 +14,7 @@ const double kTileSize = kVoxelsPerTile * kVoxelSize;
 const double kHalfTileSize = kTileSize / 2.;
 const double kKeepOccupiedInterval = 5.;      // seconds
 const double kCleanUpFreeTileInterval = 15.;  // seconds
-const double kWeightDonorDistance = 1.2;
+const double kWeightDonorDistanceMultiplier = 1.2 / 0.44;
 const double kUseForWeightsRadius = 4.;  // meters
 const int kFreeTilesSectorsCount = 36;
 const double kNoTilesButDistanceWeight = 0.01;
@@ -141,6 +141,11 @@ std::unordered_map<size_t, Direction> sector_keys_reversed;
 
 std::vector<Direction> GetWeightAcceptors(const Direction current_donor,
                                           const DirectionsWeights& all_donors) {
+    std::vector<Direction> result;
+    if (all_donors.empty()) {
+        return result;
+    }
+
     if (sector_keys_reversed.empty()) {
         for (auto it : kSectorKeys) {
             sector_keys_reversed[it.second] = it.first;
@@ -148,16 +153,20 @@ std::vector<Direction> GetWeightAcceptors(const Direction current_donor,
     }
 
     size_t a_number = kSectorKeys.at(current_donor);
-    std::vector<Direction> result;
 
-    Direction cw_sibling = sector_keys_reversed.at((a_number + 1) % 10);
-    if (all_donors.find(cw_sibling) == all_donors.end()) {
-        result.push_back(cw_sibling);
-    }
+    size_t counter = 1;
+    while (result.empty()) {
+        Direction cw_sibling = sector_keys_reversed.at((a_number + counter) % 10);
+        if (all_donors.find(cw_sibling) == all_donors.end()) {
+            result.push_back(cw_sibling);
+        }
 
-    Direction ccw_sibling = sector_keys_reversed.at((a_number + 9) % 10);
-    if (all_donors.find(ccw_sibling) == all_donors.end()) {
-        result.push_back(ccw_sibling);
+        Direction ccw_sibling = sector_keys_reversed.at((a_number + 10 - counter) % 10);
+        if (all_donors.find(ccw_sibling) == all_donors.end()) {
+            result.push_back(ccw_sibling);
+        }
+
+        ++counter;
     }
 
     return result;
@@ -401,7 +410,7 @@ std::unordered_set<TileKey> GetFreeTiles(const PointCloud& self_points,
             for (int i = static_cast<int>(index) - 1; i < static_cast<int>(index) + 1; ++i) {
                 if (i < 0) {
                     nearby_index = static_cast<size_t>(i + kFreeTilesSectorsCount);
-                } else if (i >=kFreeTilesSectorsCount) {
+                } else if (i >= kFreeTilesSectorsCount) {
                     nearby_index = static_cast<size_t>(i - kFreeTilesSectorsCount);
                 } else {
                     nearby_index = static_cast<size_t>(i);
@@ -447,23 +456,33 @@ std::unordered_set<TileKey> GetFreeTiles(const PointCloud& self_points,
     return result;
 }
 
-void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances,
-                                     DirectionsWeights& result) {
+void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances, DirectionsWeights& result,
+                                     CarInfo car_info) {
+    double donor_distance = kWeightDonorDistanceMultiplier * car_info.turn_radius;
+    double current_donor_distance = donor_distance;
     DirectionsWeights donors;
     DirectionsWeights all_acceptors;
-    for (auto it : free_distances) {
-        if (it.second <= kWeightDonorDistance) {
-            donors[it.first] = it.second;
-        } else {
-            all_acceptors[it.first] = it.second;
+    bool first_run = true;
+    while (all_acceptors.empty() and current_donor_distance >= 0.1) {
+        if (!first_run) {
+            donors.clear();
+            current_donor_distance /= 2.;
         }
+        for (auto it : free_distances) {
+            if (it.second <= current_donor_distance) {
+                donors[it.first] = it.second;
+            } else {
+                all_acceptors[it.first] = it.second;
+            }
+        }
+        first_run = false;
     }
     for (auto it : donors) {
         if (result[it.first] <= 0.) {
             continue;
         }
         double weight_to_transfer =
-            result[it.first] * (kWeightDonorDistance - it.second) / kWeightDonorDistance;
+            result[it.first] * (donor_distance - it.second) / donor_distance;
         result[it.first] -= weight_to_transfer;
         auto current_acceptors = GetWeightAcceptors(it.first, donors);
         if (current_acceptors.empty()) {
@@ -474,7 +493,7 @@ void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances,
             std::vector<double> distances;
             double sum_distance = 0.;
             for (auto an_acceptor : current_acceptors) {
-                double dist = all_acceptors[an_acceptor] - kWeightDonorDistance;
+                double dist = all_acceptors[an_acceptor] - donor_distance;
                 distances.push_back(dist);
                 sum_distance += dist;
             }
@@ -518,7 +537,7 @@ DirectionsWeights Grid::GetDirectionsWeights(double current_ts, CarInfo car_info
         }
     }
 
-    MoveWeightsToNeighbourIfBlocked(free_distances, result);
+    MoveWeightsToNeighbourIfBlocked(free_distances, result, car_info);
 
     return result;
 }
