@@ -33,6 +33,8 @@ class ExplorerDriverWithManualBreaking:
             return move
         elif prev_move['throttle'] == next_move['throttle'] or prev_move['throttle'] == self.STOP:
             return next_move
+        elif prev_move['throttle'] == self.BACKWARD_BRAKE and next_move['throttle'] == self.FORWARD_THROTTLE:
+            return next_move
         elif prev_move['throttle'] in {self.FORWARD_BRAKE, self.BACKWARD_BRAKE}:
             return {'steering': next_move['steering'], 'throttle': self.STOP}
         elif prev_move['throttle'] == self.FORWARD_THROTTLE:
