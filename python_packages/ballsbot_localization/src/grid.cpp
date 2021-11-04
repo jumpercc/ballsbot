@@ -457,7 +457,7 @@ std::unordered_set<TileKey> GetFreeTiles(const PointCloud& self_points,
 }
 
 void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances, DirectionsWeights& result,
-                                     CarInfo car_info) {
+                                     CarInfo car_info, double target_distance) {
     double donor_distance = kWeightDonorDistanceMultiplier * car_info.turn_radius;
     double current_donor_distance = donor_distance;
     DirectionsWeights donors;
@@ -479,6 +479,9 @@ void MoveWeightsToNeighbourIfBlocked(const FreeDistances& free_distances, Direct
     }
     for (auto it : donors) {
         if (result[it.first] <= 0.) {
+            continue;
+        } else if (result[it.first] > kNoTilesButDistanceWeight &&
+                   free_distances.at(it.first) >= target_distance) {
             continue;
         }
         double weight_to_transfer =
@@ -537,7 +540,12 @@ DirectionsWeights Grid::GetDirectionsWeights(double current_ts, CarInfo car_info
         }
     }
 
-    MoveWeightsToNeighbourIfBlocked(free_distances, result, car_info);
+    Point target_point = {target_tile_key_.x * kTileSize + kHalfTileSize,
+                          target_tile_key_.y * kTileSize + kHalfTileSize};
+    auto pose = GetCurrentPose();
+    Point car_point = {pose.x, pose.y};
+    double target_distance = Distance(car_point, target_point);
+    MoveWeightsToNeighbourIfBlocked(free_distances, result, car_info, target_distance);
 
     return result;
 }

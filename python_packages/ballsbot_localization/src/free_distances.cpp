@@ -79,9 +79,8 @@ PointCloud FilterNearbyPoints(const PointCloud& nearby_points, CarInfo car_info,
 
 using FilterType = PointCloud(const PointCloud&, CarInfo);
 
-double CanMoveSomeXward(const PointCloud& nearby_points, CarInfo car_info,
-                        BodyPosition body_position, double check_radius, FilterType filter,
-                        Point my_end, Point other_end) {
+double CanMoveSomeXward(const PointCloud& nearby_points, CarInfo car_info, double check_radius,
+                        FilterType filter, Point my_end, Point other_end) {
     PointCloud filtered_points = filter(nearby_points, car_info);
 
     double result = check_radius;
@@ -108,8 +107,8 @@ double CanMoveSomeForward(const PointCloud& nearby_points, CarInfo car_info,
     Point front_center = {body_position.x_front, 0.};
     Point rear_center = {body_position.x_rear, 0.};
 
-    return CanMoveSomeXward(nearby_points, car_info, body_position, check_radius, filter,
-                            front_center, rear_center);
+    return CanMoveSomeXward(nearby_points, car_info, check_radius, filter, front_center,
+                            rear_center);
 }
 
 double CanMoveSomeBackward(const PointCloud& nearby_points, CarInfo car_info,
@@ -117,8 +116,8 @@ double CanMoveSomeBackward(const PointCloud& nearby_points, CarInfo car_info,
     Point front_center = {body_position.x_front, 0.};
     Point rear_center = {body_position.x_rear, 0.};
 
-    return CanMoveSomeXward(nearby_points, car_info, body_position, check_radius, filter,
-                            rear_center, front_center);
+    return CanMoveSomeXward(nearby_points, car_info, check_radius, filter, rear_center,
+                            front_center);
 }
 
 bool Between(double value, double left, double right) {
