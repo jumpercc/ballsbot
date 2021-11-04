@@ -155,7 +155,7 @@ std::vector<Direction> GetWeightAcceptors(const Direction current_donor,
     size_t a_number = kSectorKeys.at(current_donor);
 
     size_t counter = 1;
-    while (result.empty()) {
+    while (result.empty() && counter < 3) {
         Direction cw_sibling = sector_keys_reversed.at((a_number + counter) % 10);
         if (all_donors.find(cw_sibling) == all_donors.end()) {
             result.push_back(cw_sibling);
