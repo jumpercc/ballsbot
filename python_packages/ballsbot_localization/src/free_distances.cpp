@@ -79,16 +79,17 @@ PointCloud FilterNearbyPoints(const PointCloud& nearby_points, CarInfo car_info,
 
 using FilterType = PointCloud(const PointCloud&, CarInfo);
 
-double CanMoveSomeForward(const PointCloud& nearby_points, CarInfo car_info,
-                          BodyPosition body_position, double check_radius, FilterType filter) {
+double CanMoveSomeXward(const PointCloud& nearby_points, CarInfo car_info,
+                        BodyPosition body_position, double check_radius, FilterType filter,
+                        Point my_end, Point other_end) {
     PointCloud filtered_points = filter(nearby_points, car_info);
-    Point front_center = {body_position.x_front, 0.};
 
     double result = check_radius;
-    double distance;
+    double distance, other_distance;
     for (auto point : filtered_points) {
-        distance = Distance(point, front_center);
-        if (distance < result) {
+        distance = Distance(point, my_end);
+        other_distance = Distance(point, other_end);
+        if (other_distance > distance && distance < result) {
             if (distance <= kStopDistance) {
                 return 0.;
             } else {
@@ -102,27 +103,22 @@ double CanMoveSomeForward(const PointCloud& nearby_points, CarInfo car_info,
     return result;
 }
 
-double CanMoveSomeBackward(const PointCloud& nearby_points, CarInfo car_info,
-                           BodyPosition body_position, double check_radius, FilterType filter) {
-    PointCloud filtered_points = filter(nearby_points, car_info);
+double CanMoveSomeForward(const PointCloud& nearby_points, CarInfo car_info,
+                          BodyPosition body_position, double check_radius, FilterType filter) {
+    Point front_center = {body_position.x_front, 0.};
     Point rear_center = {body_position.x_rear, 0.};
 
-    double result = check_radius;
-    double distance;
-    for (auto point : filtered_points) {
-        distance = Distance(point, rear_center);
-        if (distance < result) {
-            if (distance <= kStopDistance) {
-                return 0.;
-            } else {
-                result = distance;
-            }
-        }
-    }
-    if (result < 0.) {
-        throw std::runtime_error("CanMoveSomeBackward: result < 0");
-    }
-    return result;
+    return CanMoveSomeXward(nearby_points, car_info, body_position, check_radius, filter,
+                            front_center, rear_center);
+}
+
+double CanMoveSomeBackward(const PointCloud& nearby_points, CarInfo car_info,
+                           BodyPosition body_position, double check_radius, FilterType filter) {
+    Point front_center = {body_position.x_front, 0.};
+    Point rear_center = {body_position.x_rear, 0.};
+
+    return CanMoveSomeXward(nearby_points, car_info, body_position, check_radius, filter,
+                            rear_center, front_center);
 }
 
 bool Between(double value, double left, double right) {
