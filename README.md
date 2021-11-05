@@ -64,7 +64,7 @@
 - [Jupyter](https://jupyter.org/install) (```pip3 install notebook```)
 - [YDLidar-ros](https://github.com/YDLIDAR/ydlidar_ros) for lidar (use [pdf](https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR-X2-USER%20Manual.pdf) too) and install tf ros package
 - ```pip3 install adafruit-pca9685``` for PCA9685
-- [RTIMULib](https://github.com/jetsonhacks/RTIMULib/tree/master/Linux/python) for IMU and you need this fix (for i2c bus 0):
+- [RTIMULib](https://github.com/jetsonhacks/RTIMULib/tree/master/Linux/python) for IMU and you need this fix (for i2c bus 0, except AS5600 magnetic encoder via TCA9548):
 ```
 $ git diff
 diff --git a/RTIMULib/RTIMUSettings.cpp b/RTIMULib/RTIMUSettings.cpp
