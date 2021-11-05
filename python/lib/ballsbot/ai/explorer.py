@@ -27,6 +27,7 @@ class ExplorerDriverWithManualBreaking:
     BACKWARD_BRAKE = 0.95  # not a break just a reverse
 
     def fix_next_move(self, next_move, prev_move):
+        # TODO detect jamming state and fix it
         if prev_move.get('steps_count', 0) > 0:
             move = prev_move.copy()
             move['steps_count'] -= 1

@@ -1,5 +1,5 @@
 from ballsbot.utils import run_as_thread
-from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE
+from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE, T208_UPS
 
 from functools import partial
 import sys
@@ -15,6 +15,7 @@ from sensor_msgs.msg import LaserScan
 from ballsbot_wheel_odometry.msg import OdometryState
 from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
 from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch
+from ballsbot_ups.msg import UpsState
 
 CONFIG_BY_TYPE = {
     "ballsbot_laser_ranging_sensor": {
@@ -72,6 +73,13 @@ class RosMessages:
                 'name': 'laser_distance',
                 'topic': CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["get_topic"](None),
                 'msg_type': CONFIG_BY_TYPE[DISTANCE_SENSORS_MESSAGE_TYPE]["class"],
+            })
+
+        if T208_UPS:
+            self.subscribe_to.append({
+                'name': 'ups',
+                'topic': '/ups',
+                'msg_type': UpsState,
             })
 
         self.message_by_type = {x['name']: None for x in self.subscribe_to}

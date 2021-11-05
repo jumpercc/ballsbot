@@ -26,6 +26,7 @@ ODOMETRY_PRIMARY_PIN = 20  # BOARD pin 38 T208 default
 
 ODOMETRY_SECONDARY_PIN = 19  # BOARD pin 35
 
+T208_UPS = False
 PCA9685_I2C_BUSNUM = 0  # for T208 and pins 27, 28
 # PCA9685_I2C_BUSNUM = 1  # for T200 and pins 3, 5
 PCA9685_I2C_ADDR = 0x40  # 9865, over rides only if needed, ie. TX2..
