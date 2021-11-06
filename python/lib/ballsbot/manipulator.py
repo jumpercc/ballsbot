@@ -1,6 +1,9 @@
+from math import pi
+
 from ballsbot.config import MANIPULATOR
 from ballsbot.servos import PCA9685, map_range
 from ballsbot.utils import keep_rps, run_as_thread
+from ballsbot.magnetic_encoders import MagneticEncoders, has_magnetic_encoders
 from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry
 
 RPS = 50
@@ -20,16 +23,23 @@ class Manipulator:
         if MANIPULATOR is None or not MANIPULATOR['enabled']:
             return
 
+        if has_magnetic_encoders() and not emulate_only:
+            self.encoders = MagneticEncoders()
+        else:
+            self.encoders = None
         self.joystick_wrapper = joystick_wrapper
         self.emulate_only = emulate_only
         self.servo_values = {}
         self.servo_channel_to_index = {}
         self.servos = []
+        self.default_angles = []
         for servo_number, servo_config in enumerate(MANIPULATOR['servos']):
             self.servo_values[servo_config['channel']] = servo_config['default_position']
             self.servo_channel_to_index[servo_config['channel']] = servo_number
             self.servos.append(None if emulate_only else PCA9685(servo_config['channel']))
 
+        if self.encoders:
+            self.encoders.start()
         run_as_thread(self._start)
 
     def _start(self):
@@ -101,6 +111,10 @@ class Manipulator:
         return {self.servo_channel_to_index[k]: v for k, v in self.servo_values.copy().items()}
 
     def get_manipulator_pose(self):
+        if self.encoders:
+            real_angles = self.encoders.get_angles()
+        else:
+            real_angles = None
         servo_positions = self.get_servo_positions()
         default_points = []
         current_rotations = []
@@ -112,14 +126,15 @@ class Manipulator:
             servo = MANIPULATOR['servos'][i - 1]
             servo_position = servo_positions[i - 1]
             default_vector = bone['default_position']
-            current_rotation = get_rotation(servo_position, servo, bone)
+            angle = real_angles.get(servo['encoder_name'], {}).get('value') if real_angles else None
+            if angle is None:
+                angle = get_inteneded_angle(servo_position, servo)
+            current_rotation = get_rotation_by_angle(angle, bone)
             end_point = add_vector_to_point(default_vector, start_point)
             default_points.append(end_point)
             current_rotations.append(current_rotation)
 
         points = ballsbot_manipulator_geometry.apply_rotations_wrapper(default_points, current_rotations)
-
-        # TODO add magnetic encoders
 
         return {
             'points': points[:-2],
@@ -128,20 +143,22 @@ class Manipulator:
         }
 
 
-def get_rotation(servo_position, servo, bone):
-    servo_default_position = servo['default_position']
-    if servo_position == servo_default_position:
-        return 0., 0., 0.
-    rad_per_number = abs(servo['max_angle'] - servo['min_angle']) / 2.
-    default_angle = servo_default_position * rad_per_number * bone['direction']
-    current_angle = servo_position * rad_per_number * bone['direction']
-    d_angle = current_angle - default_angle
+def get_inteneded_angle(servo_position, servo_config):
+    return float_map_range(
+        servo_position,
+        -1., 1.,
+        servo_config['min_angle'], servo_config['max_angle'],
+    )
+
+
+def get_rotation_by_angle(angle, bone):
+    angle *= bone['direction']
     if bone['rotation'] == 'x':
-        return d_angle, 0., 0.
+        return angle, 0., 0.
     elif bone['rotation'] == 'y':
-        return 0., -d_angle, 0.
+        return 0., -angle, 0.
     else:
-        return 0., 0., d_angle
+        return 0., 0., angle
 
 
 def add_vector_to_point(vector, point):

@@ -60,15 +60,15 @@ std::shared_ptr<VL53L0X> GetLaserSensor(uint8_t bus_number) {
     return sensor;
 }
 
-std::unique_ptr<EncoderBase> GetEncoder(uint8_t bus_number, kDeviceType device_type) {
-    std::unique_ptr<EncoderBase> result;
+std::shared_ptr<EncoderBase> GetEncoder(uint8_t bus_number, kDeviceType device_type) {
+    std::shared_ptr<EncoderBase> result;
     if (device_type == kMagneticEncoderAS5600) {
-        result = std::make_unique<AMS_AS5600>(bus_number);
+        result = std::make_shared<AMS_AS5600>(bus_number);
     } else {
-        result = std::make_unique<AMS_AS5048B>(bus_number);
+        result = std::make_shared<AMS_AS5048B>(bus_number);
     }
     result->OpenSensor();
-    result->SetClockWise(false);
+    result->SetClockWise(false);  // TODO from config
     return result;
 }
 
@@ -125,10 +125,15 @@ uint16_t GetDistanceFromLaserSensorWithTimeout(uint8_t bus_number, uint8_t senso
     }
 }
 
-double GetAngleFromMagneticEncoder(uint8_t bus_number, kDeviceType device_type) {
-    auto encoder = GetEncoder(bus_number, device_type);
+std::unordered_map<uint8_t, std::shared_ptr<EncoderBase>> encoders_cache;
+
+double GetAngleFromMagneticEncoder(uint8_t bus_number, kDeviceType device_type,
+                                   uint8_t sensor_key) {
+    if (encoders_cache.find(sensor_key) == encoders_cache.end()) {
+        encoders_cache[sensor_key] = GetEncoder(bus_number, device_type);
+    }
+    auto encoder = encoders_cache[sensor_key];
     double angle = encoder->GetAngle(U_RAD, true);
-    encoder->CloseSensor();
     return angle;
 }
 
@@ -140,18 +145,27 @@ int main(int argc, char* argv[]) {
     uint8_t bus_number = atoi(argv[1]);
     uint8_t address = atoi(argv[2]);
 
-    std::vector<ConfigItem> config = {
+    std::vector<ConfigItem> config = {  // TODO config to external text file
         {0b00000001u, {{kLaserRangingSensor, "rear-right"}}},
         {0b00000010u, {{kLaserRangingSensor, "rear-left"}}},
         {0b00000100u, {{kLaserRangingSensor, "front-left"}}},
         {0b00001000u, {{kLaserRangingSensor, "front-right"}}},
-        //        {0b00100000u,
-        //         {
-        //             {kLaserRangingSensor, "manipulator"},
-        //             {kMagneticEncoderAS5600, "m0"},
-        //         }},
-        {0b01000000u, {{kLaserRangingSensor, "front-center"}}},
-        {0b10000000u, {{kLaserRangingSensor, "rear-center"}}},
+        {0b00010000u, {{kMagneticEncoderAS5600, "m-2"}}},
+        {0b00100000u,
+         {
+             {kLaserRangingSensor, "manipulator"},
+             {kMagneticEncoderAS5600, "m-claw"},
+         }},
+        {0b01000000u,
+         {
+             {kLaserRangingSensor, "front-center"},
+             {kMagneticEncoderAS5600, "m-0"},
+         }},
+        {0b10000000u,
+         {
+             {kLaserRangingSensor, "rear-center"},
+             {kMagneticEncoderAS5600, "m-1"},
+         }},
     };
 
     ros::init(argc, argv, "ballsbot_tca9548");
@@ -188,9 +202,10 @@ int main(int argc, char* argv[]) {
                     laser_distance_publisher.publish(ld_msg);
                 } else if (device.device_type_ == kMagneticEncoderAS5600 ||
                            device.device_type_ == kMagneticEncoderAS5048B) {
-                    angle = GetAngleFromMagneticEncoder(bus_number, device.device_type_);
+                    angle = GetAngleFromMagneticEncoder(bus_number, device.device_type_,
+                                                        config_item.state_bits);
                     enc_msg.angle = angle;
-                    enc_msg.encoder_name = device.device_name_;
+                    enc_msg.sensor_name = device.device_name_;
                     enc_msg.header.stamp = ros::Time::now();
                     // ROS_INFO("%s: %0.4f rad", enc_msg.encoder_name.c_str(), enc_msg.angle);
                     magnetic_encoder_publisher.publish(enc_msg);

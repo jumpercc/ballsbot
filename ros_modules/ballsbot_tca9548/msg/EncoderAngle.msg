@@ -1,3 +1,3 @@
 std_msgs/Header header
 float32 angle
-string encoder_name
+string sensor_name

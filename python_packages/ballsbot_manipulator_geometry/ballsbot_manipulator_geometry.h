@@ -70,10 +70,6 @@ std::vector<PointType> ApplyRotations(const std::vector<PointType>& default_poin
         }
 
         if (need_rotation) {
-            if (claw) {
-                angle /= 2.;
-            }
-
             int part_limit = claw ? -1 : 1;
             for (int part_i = 1; part_i >= part_limit; part_i -= 2) {
                 angle *= static_cast<float>(part_i);

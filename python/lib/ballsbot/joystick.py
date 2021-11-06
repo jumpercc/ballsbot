@@ -44,13 +44,13 @@ class JoystickWrapper:
     def _update_car_controls(self):
         steering_config = CAR_CONTROLS['steering']['control']
         throttle_config = CAR_CONTROLS['throttle']['control']
-        throttle_reverse = throttle_config.get('reverse')
+        invert_throttle = throttle_config.get('invert')
         turbo_button = CAR_CONTROLS['throttle']['turbo_control']['button']
 
         self.steering = self.joystick.axes[steering_config['axis']].value
 
         value = self.joystick.axes[throttle_config['axis']].value
-        self.throttle = -value if throttle_reverse else value
+        self.throttle = -value if invert_throttle else value
 
         self.turbo_pressed = self.joystick.buttons[turbo_button].value
 

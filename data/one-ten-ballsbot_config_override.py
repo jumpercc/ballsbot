@@ -80,10 +80,11 @@ DISTANCE_SENSORS = {
         "offset_y": -80,
         "direction": "backward",
     },
-
-    # "manipulator": {
-    #     "offset_x": 325,  # mm from lidar center
-    # },
+    "manipulator": {
+        "offset_x": 0,
+        "offset_y": 0,
+        "direction": "none",
+    },
 }
 DISTANCE_SENSORS_MESSAGE_TYPE = "ballsbot_tca9548"
 
@@ -93,16 +94,19 @@ DETECTION_CLOSE_ENOUGH = 0.15 * 0.1
 MANIPULATOR = {
     "enabled": True,
     "has_camera": True,
+    "encoders_enabled": True,
     "servos": [
         {
             "channel": 4,
-            "min_pulse": 477,
-            "max_pulse": 234,
+            "min_pulse": 234,
+            "max_pulse": 477,
             "default_position": 0.,
             "unfold_position": 0.,
-            "min_angle": math.radians(-60.),
-            "max_angle": math.radians(60.),
-            "control": {"axis": 2},
+            "min_angle": 4.417864799499512 - 5.473243236541748,
+            "max_angle": 4.417864799499512 - 3.313398599624634,
+            "control": {"axis": 2, "invert": True},
+            "encoder_name": "m-0",
+            "encoder_offset": 4.417864799499512,
         },
         {
             "channel": 5,
@@ -110,29 +114,36 @@ MANIPULATOR = {
             "max_pulse": 533,
             "default_position": -1.,
             "unfold_position": 0.5,
-            "min_angle": math.radians(-85.),
+            "min_angle": 3.2888548374176025 - 0.02454369328916073 - math.radians(270.),
             "max_angle": math.radians(90.),
             "control": {"buttons": (7, 5)},
+            "encoder_name": "m-1",
+            "encoder_offset": math.radians(270.) + 0.02454369328916073,
         },
         {
             "channel": 6,
-            "min_pulse": 197,
+            "min_pulse": 264,
             "max_pulse": 530,
             "default_position": 1.,
             "unfold_position": -0.7,
-            "min_angle": math.radians(-90.),
+            "min_angle": math.radians(90.) - 5.129631519317627 + 2.675262451171875,
             "max_angle": math.radians(90.),
             "control": {"axis": 3},
+            "encoder_name": "m-2",
+            "encoder_offset": 1.1535537878619593 + math.radians(90.),
+            "reverse_encoder": True,
         },
         {
             "channel": 7,
-            "min_pulse": 453,
-            "max_pulse": 306,
-            "default_position": 0.9,
+            "min_pulse": 306,
+            "max_pulse": 453,
+            "default_position": -0.9,
             "unfold_position": 0.,
-            "min_angle": math.radians(0.),
-            "max_angle": math.radians(150.),
-            "control": {"buttons": (6, 4)},
+            "min_angle": 0.,
+            "max_angle": 5.718680381774902 - 4.417864799499512,
+            "control": {"buttons": (4, 6)},
+            "encoder_name": "m-claw",
+            "encoder_offset": 4.417864799499512,
         },
     ],
     "bones": [
@@ -142,13 +153,13 @@ MANIPULATOR = {
         },
         {
             "rotation": "z",
-            "direction": -1.,
+            "direction": 1.,
             "default_position": (35., 0., 45.),
         },
         {
             "rotation": "y",
             "direction": -1.,
-            "default_position": (-165., 0., 5.),
+            "default_position": (5., 0., 165.),
         },
         {
             "rotation": "y",

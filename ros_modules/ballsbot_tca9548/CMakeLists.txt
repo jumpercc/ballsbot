@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(ballsbot_tca9548)
 
 add_compile_options(-std=c++17)
+# SET(CMAKE_BUILD_TYPE Debug)
 
 find_package(catkin REQUIRED COMPONENTS
   genmsg

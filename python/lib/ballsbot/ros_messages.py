@@ -1,5 +1,5 @@
 from ballsbot.utils import run_as_thread
-from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE, T208_UPS
+from ballsbot.config import DISTANCE_SENSORS, DISTANCE_SENSORS_MESSAGE_TYPE, T208_UPS, MANIPULATOR
 
 from functools import partial
 import sys
@@ -14,7 +14,7 @@ from ballsbot_imu.msg import ImuState
 from sensor_msgs.msg import LaserScan
 from ballsbot_wheel_odometry.msg import OdometryState
 from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
-from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch
+from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch, EncoderAngle
 from ballsbot_ups.msg import UpsState
 
 CONFIG_BY_TYPE = {
@@ -82,6 +82,13 @@ class RosMessages:
                 'msg_type': UpsState,
             })
 
+        if MANIPULATOR['enabled'] and MANIPULATOR.get('encoders_enabled'):
+            self.subscribe_to.append({
+                'name': 'magnetic_encoder',
+                'topic': '/magnetic_encoder',
+                'msg_type': EncoderAngle,
+            })
+
         self.message_by_type = {x['name']: None for x in self.subscribe_to}
 
     def start(self, sync=True, with_debug_nodes=False):
@@ -97,7 +104,7 @@ class RosMessages:
                     run_as_thread(partial(self._run_node, it))
 
     def _update_msg_data(self, name, data):
-        if name == 'laser_distance':
+        if name in {'laser_distance', 'magnetic_encoder'}:
             if not self.message_by_type[name]:
                 self.message_by_type[name] = {}
             self.message_by_type[name][data.sensor_name] = data
@@ -119,7 +126,7 @@ class RosMessages:
         return list(self.message_by_type.keys())
 
     def get_message_data(self, msg_type):
-        if msg_type == 'laser_distance':
+        if msg_type in {'laser_distance', 'magnetic_encoder'}:
             return (self.message_by_type.get(msg_type) or {}).copy()
         else:
             return self.message_by_type.get(msg_type)
