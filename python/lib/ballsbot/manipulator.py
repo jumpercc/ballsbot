@@ -31,7 +31,7 @@ class Manipulator:
         self.emulate_only = emulate_only
 
         self.angles = []
-        self.angles_ts = None
+        self.angles_ts = 0.
 
         self.servo_values = {}
         self.servo_channel_to_index = {}
