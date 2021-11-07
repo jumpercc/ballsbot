@@ -138,8 +138,10 @@ class Manipulator:
 
                 jammed_state = None
                 if real_angle is not None:
-                    logger.warning("intended real diff %s %s %s", intended_angle, real_angle,
-                                   intended_angle - real_angle)
+                    logger.warning(
+                        "time index intended real diff %s %s %s %s %s",
+                        ts, i, intended_angle, real_angle, intended_angle - real_angle
+                    )
                     # TODO set jammed state
 
                 result.append({
