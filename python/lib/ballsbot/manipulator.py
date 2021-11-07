@@ -98,15 +98,12 @@ class Manipulator:
         servo_config = MANIPULATOR['servos'][servo_number]
         current_position = self.servo_values[servo_config['channel']]
 
-        current_position += STEP if direction > 0 else -STEP
-        if current_position < -1.:
-            current_position = -1.
-        elif current_position > 1.:
-            current_position = 1.
-
-        # TODO check feasible
-        if angle_item['jammed'] and angle_item['jammed'] * current_position > 0:
-            current_position = 0
+        if not angle_item['jammed'] or angle_item['jammed'] * direction < 0:
+            current_position += STEP if direction > 0 else -STEP
+            if current_position < -1.:
+                current_position = -1.
+            elif current_position > 1.:
+                current_position = 1.
 
         self.servo_values[servo_config['channel']] = current_position
         return current_position
@@ -141,7 +138,7 @@ class Manipulator:
                         else:
                             jammed_state = -1
                     logger.debug(
-                        "servo %s jammed %s: intended (%s )- real (%s) = %s",
+                        "servo %s jammed %s: intended (%s ) - real (%s) = %s",
                         i, jammed_state, intended_angle, real_angle, angle_diff
                     )
 
