@@ -2,7 +2,7 @@ import logging
 from time import time
 
 from ballsbot.config import MANIPULATOR
-from ballsbot.servos import PCA9685, map_range
+from ballsbot.servos import PCA9685, map_range, float_map_range
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.magnetic_encoders import MagneticEncoders, has_magnetic_encoders
 from ballsbot_manipulator_geometry import ballsbot_manipulator_geometry
@@ -13,13 +13,7 @@ RPS = 50
 STEP = 0.0016
 IGNORE_DIFF = 0.01
 CACHE_ANGLES_FOR = 0.1  # seconds
-
-
-def float_map_range(x, x_min, x_max, y_min, y_max):
-    x_range = x_max - x_min
-    y_range = y_max - y_min
-    xy_ratio = x_range / y_range
-    return (x - x_min) / xy_ratio + y_min
+JAMMED_ANGLE_DIFF = 0.2  # radians
 
 
 class Manipulator:
@@ -111,7 +105,9 @@ class Manipulator:
             current_position = 1.
 
         # TODO check feasible
-        # TODO check jammed
+        if angle_item['jammed'] and angle_item['jammed'] * current_position > 0:
+            current_position = 0
+
         self.servo_values[servo_config['channel']] = current_position
         return current_position
 
@@ -138,11 +134,16 @@ class Manipulator:
 
                 jammed_state = None
                 if real_angle is not None:
-                    logger.warning(
-                        "time index intended real diff %s %s %s %s %s",
-                        ts, i, intended_angle, real_angle, intended_angle - real_angle
+                    angle_diff = intended_angle - real_angle
+                    if abs(angle_diff) > JAMMED_ANGLE_DIFF:
+                        if angle_diff > 0:
+                            jammed_state = 1
+                        else:
+                            jammed_state = -1
+                    logger.debug(
+                        "servo %s jammed %s: intended (%s )- real (%s) = %s",
+                        i, jammed_state, intended_angle, real_angle, angle_diff
                     )
-                    # TODO set jammed state
 
                 result.append({
                     'real': real_angle,
