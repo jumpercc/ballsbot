@@ -25,7 +25,7 @@ def publisher():
 
         read = bus.read_word_data(DEVICE_ADDRESS, 2)
         swapped = struct.unpack("<H", struct.pack(">H", read))[0]
-        message.voltage = swapped * 1.25 / 1000 / 16
+        message.voltage = swapped * 1.25 / 1000 / 16  # FIXME strange value
 
         read = bus.read_word_data(DEVICE_ADDRESS, 4)
         swapped = struct.unpack("<H", struct.pack(">H", read))[0]
