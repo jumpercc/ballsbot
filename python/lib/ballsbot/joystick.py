@@ -4,8 +4,8 @@ from ballsbot.utils import keep_rps, run_as_thread
 IGNORE_LIMIT = 0.25
 
 
-class JoystickWrapper:
-    def __init__(self, joystick):
+class JoystickWrapperBase:
+    def __init__(self):
         self.steering = 0.
         self.throttle = 0.
         self.turbo_pressed = 0
@@ -13,10 +13,6 @@ class JoystickWrapper:
         self.manipulator_fold_pressed = 0
         self.manipulator_unfold_pressed = 0
         self.manipulator_directions = [0 for _ in MANIPULATOR.get('servos', [])]
-
-        self.joystick = joystick
-
-        run_as_thread(self._start)
 
     def get_state(self):
         return {
@@ -27,6 +23,14 @@ class JoystickWrapper:
             'manipulator_unfold_pressed': self.manipulator_unfold_pressed,
             'manipulator_directions': self.manipulator_directions.copy(),
         }
+
+
+class JoystickWrapper(JoystickWrapperBase):
+    def __init__(self, joystick):
+        super().__init__()
+        self.joystick = joystick
+
+        run_as_thread(self._start)
 
     def _start(self):
         ts = None

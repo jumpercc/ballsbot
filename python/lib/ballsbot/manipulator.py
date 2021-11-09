@@ -35,6 +35,7 @@ class Manipulator:
             self.servo_channel_to_index[servo_config['channel']] = servo_number
             self.servos.append(None if emulate_only else PCA9685(servo_config['channel']))
 
+        self.running = False
         if has_magnetic_encoders() and not emulate_only:
             self.encoders = MagneticEncoders()
             self.encoders.start()
@@ -43,8 +44,9 @@ class Manipulator:
         run_as_thread(self._start)
 
     def _start(self):
+        self.running = True
         ts = None
-        while True:
+        while self.running:
             ts = keep_rps(ts, fps=RPS)
 
             if self.joystick_wrapper.manipulator_fold_pressed:
@@ -72,7 +74,7 @@ class Manipulator:
             else:
                 directions = self.joystick_wrapper.manipulator_directions.copy()
 
-            angles = self._get_angles()
+            angles = self.get_angles()
             set_pulse_list = []
             for servo_number, direction in enumerate(directions):
                 if direction and self._apply_direction(servo_number, direction, angles[servo_number]):
@@ -111,7 +113,7 @@ class Manipulator:
     def get_servo_positions(self):
         return {self.servo_channel_to_index[k]: v for k, v in self.servo_values.copy().items()}
 
-    def _get_angles(self):
+    def get_angles(self):
         ts = time()
         if ts - self.angles_ts > CACHE_ANGLES_FOR:
             result = []
@@ -137,10 +139,10 @@ class Manipulator:
                             jammed_state = 1
                         else:
                             jammed_state = -1
-                    logger.debug(
-                        "servo %s jammed %s: intended (%s ) - real (%s) = %s",
-                        i, jammed_state, intended_angle, real_angle, angle_diff
-                    )
+                        logger.warning(
+                            "servo %s jammed %s: intended (%s ) - real (%s) = %s",
+                            i, jammed_state, intended_angle, real_angle, angle_diff
+                        )
 
                 result.append({
                     'real': real_angle,
@@ -153,7 +155,7 @@ class Manipulator:
         return self.angles
 
     def get_manipulator_pose(self):
-        angles = self._get_angles()
+        angles = self.get_angles()
         default_points = []
         current_rotations = []
         for i, bone in enumerate(MANIPULATOR['bones']):
@@ -177,6 +179,17 @@ class Manipulator:
             'points': points[:-2],
             'rotations': current_rotations,
             'claw_points': points[-2:],
+        }
+
+    def stop(self):
+        self.running = False
+
+    def get_track_frame(self):
+        return {
+            'servo_positions': self.get_servo_positions(),
+            'raw_angles': self.encoders.get_angles() if self.encoders else None,
+            'angles': self.get_angles(),
+            'current_pose': self.get_manipulator_pose(),
         }
 
 
