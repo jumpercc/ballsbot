@@ -5,9 +5,8 @@ from ballsbot.lidar_with_memory import LidarWithMemory
 from ballsbot.servos import get_controls
 from ballsbot.utils import keep_rps
 from ballsbot.tracking import Tracker, get_car_info
-from ballsbot.detection import Detector
-from ballsbot.config import ENGINE_NEED_MANUAL_BREAKING, \
-    DETECTION_MAX_DISTANCE_FROM_CENTER_X, DETECTION_MAX_DISTANCE_FROM_CENTER_Y, DETECTION_CLOSE_ENOUGH
+from ballsbot.detection import DetectorWrapper
+from ballsbot.config import ENGINE_NEED_MANUAL_BREAKING, DETECTION_CLOSE_ENOUGH
 from ballsbot_localization import ballsbot_localization as grid
 
 logger = logging.getLogger(__name__)
@@ -60,11 +59,9 @@ class Explorer:
         self.lidar = LidarWithMemory()
         self.car_controls = get_controls()
         self.tracker = Tracker(self.lidar)
-        self.detector = Detector()
+        self.detector_wrapper = DetectorWrapper()
 
         self.cached_weights = None
-        self.cached_detected_object = None
-        self.prev_seen_class = "no one"
         self.cached_direction = None
         self.running = False
         self.move_ts = None
@@ -117,11 +114,8 @@ class Explorer:
             get_car_info()
         )
 
-        self.cached_detected_object = self.detector.get_seen_object()
-        if self.cached_detected_object is None:
-            if self.prev_seen_class is not None:
-                logger.info("I'll find ya!")
-                self.prev_seen_class = None
+        self.detector_wrapper.update_detection()
+        if self.detector_wrapper.cached_detected_object is None:
             for sector_key in weights.keys():
                 if sector_key[1] > 0. and prev_direction['throttle'] == self.FORWARD_THROTTLE \
                         or sector_key[1] < 0. and prev_direction['throttle'] == self.BACKWARD_THROTTLE:
@@ -129,10 +123,7 @@ class Explorer:
                 if sector_key[0] == prev_direction['steering']:
                     weights[sector_key] *= 1.05  # trying to keep wheel movements smooth
         else:
-            if self.prev_seen_class is None or self.prev_seen_class != self.cached_detected_object['object_class']:
-                logger.info('See ya! (a %s)', self.cached_detected_object['object_class'])
-                self.prev_seen_class = self.cached_detected_object['object_class']
-            directions = self._get_preferred_directions(self.cached_detected_object)
+            directions = self._get_preferred_directions(self.detector_wrapper.cached_detected_object)
             if directions is None:
                 for sector_key in weights.keys():
                     weights[sector_key] = 0.
@@ -169,33 +160,13 @@ class Explorer:
         self.car_controls['steering'].run(direction['steering'])
         self.car_controls['throttle'].run(direction['throttle'])
 
-    @staticmethod
-    def _get_detection_segment(detected_object):
-        center_x, center_y = detected_object['center']
-
-        if center_x < 0.5 and 0.5 - center_x > DETECTION_MAX_DISTANCE_FROM_CENTER_X:
-            result_x = -1
-        elif center_x > 0.5 and center_x - 0.5 > DETECTION_MAX_DISTANCE_FROM_CENTER_X:
-            result_x = 1
-        else:
-            result_x = 0
-
-        if center_y < 0.5 and 0.5 - center_y > DETECTION_MAX_DISTANCE_FROM_CENTER_Y:
-            result_y = -1
-        elif center_y > 0.5 and center_y - 0.5 > DETECTION_MAX_DISTANCE_FROM_CENTER_Y:
-            result_y = 1
-        else:
-            result_y = 0
-
-        return result_x, result_y
-
     def _get_preferred_directions(self, detected_object):
         """
         returns {(st, tr), ...}
         """
         result = set()
 
-        segment_x, segment_y = self._get_detection_segment(detected_object)
+        segment_x, segment_y = self.detector_wrapper.get_detection_segment()
         close_enough = detected_object['vsize'] * detected_object['hsize'] > DETECTION_CLOSE_ENOUGH
         if segment_y in (-1, 1):
             if segment_x == -1:
@@ -244,7 +215,7 @@ class Explorer:
             'ts': self.move_ts,
             'pose_lag': self.pose_lag,
             'directions_weights': weights,
-            'detected_object': self.cached_detected_object,
+            'detected_object': self.detector_wrapper.cached_detected_object,
             'direction': self.cached_direction,
             'lidar': self.lidar.get_track_frame(),
             'tracker': self.tracker.get_track_frame(),
