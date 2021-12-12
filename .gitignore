@@ -22,6 +22,7 @@ ros_modules/*/ballsbot_tca9548.cbp
 ros_modules/*/catkin/
 ros_modules/*/catkin_generated/
 ros_modules/*/cmake/
+ros_modules/*/.cmake/
 ros_modules/*/cmake_install.cmake
 ros_modules/*/devel/
 ros_modules/*/gtest/

@@ -1,0 +1,64 @@
+# for JetPack 4.6
+tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs
+
+# packages
+sudo apt-get autoremove docker docker.io thunderbird
+sudo apt-get update && sudo apt-get dist-upgrade
+sudo apt-get install python3-pip curl ros-melodic-ros-base libpcl-dev libi2c-dev screen vim mc aptitude git
+
+# python packages
+pip3 install --upgrade pip
+pip3 install packaging
+pip3 install notebook
+pip3 install adafruit-pca9685
+pip3 install cython
+pip3 install pylint
+pip3 install ipywidgets
+pip3 install jupyterthemes
+pip3 install matplotlib -U
+pip3 install Pillow
+
+# ros
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+source /opt/ros/melodic/setup.bash
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/
+catkin_make
+
+# lidar
+cd ~/projects/ydlidar_ws/
+source /opt/ros/melodic/setup.bash
+source devel/setup.bash
+rm -rf /home/ballsbot/projects/ydlidar_ws/build
+catkin_make
+roscd ydlidar_ros/startup
+sudo chmod 777 ./*
+sudo sh initenv.sh
+
+# jupyter
+sudo ifconfig docker0 down
+mkdir notebooks
+cp projects/ballsbot/python/notebooks/* ~/notebooks/
+jt -t solarizedd -cellw 100% -T
+
+# imu
+cd projects/RTIMULib/
+vim RTIMULib/RTIMUSettings.cpp +470
+cd Linux/python/
+python3 setup.py build
+sudo python3 setup.py install
+
+# python packages
+cd ~/projects/ballsbot/python_packages/ballsbot_localization/
+sudo rm -rf ballsbot_localization.cpp build && python3 setup.py build_ext
+sudo python3 setup.py install -f
+cd ../ballsbot_manipulator_geometry/
+sudo rm -rf ballsbot_manipulator_geometry.cpp build && python3 setup.py build_ext
+sudo python3 setup.py install -f
+
+ln -s /home/ballsbot/projects/ballsbot/data/ballsbot_config_override.py
+~/projects/ballsbot/scripts/make-ros-modules.sh
+sudo nvpmodel -m 1
+
+# TODO configure ballsbot_detection

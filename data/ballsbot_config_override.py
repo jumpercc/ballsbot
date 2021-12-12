@@ -22,7 +22,7 @@ CAR_CONTROLS = {
         "zero_pulse": 360,
         "max_pulse": 390,
         "default_position": 0.,
-        "control": {"axis": 1, "reverse": True},
+        "control": {"axis": 1, "invert": True},
         "turbo_control": {"button": 1},
     },
 }
