@@ -58,7 +58,7 @@
 
 ### Software
 
-- JetPack 4.4
+- JetPack 4.6 [configuration steps](./configuration.txt)
 - code from this repo
 - ROS
 - [Jupyter](https://jupyter.org/install) (```pip3 install notebook```)
