@@ -5,4 +5,4 @@
 - публикует результаты
 
 Ввиду нетривиальности сборки TensorRT кода, собрал его в отдельную библиотеку и положил рядом.
-Вот исходники для [libuffssd.so](https://github.com/jumpercc/TensorRT/blob/release/7.1-jetson-nano-crosscompile-ssd/samples/opensource/sampleUffSSD/sampleUffSSD.cpp)
+Вот исходники для [libuffssd.so](https://github.com/jumpercc/TensorRT/blob/release/8.0-jetson-nano-crosscompile-ssd/samples/sampleUffSSD/sampleUffSSD.cpp)

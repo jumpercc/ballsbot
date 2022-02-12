@@ -10,8 +10,9 @@
 #include "cam_detector.h"
 
 std::string CamDetector::GstreamerPipeline() {
-    return "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)" +
-           std::to_string(kCaptureWidth) + ", height=(int)" + std::to_string(kCaptureHeight) +
+    return "nvarguscamerasrc sensor-id=" + std::to_string(kCameraIndex) +
+           " ! video/x-raw(memory:NVMM), width=(int)" + std::to_string(kCaptureWidth) +
+           ", height=(int)" + std::to_string(kCaptureHeight) +
            ", format=(string)NV12, framerate=(fraction)" + std::to_string(kFramerate) +
            "/1 ! nvvidconv flip-method=" + std::to_string(kFlipMethod) +
            " ! video/x-raw, width=(int)" + std::to_string(kDisplayWidth) + ", height=(int)" +

@@ -12,6 +12,7 @@ int main(int argc, char **argv) {
 
     CamDetector detector;
     detector.StartUp("/home/ballsbot/catkin_ws/src/ballsbot_detection");
+    ROS_INFO("detector.StartUp complete");
 
     int count = 0;
     while (ros::ok()) {

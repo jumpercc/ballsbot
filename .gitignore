@@ -26,3 +26,5 @@ ros_modules/*/.cmake/
 ros_modules/*/cmake_install.cmake
 ros_modules/*/devel/
 ros_modules/*/gtest/
+detection_model/saved_model.pb
+detection_model/variables/*

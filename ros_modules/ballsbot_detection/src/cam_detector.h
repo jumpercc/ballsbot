@@ -26,6 +26,7 @@ public:
     static const int kDisplayHeight = 300;
     static const int kFramerate = 2;
     static const int kFlipMethod = 0;
+    static const int kCameraIndex = 0;
 
     ~CamDetector() {
         cap_.release();

@@ -1,3 +1,5 @@
+sudo nvpmodel -m 0
+
 # for JetPack 4.6
 tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs
 
@@ -6,17 +8,39 @@ sudo apt-get autoremove docker docker.io thunderbird
 sudo apt-get update && sudo apt-get dist-upgrade
 sudo apt-get install python3-pip curl ros-melodic-ros-base libpcl-dev libi2c-dev screen vim mc aptitude git
 
+# tensorflow https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html
+sudo apt-get install libhdf5-serial-dev hdf5-tools libhdf5-dev zlib1g-dev zip libjpeg8-dev liblapack-dev libblas-dev gfortran
+sudo pip3 install -U pip testresources setuptools==49.6.0
+sudo pip3 install -U --no-deps numpy==1.19.4 future==0.18.2 mock==3.0.5 keras_preprocessing==1.1.2 keras_applications==1.0.8 gast==0.4.0 protobuf pybind11 cython pkgconfig
+sudo env H5PY_SETUP_REQUIRES=0 pip3 install -U h5py==3.1.0
+sudo pip3 install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v46 tensorflow
+
 # python packages
-pip3 install --upgrade pip
-pip3 install packaging
-pip3 install notebook
-pip3 install adafruit-pca9685
-pip3 install cython
-pip3 install pylint
-pip3 install ipywidgets
-pip3 install jupyterthemes
+pip3 install packaging notebook adafruit-pca9685 ipywidgets jupyterlab Pillow
 pip3 install matplotlib -U
-pip3 install Pillow
+
+# opencv with gstreamer support
+sudo apt-get install build-essential cmake libgtk2.0-dev pkg-config libswscale-dev libtbb2 libtbb-dev libjpeg-dev libpng-dev \
+    libtiff-dev libavcodec-dev libavformat-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libv4l-dev v4l-utils qv4l2 v4l2ucp libdc1394-22-dev
+cd ~/projects
+git clone https://github.com/opencv/opencv_contrib && cd opencv_contrib && git checkout 4.5.5
+cd ..
+git clone https://github.com/opencv/opencv && cd opencv && git checkout 4.5.5
+mkdir release
+cd release/
+cmake -D WITH_CUDA=ON \
+    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+    -D WITH_GSTREAMER=ON \
+    -D WITH_LIBV4L=ON \
+    -D BUILD_opencv_python2=OFF \
+    -D BUILD_opencv_python3=ON \
+    -D BUILD_TESTS=OFF \
+    -D BUILD_PERF_TESTS=OFF \
+    -D BUILD_EXAMPLES=OFF \
+    -D CMAKE_BUILD_TYPE=RELEASE \
+    -D CMAKE_INSTALL_PREFIX=/usr/local ..
+make -j4
+sudo make install
 
 # ros
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
@@ -40,7 +64,6 @@ sudo sh initenv.sh
 sudo ifconfig docker0 down
 mkdir notebooks
 cp projects/ballsbot/python/notebooks/* ~/notebooks/
-jt -t solarizedd -cellw 100% -T
 
 # imu
 cd projects/RTIMULib/
@@ -57,8 +80,26 @@ cd ../ballsbot_manipulator_geometry/
 sudo rm -rf ballsbot_manipulator_geometry.cpp build && python3 setup.py build_ext
 sudo python3 setup.py install -f
 
+# TensorRT SSD (OPTIONAL, only is you need to REbuild libuffssd.so)
+# newer cmake
+cd ~/Downloads
+wget https://cmake.org/files/v3.19/cmake-3.19.8-Linux-aarch64.tar.gz
+tar xzf cmake-3.19.8-Linux-aarch64.tar.gz
+mv cmake-3.19.8-Linux-aarch64 ~/
+export PATH=/home/ballsbot/cmake-3.19.8-Linux-aarch64/bin:$PATH
+# trt
+cd ~/projects
+git clone https://github.com/jumpercc/TensorRT.git
+cd TensorRT
+git submodule update --init --recursive
+export TRT_OSSPATH=`pwd`
+export CMAKE_CUDA_COMPILER=/usr/local/cuda-10.2/bin/nvcc
+export CUDACXX=$CMAKE_CUDA_COMPILER
+export CC=/usr/bin/gcc
+mkdir -p build && cd build
+cmake .. -DTRT_LIB_DIR=/usr/lib/aarch64-linux-gnu/ -DTRT_OUT_DIR=`pwd`/out -DCMAKE_TOOLCHAIN_FILE=$TRT_OSSPATH/cmake/toolchains/cmake_aarch64.toolchain -DCUDA_VERSION=10.2 -DCMAKE_CUDA_ARCHITECTURES="53" -DBUILD_PLUGINS=OFF -DBUILD_PARSERS=OFF
+make -j$(nproc)
+
 ln -s /home/ballsbot/projects/ballsbot/data/ballsbot_config_override.py
 ~/projects/ballsbot/scripts/make-ros-modules.sh
 sudo nvpmodel -m 1
-
-# TODO configure ballsbot_detection

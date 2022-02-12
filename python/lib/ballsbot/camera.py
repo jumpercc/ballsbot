@@ -20,7 +20,7 @@ class CSICamera(SingletonConfigurable):
         self.image_width = image_width
         self.image_height = image_height
         self.fps = fps
-        self.value = np.empty((image_width, image_height, 3), dtype=np.uint8)
+        self.value = np.empty((image_height, image_width, 3), dtype=np.uint8)
         self.sensor_id = sensor_id
         run_as_thread(self._capture_frames, self.stop)
 

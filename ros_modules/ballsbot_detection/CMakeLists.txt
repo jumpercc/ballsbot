@@ -31,7 +31,6 @@ catkin_package(
   INCLUDE_DIRS "/usr/include/opencv4"
   LIBRARIES opencv_core opencv_videoio uffssd
   CATKIN_DEPENDS message_runtime
-#  DEPENDS system_lib
 )
 
 include_directories(
@@ -43,3 +42,6 @@ add_executable(publisher src/publisher.cpp src/cam_detector.cpp)
 target_link_libraries(publisher ${catkin_LIBRARIES} ${UFFSSD} ${OPENCV_CORE} ${OPENCV_VIDEOIO})
 add_dependencies(publisher ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+catkin_install_python(PROGRAMS scripts/publisher_detection.py
+    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    )
