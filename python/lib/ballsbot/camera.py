@@ -55,7 +55,7 @@ class CSICamera(SingletonConfigurable):
             self.cap.release()
 
 
-def get_images_and_cameras(image_width=640, image_height=480, fps=5):
+def get_images_and_cameras(image_width=320, image_height=240, fps=5):
     if MANIPULATOR.get('has_camera'):
         sensors = [0, 1]
     else:

@@ -17,7 +17,7 @@ JAMMED_ANGLE_DIFF = 0.2  # radians
 
 
 class Manipulator:
-    def __init__(self, joystick_wrapper, emulate_only=False):
+    def __init__(self, joystick_wrapper, emulate_only=False, without_encoders=False):
         if MANIPULATOR is None or not MANIPULATOR['enabled']:
             return
 
@@ -36,7 +36,7 @@ class Manipulator:
             self.servos.append(None if emulate_only else PCA9685(servo_config['channel']))
 
         self.running = False
-        if has_magnetic_encoders() and not emulate_only:
+        if has_magnetic_encoders() and not emulate_only and not without_encoders:
             self.encoders = MagneticEncoders()
             self.encoders.start()
         else:

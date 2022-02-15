@@ -16,7 +16,7 @@ sudo env H5PY_SETUP_REQUIRES=0 pip3 install -U h5py==3.1.0
 sudo pip3 install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v46 tensorflow
 
 # python packages
-pip3 install packaging notebook adafruit-pca9685 ipywidgets jupyterlab Pillow
+pip3 install packaging notebook adafruit-pca9685 ipywidgets jupyterlab Pillow smbus
 pip3 install matplotlib -U
 
 # opencv with gstreamer support

@@ -140,8 +140,8 @@ def get_picture_self_coords(figsize, lidar_points, self_position, only_nearby_me
 
 class ManipulatorPoseDrawing:
     def __init__(self, widgets):
-        self.projection_xy = widgets.Image(format='jpeg', width=400, height=400)
-        self.projection_xz = widgets.Image(format='jpeg', width=400, height=400)
+        self.projection_xy = widgets.Image(format='jpeg', width=240, height=240)
+        self.projection_xz = widgets.Image(format='jpeg', width=240, height=240)
         self.images_grid = widgets.HBox([self.projection_xy, self.projection_xz])
 
     def get_images(self):

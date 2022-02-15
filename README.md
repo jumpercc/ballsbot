@@ -84,7 +84,8 @@ index 783dbff..9c0333e 100644
 
 ### SD card image
 
-You can download SD card images (1/16 configured) from [here](https://disk.yandex.ru/d/XgYrkfBPJS2h5Q?w=1).
+You can download SD card images from [here](https://disk.yandex.ru/d/XgYrkfBPJS2h5Q?w=1).
+Install bare JetPack 4.6 first to upgrade jetson firmware.
 Images are for 64GB SD cards.
 ```gunzip -c ballsbot-sd-2021-02-11.tgz | sudo dd of=/dev/sdb```
 
