@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo -i -u ballsbot autossh -fnNT ballsbot-gw
