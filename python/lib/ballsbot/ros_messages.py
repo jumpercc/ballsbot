@@ -31,6 +31,7 @@ CONFIG_BY_TYPE = {
 
 class RosMessages:
     def __init__(self):
+        self.running = True
         self.subscribe_to = [
             {
                 'name': 'pose',
@@ -103,6 +104,9 @@ class RosMessages:
                 if with_debug_nodes or not it.get('for_debug'):
                     run_as_thread(partial(self._run_node, it))
 
+    def stop(self):
+        self.running = False
+
     def _update_msg_data(self, name, data):
         if name in {'laser_distance', 'magnetic_encoder'}:
             if not self.message_by_type[name]:
@@ -112,7 +116,7 @@ class RosMessages:
             self.message_by_type[name] = data
 
     def _run_node(self, msg_config):
-        while True:
+        while self.running:
             try:
                 data = rospy.wait_for_message(msg_config['topic'], msg_config['msg_type'], timeout=5)
             except KeyboardInterrupt:

@@ -29,18 +29,22 @@ class JoystickWrapper(JoystickWrapperBase):
     def __init__(self, joystick):
         super().__init__()
         self.joystick = joystick
+        self.running = True
 
         run_as_thread(self._start)
 
+    def stop(self):
+        self.running = False
+
     def _start(self):
         ts = None
-        while True:
+        while self.running:
             ts = keep_rps(ts, fps=1)
             if len(self.joystick.axes):
                 break
 
         ts = None
-        while True:
+        while self.running:
             ts = keep_rps(ts, fps=10)
             self._update_car_controls()
             self._update_manipulator_controls()
