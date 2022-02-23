@@ -56,7 +56,7 @@ def _get_dashboard_image(data, function_by_plot, plot_size, figsize):
             func = getattr(ballsbot.drawing, it['function_name'])
             func(ax, *parameters)
 
-    fig.tight_layout()
+    # fig.tight_layout()
     canvas.draw()
     jpeg = BytesIO()
     canvas.print_jpg(jpeg)
