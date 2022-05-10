@@ -4,9 +4,9 @@ sudo nvpmodel -m 0
 tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs
 
 # packages
-sudo apt-get autoremove docker docker.io thunderbird
+sudo apt-get autoremove docker docker.io thunderbird libreoffice-core
 sudo apt-get update && sudo apt-get dist-upgrade
-sudo apt-get install python3-pip curl ros-melodic-ros-base libpcl-dev libi2c-dev screen vim mc aptitude git
+sudo apt-get install python3-pip curl ros-melodic-ros-base libpcl-dev libi2c-dev screen vim mc aptitude git gstreamer1.0-gtk3
 
 # tensorflow https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html
 sudo apt-get install libhdf5-serial-dev hdf5-tools libhdf5-dev zlib1g-dev zip libjpeg8-dev liblapack-dev libblas-dev gfortran

@@ -236,7 +236,7 @@ class StatusMessagesDrawing:
         self.dashboard.set_subplot_data(self.plot_name, params)
 
 
-def draw_image_status_messages(ax, text):
+def draw_image_status_messages(ax, text):  # pylint: disable=C0103
     ax.text(-1, 1, text, fontsize=16)
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1, 1)

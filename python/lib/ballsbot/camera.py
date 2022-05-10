@@ -22,6 +22,7 @@ class CSICamera(SingletonConfigurable):
         self.fps = fps
         self.value = np.empty((image_height, image_width, 3), dtype=np.uint8)
         self.sensor_id = sensor_id
+        self.cap = None
         run_as_thread(self._capture_frames, self.stop)
 
     def _get_csi_gsreamer_str(self):
@@ -42,20 +43,23 @@ class CSICamera(SingletonConfigurable):
         self.cap = cv2.VideoCapture(self._get_csi_gsreamer_str(), cv2.CAP_GSTREAMER)  # pylint: disable=E1101, W0201
 
         ts = None
-        while True:
+        while self.cap is not None:
             ts = keep_rps(ts, fps=self.fps)
 
+            if not self.cap:
+                break
             ret, frame = self.cap.read()
             if not ret:
                 break
             self.value = frame
 
     def stop(self):
-        if hasattr(self, 'cap'):
+        if self.cap is not None:
             self.cap.release()
+            self.cap = None
 
 
-def get_images_and_cameras(image_width=320, image_height=240, fps=5):
+def get_cameras(image_width=320, image_height=240, fps=5):
     if MANIPULATOR.get('has_camera'):
         sensors = [0, 1]
     else:
@@ -63,12 +67,21 @@ def get_images_and_cameras(image_width=320, image_height=240, fps=5):
 
     result = []
     for sensor_number in sensors:
-        image = widgets.Image(format='jpeg', width=image_width, height=image_height)
         camera = CSICamera(
             capture_width=3264, capture_height=2464,
             image_width=image_width, image_height=image_height,
             fps=fps, sensor_id=sensor_number
         )
+        result.append(camera)
+
+    return result
+
+
+def get_images_and_cameras(image_width=320, image_height=240, fps=5):
+    cameras_list = get_cameras(image_width, image_height, fps)
+    result = []
+    for camera in cameras_list:
+        image = widgets.Image(format='jpeg', width=image_width, height=image_height)
         traitlets.dlink(
             (camera, 'value'),
             (image, 'value'),

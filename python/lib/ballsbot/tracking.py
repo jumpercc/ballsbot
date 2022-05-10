@@ -3,7 +3,7 @@ from ballsbot_localization import ballsbot_localization as grid
 from ballsbot.utils import keep_rps, run_as_thread
 from ballsbot.lidar import calibration_to_xywh
 from ballsbot.config import TURN_DIAMETER, FROM_LIDAR_TO_CENTER, CAR_WIDTH, CAR_LENGTH, FROM_LIDAR_TO_PIVOT_CENTER
-from ballsbot.ros_messages import get_ros_messages
+from ballsbot.pose import Pose
 
 
 class Tracker:
@@ -19,9 +19,9 @@ class Tracker:
         self.pose_deque_empty_times = 0
         self.sync_eps = 0.25  # seconds
         self.running = False
-        self.messenger = get_ros_messages()
         self.free_tile_centers = None
         self.target_point = None
+        self.pose = Pose()
 
     def stop(self):
         self.running = False
@@ -32,17 +32,9 @@ class Tracker:
         run_as_thread(self._start_tracking)
 
     def _update_pose(self):
-        data = self.messenger.get_message_data('pose')
-        if data:
-            self.current_pose = {
-                'imu_ts': data.imu_ts.to_sec(),
-                'odometry_ts': data.odometry_ts.to_sec(),
-                'self_ts': data.header.stamp.to_sec(),
-                'x': data.x,
-                'y': data.y,
-                'teta': data.teta,
-            }
-            self.current_pose['ts'] = self.current_pose['imu_ts']
+        data = self.pose.get_pose()
+        if data['ts']:
+            self.current_pose = data
             self.pose_deque.appendleft(self.current_pose)
 
     def get_current_pose(self):

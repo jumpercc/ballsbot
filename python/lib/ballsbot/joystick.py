@@ -24,30 +24,51 @@ class JoystickWrapperBase:
             'manipulator_directions': self.manipulator_directions.copy(),
         }
 
+    def stop(self):
+        self.steering = 0.
+        self.throttle = 0.
+        self.turbo_pressed = 0
 
-class JoystickWrapper(JoystickWrapperBase):
+        self.manipulator_fold_pressed = 0
+        self.manipulator_unfold_pressed = 0
+        self.manipulator_directions = [0 for _ in MANIPULATOR.get('servos', [])]
+
+
+class JoystickMock:
+    class JoystickMockButton:
+        def __init__(self):
+            self.value = None
+
+        def set_value(self, value):
+            self.value = value
+
+    def __init__(self, axes_count=4, buttons_count=17):
+        self.axes = [self.JoystickMockButton() for _ in range(axes_count)]
+        self.buttons = [self.JoystickMockButton() for _ in range(buttons_count)]
+
+    def set_values(self, axes_values, buttons_values):
+        assert len(axes_values) == len(self.axes), f'axes: {len(axes_values)} != {len(self.axes)}'
+        assert len(buttons_values) == len(self.buttons), f'buttons: {len(buttons_values)} != {len(self.buttons)}'
+        for i, value in enumerate(axes_values):
+            self.axes[i].set_value(value)
+        for i, value in enumerate(buttons_values):
+            self.buttons[i].set_value(value)
+
+    def stop(self):
+        for it in self.buttons:
+            it.set_value(0.)
+        for it in self.axes:
+            it.set_value(0.)
+
+
+class JoystickWrapperBaseWithUpdates(JoystickWrapperBase):
     def __init__(self, joystick):
         super().__init__()
         self.joystick = joystick
-        self.running = True
 
-        run_as_thread(self._start)
-
-    def stop(self):
-        self.running = False
-
-    def _start(self):
-        ts = None
-        while self.running:
-            ts = keep_rps(ts, fps=1)
-            if len(self.joystick.axes):
-                break
-
-        ts = None
-        while self.running:
-            ts = keep_rps(ts, fps=10)
-            self._update_car_controls()
-            self._update_manipulator_controls()
+    def update_all(self):
+        self._update_car_controls()
+        self._update_manipulator_controls()
 
     def _update_car_controls(self):
         steering_config = CAR_CONTROLS['steering']['control']
@@ -104,3 +125,26 @@ class JoystickWrapper(JoystickWrapperBase):
             self.manipulator_directions[servo_number] = -1
         else:
             self.manipulator_directions[servo_number] = 0
+
+
+class JoystickWrapper(JoystickWrapperBaseWithUpdates):
+    def __init__(self, joystick):
+        super().__init__(joystick)
+        self.running = True
+
+        run_as_thread(self._start)
+
+    def stop(self):
+        self.running = False
+
+    def _start(self):
+        ts = None
+        while self.running:
+            ts = keep_rps(ts, fps=1)
+            if len(self.joystick.axes):
+                break
+
+        ts = None
+        while self.running:
+            ts = keep_rps(ts, fps=10)
+            self.update_all()
