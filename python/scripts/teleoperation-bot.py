@@ -54,6 +54,8 @@ class TeleoperationBot:
         self.pose = None
         self.joystick_state_updated_at = None
         self.fps = 4
+        self.camera_image_width = 320
+        self.camera_image_height = 240
 
     def run(self):
         self.running = True
@@ -67,7 +69,11 @@ class TeleoperationBot:
 
         link_controller(self.joystick)
 
-        self.cameras = get_cameras(fps=self.fps)
+        self.cameras = get_cameras(
+            image_width=self.camera_image_width,
+            image_height=self.camera_image_height,
+            fps=self.fps,
+        )
 
         ts = None
         while self.running:
@@ -111,8 +117,7 @@ class TeleoperationBot:
     def get_image(self, index):
         return bgr8_to_jpeg(self.cameras[index].value)
 
-    @staticmethod
-    def get_settings():
+    def get_settings(self):
         return {
             'cameras': (
                     ['front'] +
@@ -127,6 +132,11 @@ class TeleoperationBot:
             'manipulator': MANIPULATOR.get('enabled'),
             'ups': bool(T208_UPS),
             'pose': True,
+            'updates_per_second': self.fps,
+            'camera_image': {
+                'width': self.camera_image_width,
+                'height': self.camera_image_height,
+            }
         }
 
 
