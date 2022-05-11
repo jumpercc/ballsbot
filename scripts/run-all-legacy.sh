@@ -43,7 +43,17 @@ if [ -z ${NO_DETECTION+x} ]; then
     sleep 1
 fi
 
-$DIR/run-jupyter.sh
+if [ -z ${LOCAL_PORT+x} ]; then
+  MY_IP=$(ifconfig | grep -P '\binet\b' | grep -vF 'inet 127.0.0.1' | head -1 | awk '{print $2}')
+else
+  MY_IP=127.0.0.1
+fi
+
+if [ -z ${TELEOPERATION+x} ]; then
+  $DIR/run-jupyter.sh $MY_IP
+else
+  $DIR/run-teleoperation.sh $MY_IP
+fi
 
 kill %2 2>/dev/null
 kill %3 2>/dev/null
