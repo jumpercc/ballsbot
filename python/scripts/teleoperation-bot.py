@@ -92,7 +92,8 @@ class TeleoperationBot:
         sleep(0.5)
 
         stop_controller()
-        self.manipulator.stop()
+        if self.manipulator:
+            self.manipulator.stop()
         for a_camera in self.cameras:
             a_camera.stop()
 
@@ -102,17 +103,14 @@ class TeleoperationBot:
         self.joystick_state_updated_at = time()
 
     def get_state(self):
-        state = {
+        return {
             'lidar': self.lidar.get_lidar_points(cached=False),
             'distance_sensors': self.lidar.cached_distances,  # must be after get_lidar_points
             'pose': self.pose.get_pose(),
             'bot_size': calibration_to_xywh(self.lidar.get_calibration()),
+            'ups': (self.ups.get_capacity() if self.ups else None),
+            'manipulator': (self.manipulator.get_track_frame() if self.manipulator else None),
         }
-        if self.ups:
-            state['ups'] = self.ups.get_capacity()
-        if self.manipulator:
-            state['manipulator'] = self.manipulator.get_track_frame()
-        return state
 
     def get_image(self, index):
         return bgr8_to_jpeg(self.cameras[index].value)
