@@ -236,14 +236,14 @@ class WebServerHandler(http.server.BaseHTTPRequestHandler):
 
                 if is_image_response:
                     self.send_header('Content-type', 'image/jpeg')
-                else:
-                    self.send_header('Content-type', 'application/json')
-                self.end_headers()
-
-                if is_image_response:
                     content = content_struct
                 else:
+                    self.send_header('Content-type', 'application/json')
                     content = json.dumps(content_struct).encode()
+
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+
                 self.wfile.write(content)
             else:
                 self.show_error(404, b'Not found')
@@ -254,6 +254,7 @@ class WebServerHandler(http.server.BaseHTTPRequestHandler):
     def show_error(self, http_code, content, content_type='text/plain'):
         self.send_response(http_code)
         self.send_header('Content-type', content_type)
+        self.send_header('Content-Length', str(len(content)))
         self.end_headers()
         self.wfile.write(content)
 
@@ -287,6 +288,8 @@ class WebServer:
     def start(self):
         self.httpd = socketserver.TCPServer((self.ip, self.port), WebServerHandler, bind_and_activate=False)
         self.httpd.allow_reuse_address = True
+        self.httpd.close_connection = False
+        self.httpd.protocol_version = 'HTTP/1.1'
         self.httpd.server_bind()
         self.httpd.server_activate()
 
