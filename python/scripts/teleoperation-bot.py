@@ -139,6 +139,9 @@ class TeleoperationBot:
 
 
 class WebServerHandler(http.server.BaseHTTPRequestHandler):
+    close_connection = False
+    protocol_version = 'HTTP/1.1'
+
     ACTIONS = {
         ('POST', '/auth'): 'handle_auth',
         ('GET', '/settings'): 'handle_settings',
@@ -288,8 +291,6 @@ class WebServer:
     def start(self):
         self.httpd = socketserver.TCPServer((self.ip, self.port), WebServerHandler, bind_and_activate=False)
         self.httpd.allow_reuse_address = True
-        self.httpd.close_connection = False
-        self.httpd.protocol_version = 'HTTP/1.1'
         self.httpd.server_bind()
         self.httpd.server_activate()
 
