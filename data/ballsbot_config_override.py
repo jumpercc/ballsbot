@@ -1,5 +1,7 @@
 import math
 
+T208_UPS = True
+
 # LIDAR_CALIBRATION = {
 #     'angle_fix': 3.1237764080339154,
 #     'fl_x': 0.23090432880217832,
