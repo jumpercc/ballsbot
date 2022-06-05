@@ -31,16 +31,25 @@ void GPIOManager::initGPIO() {
                     throw(std::runtime_error("Failed opening file: /sys/class/gpio/export"));
                 }
                 usleep(500000);
+            } else {
+                break;
             }
-            break;
         }
         file << this->xshutGPIOPin;
         file.close();
 
-        file.open(gpioDirectionFilename.c_str(), std::ofstream::out);
-        if (!file.is_open() || !file.good()) {
-            file.close();
-            throw(std::runtime_error(std::string("Failed opening file: ") + gpioDirectionFilename));
+        for (int i = 0; i < 3; ++i) {
+            file.open(gpioDirectionFilename.c_str(), std::ofstream::out);
+            if (!file.is_open() || !file.good()) {
+                file.close();
+                if (i == 2) {
+                    throw(std::runtime_error(std::string("Failed opening file: ") +
+                                             gpioDirectionFilename));
+                }
+                usleep(500000);
+            } else {
+                break;
+            }
         }
         file << "out";
         file.close();
