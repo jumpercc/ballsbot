@@ -1,3 +1,13 @@
 #!/bin/bash
 
 sudo -i -u ballsbot autossh -fnNT ballsbot-gw
+
+while : ; do
+    if nmcli d | grep -q gsm ; then
+        break
+    fi
+    sleep 5
+done
+sleep 2
+nmcli c up 'Beeline 3G modem' passwd-file /home/ballsbot/beeline
+
