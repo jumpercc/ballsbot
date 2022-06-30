@@ -16,6 +16,7 @@ from ballsbot_wheel_odometry.msg import OdometryState
 from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
 from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch, EncoderAngle
 from ballsbot_ups.msg import UpsState
+from ballsbot_camera.msg import Image
 
 CONFIG_BY_TYPE = {
     "ballsbot_laser_ranging_sensor": {
@@ -61,6 +62,17 @@ class RosMessages:
                 'msg_type': LaserScan,
             },
         ]
+
+        if MANIPULATOR.get('has_camera'):
+            camera_indexes = [0, 1]
+        else:
+            camera_indexes = [0]
+        for camera_index in camera_indexes:
+            self.subscribe_to.append({
+                'name': f'cam_image_{camera_index}',
+                'topic': f'/cam_image/{camera_index}',
+                'msg_type': Image,
+            })
 
         if DISTANCE_SENSORS_MESSAGE_TYPE == "ballsbot_laser_ranging_sensor":
             for sensor_name in DISTANCE_SENSORS:

@@ -11,6 +11,8 @@ from urllib.parse import parse_qs
 import os.path
 import uuid
 import ssl
+import numpy as np
+import cv2
 
 logging.basicConfig(
     format='[%(asctime)s] %(levelname)s %(name)s: %(message).700s',
@@ -29,9 +31,10 @@ from ballsbot.ros_messages import get_ros_messages
 from ballsbot.manipulator import Manipulator
 from ballsbot.joystick import JoystickWrapperBaseWithUpdates, JoystickMock
 from ballsbot.ups import UPS
-from ballsbot.camera import get_cameras
+from ballsbot.ros_cameras import Cameras
 from ballsbot.pose import Pose
 from ballsbot.lidar import calibration_to_xywh
+from ballsbot.detection import Detector
 
 server_config_dir = '/home/ballsbot/web_server_config'
 expected_password = None
@@ -56,6 +59,7 @@ class TeleoperationBot:
         self.fps = 4
         self.camera_image_width = 320
         self.camera_image_height = 240
+        self.detector = Detector()
 
     def run(self):
         self.running = True
@@ -69,11 +73,7 @@ class TeleoperationBot:
 
         link_controller(self.joystick)
 
-        self.cameras = get_cameras(
-            image_width=self.camera_image_width,
-            image_height=self.camera_image_height,
-            fps=self.fps,
-        )
+        self.cameras = Cameras()
 
         ts = None
         while self.running:
@@ -94,8 +94,6 @@ class TeleoperationBot:
         stop_controller()
         if self.manipulator:
             self.manipulator.stop()
-        for a_camera in self.cameras:
-            a_camera.stop()
 
     def update_joystick_state(self, axes, buttons):
         self.joystick_mock.set_values(axes_values=axes, buttons_values=buttons)
@@ -110,10 +108,27 @@ class TeleoperationBot:
             'bot_size': calibration_to_xywh(self.lidar.get_calibration()),
             'ups': (self.ups.get_capacity() if self.ups else None),
             'manipulator': (self.manipulator.get_track_frame() if self.manipulator else None),
+            'detections': self.detector.get_detections(),
         }
 
     def get_image(self, index):
-        return bgr8_to_jpeg(self.cameras[index].value)
+        raw_images = self.cameras.get_images()
+        if index in raw_images:
+            raw_rgb_bytes = np.asarray(
+                bytearray(raw_images[index].image), dtype=np.uint8
+            ).reshape(
+                (raw_images[index].image_height, raw_images[index].image_width, 3)
+            )
+            raw_value = cv2.resize(
+                raw_rgb_bytes,
+                (self.camera_image_width, self.camera_image_height),
+                0, 0,
+                cv2.INTER_AREA
+            )
+        else:
+            raw_value = np.empty((self.camera_image_height, self.camera_image_width, 3), dtype=np.uint8)
+
+        return bgr8_to_jpeg(raw_value)
 
     def get_settings(self):
         return {

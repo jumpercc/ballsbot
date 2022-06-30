@@ -38,6 +38,9 @@ sleep 1
 $DIR/run-ballsbot_pose.sh > ~/pose.log 2>&1 &
 sleep 1
 
+$DIR/run-ballsbot_camera.sh 1 > ~/camera.log 2>&1 &
+sleep 1
+
 if [ -z ${NO_UPS+x} ]; then
   $DIR/run-ballsbot_ups.sh > ~/ups.log 2>&1 &
   sleep 1
@@ -67,5 +70,6 @@ kill %5 2>/dev/null
 kill %6 2>/dev/null
 kill %7 2>/dev/null
 kill %8 2>/dev/null
+kill %9 2>/dev/null
 
 kill %1 2>/dev/null

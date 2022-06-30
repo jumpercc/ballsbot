@@ -19,6 +19,10 @@ class Detector:
         }
         self.messenger = get_ros_messages()
 
+    def get_detections(self):
+        self.get_seen_object()
+        return self.objects_detected.copy() if self.objects_detected else None
+
     def get_seen_object(self):
         data = self.messenger.get_message_data('cam_detections')
         if data is not None:
