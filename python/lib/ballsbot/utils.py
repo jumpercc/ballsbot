@@ -54,9 +54,11 @@ def run_as_thread(an_action, stop_action=None, *args, **kwargs):  # pylint: disa
     _all_threads.append(a_thread)
 
 
-def join_all_theads():
+def join_all_threads():
+    my_ident = threading.current_thread().ident
     for a_thread in _all_threads:
-        a_thread.join(timeout=0.1)
+        if my_ident != a_thread.ident:
+            a_thread.join(timeout=0.1)
 
 
 def bgr8_to_jpeg(value):

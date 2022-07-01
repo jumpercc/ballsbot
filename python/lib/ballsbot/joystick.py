@@ -67,10 +67,10 @@ class JoystickWrapperBaseWithUpdates(JoystickWrapperBase):
         self.joystick = joystick
 
     def update_all(self):
-        self._update_car_controls()
+        self.update_car_controls()
         self._update_manipulator_controls()
 
-    def _update_car_controls(self):
+    def update_car_controls(self):
         steering_config = CAR_CONTROLS['steering']['control']
         throttle_config = CAR_CONTROLS['throttle']['control']
         invert_throttle = throttle_config.get('invert')

@@ -6,7 +6,7 @@ import ballsbot.config as config
 
 config.ENABLE_MULTIPROCESSING = False
 
-from ballsbot.utils import keep_rps, join_all_theads, _all_threads
+from ballsbot.utils import keep_rps, join_all_threads, _all_threads
 from ballsbot.augmented_lidar import get_augmented_lidar
 from ballsbot.ros_messages import get_ros_messages
 from ballsbot.manipulator import Manipulator
@@ -72,7 +72,7 @@ def main():
         ts = keep_rps(ts, fps=1)
         if all(x.is_alive() for x in _all_threads):
             break
-        join_all_theads()
+        join_all_threads()
 
 
 if __name__ == '__main__':

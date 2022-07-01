@@ -13,7 +13,7 @@ sys.path.append('/home/ballsbot/projects/ballsbot/python/lib')
 
 from ballsbot.manipulator_runner import ManipulatorRunner
 from ballsbot.poses_generators import DetectorPoses
-from ballsbot.utils import run_as_thread, join_all_theads
+from ballsbot.utils import run_as_thread, join_all_threads
 from ballsbot.ros_messages import get_ros_messages
 
 
@@ -27,7 +27,7 @@ def main():
     run_as_thread(lambda: bot.run(save_track_to=args.save_track_to))
     get_ros_messages().start(sync=True)
     bot.stop()
-    join_all_theads()
+    join_all_threads()
 
 
 if __name__ == '__main__':

@@ -1,10 +1,15 @@
+from time import time
+
 from ballsbot.augmented_lidar import AugmentedLidar, get_augmented_lidar
 from ballsbot_localization import ballsbot_localization as grid
 
 
 class LidarWithMemory:
-    def __init__(self, lidar=None, distance_sensors=None):
-        if lidar:
+    def __init__(self, lidar=None, distance_sensors=None, augmented_lidar=None, already_running=False):
+        self.already_running = already_running
+        if augmented_lidar:
+            self.lidar = augmented_lidar
+        elif lidar:
             self.lidar = AugmentedLidar(lidar, distance_sensors)
         else:
             self.lidar = get_augmented_lidar()
@@ -14,7 +19,9 @@ class LidarWithMemory:
         return self.lidar.get_calibration()
 
     def start(self):
-        self.lidar.start()
+        grid.clean_up_grid(time())
+        if not self.already_running:
+            self.lidar.start()
 
     def tick(self, pose):
         """
@@ -28,7 +35,7 @@ class LidarWithMemory:
         use tick or tick_get_points+tick_update_grid
         """
         return {
-            'points': self.lidar.get_lidar_points(cached=False),
+            'points': self.lidar.get_lidar_points(cached=self.already_running),
             'ts': self.lidar.get_points_ts(),
         }
 

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 sys.path.append('/home/ballsbot/projects/ballsbot/python/lib')
 
-from ballsbot.utils import run_as_thread, join_all_theads, keep_rps, bgr8_to_jpeg
+from ballsbot.utils import run_as_thread, join_all_threads, keep_rps, bgr8_to_jpeg
 from ballsbot.config import MANIPULATOR, T208_UPS, DISTANCE_SENSORS
 from ballsbot.controller import link_controller, stop_controller
 from ballsbot.augmented_lidar import get_augmented_lidar
@@ -35,6 +35,9 @@ from ballsbot.ros_cameras import Cameras
 from ballsbot.pose import Pose
 from ballsbot.lidar import calibration_to_xywh
 from ballsbot.detection import Detector
+from ballsbot.ai.explorer import Explorer
+from ballsbot.manipulator_runner import ManipulatorRunner
+from ballsbot.poses_generators import DetectorPoses
 
 server_config_dir = '/home/ballsbot/web_server_config'
 expected_password = None
@@ -60,6 +63,8 @@ class TeleoperationBot:
         self.camera_image_width = 320
         self.camera_image_height = 240
         self.detector = Detector()
+        self.bot_mode = "manual"
+        self.current_bot = None
 
     def run(self):
         self.running = True
@@ -88,6 +93,10 @@ class TeleoperationBot:
     def stop(self):
         self.running = False
 
+        if self.current_bot:
+            self.current_bot.stop()
+            self.current_bot = None
+
         self.joystick.stop()
         sleep(0.5)
 
@@ -95,9 +104,29 @@ class TeleoperationBot:
         if self.manipulator:
             self.manipulator.stop()
 
-    def update_joystick_state(self, axes, buttons):
-        self.joystick_mock.set_values(axes_values=axes, buttons_values=buttons)
-        self.joystick.update_all()
+    def update_joystick_state(self, axes, buttons, mode):
+        if self.bot_mode != mode:
+            self.joystick_mock.stop()
+            self.joystick.update_all()
+
+        self.bot_mode = mode
+
+        if mode == 'manual':
+            if self.current_bot:
+                self.current_bot.stop()
+                self.current_bot = None
+                join_all_threads()
+            self.joystick_mock.set_values(axes_values=axes, buttons_values=buttons)
+            self.joystick.update_all()
+        elif mode in {'claw-detector', 'explorer'}:
+            # TODO car controls for claw-detector
+            if not self.current_bot:
+                self.current_bot = self._get_bot_for(mode)
+                run_as_thread(lambda: self.current_bot.run())
+        else:
+            logger.warning('unknown bot mode %s', mode)
+            self.bot_mode = 'manual'
+
         self.joystick_state_updated_at = time()
 
     def get_state(self):
@@ -109,6 +138,13 @@ class TeleoperationBot:
             'ups': (self.ups.get_capacity() if self.ups else None),
             'manipulator': (self.manipulator.get_track_frame() if self.manipulator else None),
             'detections': self.detector.get_detections(),
+            'current_mode': self.bot_mode,
+            'modes_available': [
+                                   'manual',
+                                   'explorer',
+                               ] + (
+                                   ['claw-detector'] if self.manipulator else []
+                               ),
         }
 
     def get_image(self, index):
@@ -151,6 +187,28 @@ class TeleoperationBot:
                 'height': self.camera_image_height,
             }
         }
+
+    def _get_bot_for(self, mode):
+        if mode == 'claw-detector':
+            poses_generator = DetectorPoses(
+                detector=self.detector,
+                already_running=True,
+            )
+            return ManipulatorRunner(
+                poses_generator,
+                joystick=self.joystick,
+                manipulator=self.manipulator,
+                already_running=True,
+            )
+        elif mode == 'explorer':
+            return Explorer(
+                augmented_lidar=self.lidar,
+                detector=self.detector,
+                joystick=self.joystick,
+                already_running=True,
+            )
+        else:
+            raise NotImplementedError(mode)
 
 
 class WebServerHandler(http.server.BaseHTTPRequestHandler):
@@ -204,8 +262,9 @@ class WebServerHandler(http.server.BaseHTTPRequestHandler):
     @staticmethod
     def handle_controller_state(parameters):
         global bot
+        mode = parameters.get('mode')
         controller_state = json.loads(parameters.get('controller_state'))
-        bot.update_joystick_state(axes=controller_state['axes'], buttons=controller_state['buttons'])
+        bot.update_joystick_state(axes=controller_state['axes'], buttons=controller_state['buttons'], mode=mode)
         return bot.get_state()
 
     def generic_handle(self, http_method):
@@ -351,7 +410,7 @@ def main():
         pass
     web_server.stop()
     bot.stop()
-    join_all_theads()
+    join_all_threads()
 
 
 if __name__ == '__main__':

@@ -28,11 +28,12 @@ class PosesCycle:
 class DetectorPoses:
     STEP = 0.25  # radians
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.cycle = PosesCycle(self._get_guard_route_poses())
         self.detector_wrapper = DetectorWrapper(
             MANIPULATOR_DETECTION_MAX_DISTANCE_FROM_CENTER_X,
-            MANIPULATOR_DETECTION_MAX_DISTANCE_FROM_CENTER_Y
+            MANIPULATOR_DETECTION_MAX_DISTANCE_FROM_CENTER_Y,
+            **kwargs
         )
 
     def _get_guard_route_poses(self):

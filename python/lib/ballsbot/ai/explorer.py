@@ -50,16 +50,21 @@ class Explorer:
     BACKWARD_THROTTLE = -1.
     STOP = 0.
 
-    def __init__(self):
+    def __init__(self, augmented_lidar=None, detector=None, joystick=None, already_running=False):
         if ENGINE_NEED_MANUAL_BREAKING:
             self.direction_translator = ExplorerDriverWithManualBreaking()
         else:
             self.direction_translator = ExplorerDriverWithAutoBreaking()
 
-        self.lidar = LidarWithMemory()
-        self.car_controls = get_controls()
+        self.lidar = LidarWithMemory(augmented_lidar=augmented_lidar, already_running=already_running)
+        if joystick:
+            self.joystick = joystick
+            self.car_controls = None
+        else:
+            self.car_controls = get_controls()
+            self.joystick = None
         self.tracker = Tracker(self.lidar)
-        self.detector_wrapper = DetectorWrapper()
+        self.detector_wrapper = DetectorWrapper(detector=detector, already_running=already_running)
 
         self.cached_weights = None
         self.cached_direction = None
@@ -157,8 +162,12 @@ class Explorer:
         return {'steering': steering, 'throttle': throttle}
 
     def _follow_direction(self, direction):
-        self.car_controls['steering'].run(direction['steering'])
-        self.car_controls['throttle'].run(direction['throttle'])
+        if self.joystick:
+            self.joystick.steering = direction['steering']
+            self.joystick.throttle = direction['throttle']
+        else:
+            self.car_controls['steering'].run(direction['steering'])
+            self.car_controls['throttle'].run(direction['throttle'])
 
     def _get_preferred_directions(self, detected_object):
         """
