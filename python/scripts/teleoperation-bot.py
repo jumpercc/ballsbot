@@ -155,12 +155,18 @@ class TeleoperationBot:
             ).reshape(
                 (raw_images[index].image_height, raw_images[index].image_width, 3)
             )
-            raw_value = cv2.resize(
-                raw_rgb_bytes,
-                (self.camera_image_width, self.camera_image_height),
-                0, 0,
-                cv2.INTER_AREA
-            )
+            if (
+                    raw_images[index].image_height == self.camera_image_height and
+                    raw_images[index].image_width == self.camera_image_width
+            ):
+                raw_value = raw_rgb_bytes
+            else:
+                raw_value = cv2.resize(
+                    raw_rgb_bytes,
+                    (self.camera_image_width, self.camera_image_height),
+                    0, 0,
+                    cv2.INTER_AREA
+                )
         else:
             raw_value = np.empty((self.camera_image_height, self.camera_image_width, 3), dtype=np.uint8)
 

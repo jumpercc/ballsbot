@@ -9,8 +9,10 @@ int main(int argc, char **argv) {
 
     uint8_t cameras_count = 2;
     uint8_t frame_rate = 4;
-    uint16_t display_width = 640;
-    uint16_t display_height = 480;
+    uint16_t first_display_width = 640;
+    uint16_t first_display_height = 480;
+    uint16_t other_display_width = 320;
+    uint16_t other_display_height = 240;
 
     if (argc >= 2) {
         cameras_count = atoi(argv[1]);
@@ -26,7 +28,9 @@ int main(int argc, char **argv) {
         ROS_INFO("starting camera %d", camera_index);
         chatter_pubs.push_back(n.advertise<ballsbot_camera::Image>(
             std::string("cam_image/") + std::to_string(camera_index), 1));
-        captures.emplace_back(camera_index, frame_rate, display_width, display_height);
+        captures.emplace_back(camera_index, frame_rate,
+                              (camera_index == 0 ? first_display_width : other_display_width),
+                              (camera_index == 0 ? first_display_height : other_display_height));
         ROS_INFO("camera %d started", camera_index);
     }
     ROS_INFO("cameras started");
@@ -39,8 +43,8 @@ int main(int argc, char **argv) {
             ballsbot_camera::Image msg;
             msg.header.stamp = ros::Time::now();
             msg.camera_index = camera_index;
-            msg.image_width = display_width;
-            msg.image_height = display_height;
+            msg.image_width = (camera_index == 0 ? first_display_width : other_display_width);
+            msg.image_height = (camera_index == 0 ? first_display_height : other_display_height);
             msg.image = images[camera_index];
             chatter_pubs[camera_index].publish(msg);
         }
