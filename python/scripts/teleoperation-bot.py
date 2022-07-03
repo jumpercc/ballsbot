@@ -111,18 +111,19 @@ class TeleoperationBot:
 
         self.bot_mode = mode
 
+        self.joystick_mock.set_values(axes_values=axes, buttons_values=buttons)
         if mode == 'manual':
             if self.current_bot:
                 self.current_bot.stop()
                 self.current_bot = None
                 join_all_threads()
-            self.joystick_mock.set_values(axes_values=axes, buttons_values=buttons)
             self.joystick.update_all()
         elif mode in {'claw-detector', 'explorer'}:
-            # TODO car controls for claw-detector
             if not self.current_bot:
                 self.current_bot = self._get_bot_for(mode)
                 run_as_thread(lambda: self.current_bot.run())
+            if mode == 'claw-detector':
+                self.joystick.update_car_controls()
         else:
             logger.warning('unknown bot mode %s', mode)
             self.bot_mode = 'manual'
