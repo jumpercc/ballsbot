@@ -19,10 +19,10 @@ class ManipulatorRunner:
     INTENDED_EPS = 0.05
     REAL_EPS = 0.2
 
-    def __init__(self, poses_generator, joystick=None, manipulator=None, already_running=False):
+    def __init__(self, poses_generator, joystick=None, manipulator=None, already_running=False, without_encoders=False):
         self.already_running = already_running
         self.joystick = (joystick or JoystickWrapperBase())
-        self.manipulator = (manipulator or Manipulator(self.joystick))
+        self.manipulator = (manipulator or Manipulator(self.joystick, without_encoders=without_encoders))
         self.running = False
         self.poses_generator = poses_generator
         self.need_pose = None

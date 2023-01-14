@@ -129,7 +129,7 @@ class Manipulator:
                     continue
                 servo = MANIPULATOR['servos'][i - 1]
                 real_angle = real_angles.get(servo['encoder_name'], {}).get('value') if real_angles else None
-                intended_angle = get_inteneded_angle(servo_positions[i - 1], servo)
+                intended_angle = get_intended_angle(servo_positions[i - 1], servo)
 
                 jammed_state = None
                 if real_angle is not None:
@@ -193,7 +193,7 @@ class Manipulator:
         }
 
 
-def get_inteneded_angle(servo_position, servo_config):
+def get_intended_angle(servo_position, servo_config):
     return float_map_range(
         servo_position,
         -1., 1.,

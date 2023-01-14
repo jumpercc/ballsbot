@@ -103,3 +103,12 @@ make -j$(nproc)
 ln -s /home/ballsbot/projects/ballsbot/data/ballsbot_config_override.py
 ~/projects/ballsbot/scripts/make-ros-modules.sh
 sudo nvpmodel -m 1
+
+# config for teleoperation app
+cd
+mkdir web_server_config_$(ifconfig | grep -P '\binet\b' | grep -vF 'inet 127.0.0.1' | head -1 | awk '{print $2}')
+cd web_server_config_*
+cp ~/projects/ballsbot/data/cert.config ./
+# edit cert.config : set ip from directory name above
+openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout certificate_key -out certificate -config cert.config
+# create password file with password inside (for app access)

@@ -17,12 +17,14 @@ class MagneticEncoders:
 
     def start(self):
         if has_magnetic_encoders():
-            for servo_config in MANIPULATOR['servos']:
+            for i, servo_config in enumerate(MANIPULATOR['servos']):
                 sensor_name = servo_config['encoder_name']
-                self.servo_config_by_name[sensor_name] = servo_config
+                self.servo_config_by_name[sensor_name] = servo_config.copy()
+                self.servo_config_by_name[sensor_name]['encoder_offset'] = MANIPULATOR['encoders_calibration'][i]
                 self.default_angles[sensor_name] = {
                     'value': None,
                     'ts': None,
+                    'raw_value': None,
                 }
 
     def get_angles(self):
@@ -30,9 +32,10 @@ class MagneticEncoders:
         result = deepcopy(self.default_angles)
         if data_by_name:
             for sensor_name, data in data_by_name.items():
+                result[sensor_name]['raw_value'] = data.angle
                 servo_config = self.servo_config_by_name[sensor_name]
                 reverse = -1. if servo_config.get('reverse_encoder') else 1.
-                result[sensor_name]['value'] = reverse * (reverse * data.angle - servo_config['encoder_offset'])
+                result[sensor_name]['value'] = reverse * (data.angle - servo_config['encoder_offset'])
                 if result[sensor_name]['value'] < -pi:
                     result[sensor_name]['value'] += 2 * pi
                 elif result[sensor_name]['value'] > pi:
