@@ -119,7 +119,9 @@ uint16_t GetDistanceFromLaserSensorWithTimeout(uint8_t bus_number, uint8_t senso
             throw std::runtime_error("timeouts limit exceeded");
         }
         auto laser_sensor = laser_sensors_cache[sensor_key];
-        laser_sensor->closeVL53L0X();
+        if (laser_sensor) {
+            laser_sensor->closeVL53L0X();
+        }
         laser_sensors_cache.erase(laser_sensors_cache.find(sensor_key));
         return kNotAvailable;
     }
