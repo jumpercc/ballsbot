@@ -94,3 +94,10 @@ Images are for 64GB SD cards.
 Login& password: `ballsbot`.
 
 You need to connect to your wi-fi and make this connection "avaliable for all users" (checkbox in network settings).
+
+### Dev docker
+
+```
+docker build -t ballsbot -f docker/Dockerfile .
+docker run -d -v `pwd`:/home/ballsbot/projects/ballsbot ballsbot
+```

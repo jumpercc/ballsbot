@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ~/catkin_ws/
+cd /home/ballsbot/catkin_ws/
 
 source /opt/ros/melodic/setup.bash
 source devel/setup.bash
