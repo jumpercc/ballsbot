@@ -80,7 +80,7 @@ setup(
     description='manipulator pose calculation',
     version='0.1',
     author='Oleg Nurtdinov',
-    author_email='j@jumper.cc',
+    author_email='jumperpro@gmail.com',
     license='BSD',
     packages=[
         "ballsbot_manipulator_geometry",

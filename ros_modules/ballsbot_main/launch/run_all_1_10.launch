@@ -1,0 +1,12 @@
+<launch>
+    <include file="/home/ballsbot/catkin_ws/src/ydlidar_ros/launch/X2L.launch" />
+    <node pkg="ballsbot_tca9548" type="publisher_tca9548" name="publisher_tca9548" args="0 119" />
+    <group>
+        <node pkg="ballsbot_imu" type="publisher_imu.py" name="publisher_imu" />
+        <node pkg="ballsbot_wheel_odometry" type="publisher_wheel_odometry.py" name="publisher_wheel_odometry" />
+        <node pkg="ballsbot_pose" type="publisher_pose" name="publisher_pose" />
+    </group>
+    <node pkg="ballsbot_ups" type="publisher_ups.py" name="publisher_ups" />
+    <node pkg="ballsbot_camera" type="camera_publisher" name="camera_publisher" args="2" />
+    <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" />
+</launch>

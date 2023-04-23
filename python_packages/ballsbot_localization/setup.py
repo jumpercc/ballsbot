@@ -67,7 +67,7 @@ setup(
     description='Python bindings for ballsbot_localization functions.',
     version='0.2',
     author='Oleg Nurtdinov',
-    author_email='j@jumper.cc',
+    author_email='jumperpro@gmail.com',
     license='BSD',
     packages=[
         "ballsbot_localization",

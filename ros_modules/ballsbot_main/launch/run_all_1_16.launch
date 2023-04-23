@@ -1,0 +1,17 @@
+<launch>
+    <include file="/home/ballsbot/catkin_ws/src/ydlidar_ros/launch/X2L.launch" />
+    <group>
+        <node pkg="ballsbot_laser_ranging_sensor" type="publisher_laser_sensor"
+            name="ballsbot_laser_ranging_sensor_front" args="1 front" />
+        <node pkg="ballsbot_laser_ranging_sensor" type="publisher_laser_sensor"
+            name="ballsbot_laser_ranging_sensor_rear" args="1 rear" />
+    </group>
+    <group>
+        <node pkg="ballsbot_imu" type="publisher_imu.py" name="publisher_imu" />
+        <node pkg="ballsbot_wheel_odometry" type="publisher_wheel_odometry.py" name="publisher_wheel_odometry" />
+        <node pkg="ballsbot_pose" type="publisher_pose" name="publisher_pose" />
+    </group>
+    <node pkg="ballsbot_ups" type="publisher_ups.py" name="publisher_ups" />
+    <node pkg="ballsbot_camera" type="camera_publisher" name="camera_publisher" args="1" />
+    <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" />
+</launch>

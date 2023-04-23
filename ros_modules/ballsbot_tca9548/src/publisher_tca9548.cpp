@@ -140,7 +140,7 @@ double GetAngleFromMagneticEncoder(uint8_t bus_number, kDeviceType device_type,
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
+    if (argc < 3) {
         std::cerr << "USAGE: publisher_tca9548 <bus_number> <device_address>\n";
         exit(1);
     }

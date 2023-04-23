@@ -1,4 +1,4 @@
-[sudo nvpmodel -m 0
+sudo nvpmodel -m 0
 
 # for JetPack 4.6
 tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs
@@ -49,16 +49,6 @@ source /opt/ros/melodic/setup.bash
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/
 catkin_make
-
-# lidar
-cd ~/projects/ydlidar_ws/
-source /opt/ros/melodic/setup.bash
-source devel/setup.bash
-rm -rf /home/ballsbot/projects/ydlidar_ws/build
-catkin_make
-roscd ydlidar_ros/startup
-sudo chmod 777 ./*
-sudo sh initenv.sh
 
 # jupyter
 sudo ifconfig docker0 down
