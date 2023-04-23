@@ -1,4 +1,4 @@
-sudo nvpmodel -m 0
+[sudo nvpmodel -m 0
 
 # for JetPack 4.6
 tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs

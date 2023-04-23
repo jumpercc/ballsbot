@@ -1,8 +1,9 @@
 #!/bin/bash
 
-source /opt/ros/melodic/setup.bash
-source ~/projects/ydlidar_ws/devel/setup.bash
+cd ~/catkin_ws/
 
-cd ~/projects/ydlidar_ws/ && \
+source /opt/ros/melodic/setup.bash
+source devel/setup.bash
+
 roslaunch ydlidar_ros X2L.launch
 

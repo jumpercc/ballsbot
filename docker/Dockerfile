@@ -67,10 +67,9 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
     && catkin_make
 
 # lidar
-RUN mkdir -p /home/ballsbot/projects/ydlidar_ws
-COPY ./docker/ydlidar_ws/ /home/ballsbot/projects/ydlidar_ws/
-RUN cd /home/ballsbot/projects/ydlidar_ws/ \
-    && source /opt/ros/melodic/setup.bash \
+COPY ./docker/ydlidar_ros/ /home/ballsbot/catkin_ws/src/ydlidar_ros/
+RUN source /opt/ros/melodic/setup.bash \
+    && cd /home/ballsbot/catkin_ws/ \
     && catkin_make \
     && source devel/setup.bash \
     && roscd ydlidar_ros/startup \
@@ -88,7 +87,8 @@ RUN pip3 install pip -U \
     jupyterlab \
     Pillow \
     smbus \
-    Cython
+    Cython \
+    flake8
 RUN pip3 install matplotlib -U
 
 # imu
