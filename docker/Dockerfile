@@ -88,7 +88,8 @@ RUN pip3 install pip -U \
     Pillow \
     smbus \
     Cython \
-    flake8
+    flake8 \
+    numpy
 RUN pip3 install matplotlib -U
 
 # imu
