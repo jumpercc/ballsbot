@@ -3,6 +3,8 @@ SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update -y \
     && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
+    python3-dev \
+    python3-numpy \
     python3-pip \
     curl \
     libpcl-dev \
@@ -53,6 +55,9 @@ RUN cd /home/ballsbot/projects \
         -D BUILD_PERF_TESTS=OFF \
         -D BUILD_EXAMPLES=OFF \
         -D CMAKE_BUILD_TYPE=RELEASE \
+        -D INSTALL_C_EXAMPLES=OFF \
+        -D INSTALL_PYTHON_EXAMPLES=OFF \
+        -D PYTHON3_PACKAGES_PATH=/usr/lib/python3/dist-packages \
         -D CMAKE_INSTALL_PREFIX=/usr/local .. \
     && make -j4 \
     && make install

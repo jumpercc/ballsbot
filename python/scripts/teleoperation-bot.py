@@ -8,7 +8,6 @@ from typing import Optional
 import http.server
 import socketserver
 from urllib.parse import parse_qs
-import os.path
 import uuid
 import ssl
 import numpy as np
@@ -60,8 +59,8 @@ class TeleoperationBot:
         self.pose = None
         self.joystick_state_updated_at = None
         self.fps = 4
-        self.camera_image_width = 320
-        self.camera_image_height = 240
+        self.camera_image_width = None
+        self.camera_image_height = None
         self.detector = Detector()
         self.bot_mode = "manual"
         self.current_bot = None
@@ -79,6 +78,12 @@ class TeleoperationBot:
         link_controller(self.joystick)
 
         self.cameras = Cameras()
+        if self.cameras.count() == 1:
+            self.camera_image_width = 640
+            self.camera_image_height = 480
+        else:
+            self.camera_image_width = 320
+            self.camera_image_height = 240
 
         ts = None
         while self.running:

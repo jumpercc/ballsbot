@@ -14,3 +14,6 @@ class Cameras:
         return {
             x: self.messenger.get_message_data(f'cam_image_{x}') for x in self.camera_indexes
         }
+
+    def count(self):
+        return len(self.camera_indexes)
