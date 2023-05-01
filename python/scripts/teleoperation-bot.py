@@ -45,7 +45,7 @@ bot: Optional['TeleoperationBot'] = None
 
 
 class TeleoperationBot:
-    def __init__(self):
+    def __init__(self, small_images):
         self.lidar = None
         self.ups = None
         self.joystick_mock = JoystickMock()
@@ -59,8 +59,14 @@ class TeleoperationBot:
         self.pose = None
         self.joystick_state_updated_at = None
         self.fps = 4
-        self.camera_image_width = None
-        self.camera_image_height = None
+        self.camera_dimensions = [
+            (
+                {'width': 320, 'height': 240}
+                if small_images else
+                {'width': 640, 'height': 480}
+            ),
+            {'width': 320, 'height': 240},
+        ]
         self.detector = Detector()
         self.bot_mode = "manual"
         self.current_bot = None
@@ -78,12 +84,7 @@ class TeleoperationBot:
         link_controller(self.joystick)
 
         self.cameras = Cameras()
-        if self.cameras.count() == 1:
-            self.camera_image_width = 640
-            self.camera_image_height = 480
-        else:
-            self.camera_image_width = 320
-            self.camera_image_height = 240
+        assert self.cameras.count() <= len(self.camera_dimensions)
 
         ts = None
         while self.running:
@@ -162,19 +163,19 @@ class TeleoperationBot:
                 (raw_images[index].image_height, raw_images[index].image_width, 3)
             )
             if (
-                    raw_images[index].image_height == self.camera_image_height and
-                    raw_images[index].image_width == self.camera_image_width
+                    raw_images[index].image_height == self.camera_dimensions[index]['height'] and
+                    raw_images[index].image_width == self.camera_dimensions[index]['width']
             ):
                 raw_value = raw_rgb_bytes
             else:
                 raw_value = cv2.resize(
                     raw_rgb_bytes,
-                    (self.camera_image_width, self.camera_image_height),
+                    (self.camera_dimensions[index]['width'], self.camera_dimensions[index]['height']),
                     0, 0,
                     cv2.INTER_AREA
                 )
         else:
-            raw_value = np.empty((self.camera_image_height, self.camera_image_width, 3), dtype=np.uint8)
+            raw_value = np.empty((self.camera_dimensions[index]['height'], self.camera_dimensions[index]['width'], 3), dtype=np.uint8)
 
         return bgr8_to_jpeg(raw_value)
 
@@ -194,10 +195,7 @@ class TeleoperationBot:
             'ups': bool(T208_UPS),
             'pose': True,
             'updates_per_second': self.fps,
-            'camera_image': {
-                'width': self.camera_image_width,
-                'height': self.camera_image_height,
-            }
+            'camera_image': self.camera_dimensions[0:self.cameras.count()],
         }
 
     def _get_bot_for(self, mode):
@@ -413,7 +411,9 @@ def main():
     web_server = WebServer(server_config_dir, args)
     run_as_thread(web_server.start)
 
-    bot = TeleoperationBot()
+    bot = TeleoperationBot(
+        small_images=(args.ip == '127.0.0.1'),
+    )
     run_as_thread(bot.run)
 
     try:
