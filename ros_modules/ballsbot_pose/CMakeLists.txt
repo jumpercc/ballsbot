@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
+  tf
+  nav_msgs
 )
 
 add_message_files(
@@ -19,16 +21,20 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  nav_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS
+  message_runtime
+  tf
+  nav_msgs
 #  DEPENDS system_lib
 )
 
 include_directories(
-        ${catkin_INCLUDE_DIRS}
-        src
+  ${catkin_INCLUDE_DIRS}
+  src
 )
 
 add_executable(publisher_pose src/publisher_pose.cpp)

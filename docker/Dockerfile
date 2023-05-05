@@ -65,11 +65,12 @@ RUN cd /home/ballsbot/projects \
 # ros
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \
     && curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - \
-    && apt-get update -y && apt-get install -y ros-melodic-ros-base \
+    && apt-get update -y && apt-get install -y ros-melodic-ros-base python3-rosdep \
     && source /opt/ros/melodic/setup.bash \
     && mkdir -p /home/ballsbot/catkin_ws/src \
     && cd /home/ballsbot/catkin_ws/ \
     && catkin_make
+    && rosdep init && rosdep update
 
 # lidar
 COPY ./docker/ydlidar_ros/ /home/ballsbot/catkin_ws/src/ydlidar_ros/
@@ -127,4 +128,4 @@ RUN ln -s /usr/local/include/opencv4 /usr/include/opencv4 \
 
 WORKDIR /home/ballsbot/projects/ballsbot
 
-CMD [ "bash", "-c", "sleep 200000"]
+CMD [ "bash", "-c", "sleep inf"]

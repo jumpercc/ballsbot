@@ -6,7 +6,7 @@ tar xzf ballsbot-home.tgz  # repositories from ~/projects, configs
 # packages
 sudo apt-get autoremove docker docker.io thunderbird libreoffice-core
 sudo apt-get update && sudo apt-get dist-upgrade
-sudo apt-get install python3-pip curl ros-melodic-ros-base libpcl-dev libi2c-dev screen vim mc aptitude git gstreamer1.0-gtk3
+sudo apt-get install python3-pip curl libpcl-dev libi2c-dev screen vim mc aptitude git gstreamer1.0-gtk3
 
 # tensorflow https://docs.nvidia.com/deeplearning/frameworks/install-tf-jetson-platform/index.html
 sudo apt-get install libhdf5-serial-dev hdf5-tools libhdf5-dev zlib1g-dev zip libjpeg8-dev liblapack-dev libblas-dev gfortran
@@ -45,10 +45,12 @@ sudo make install
 # ros
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+sudo apt-get update && sudo apt-get install ros-melodic-desktop python3-rosdep
 source /opt/ros/melodic/setup.bash
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/
 catkin_make
+rosdep init && rosdep update
 
 # jupyter
 sudo ifconfig docker0 down

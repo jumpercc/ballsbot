@@ -17,6 +17,7 @@ rm -rf src/ballsbot_pose && \
 rm -rf src/ballsbot_ups && \
 rm -rf src/ballsbot_main && \
 rm -rf src/ydlidar_ros && \
+rosdep install --from-paths src --ignore-src -r -y && \
 cd src && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_camera && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_detection && \
