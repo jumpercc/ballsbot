@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+    <robot name="rur">
+    <link name="base_link">
+    </link>
+
+    <link name="scan">
+    </link>
+
+    <joint name="base_link_to_laser" type="fixed">
+        <parent link="base_link"/>
+        <child link="scan"/>
+        <origin xyz="0.195 0 -0.105" rpy="0.0 0.0 00"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+</robot>
