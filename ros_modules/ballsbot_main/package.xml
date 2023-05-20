@@ -10,11 +10,11 @@
   <run_depend>rosconsole</run_depend>
   <build_depend>robot_state_publisher</build_depend>
   <build_depend>urdf</build_depend>
-  <build_export_depend>robot_state_publisher</build_export_depend>
-  <build_export_depend>urdf</build_export_depend>
-  <exec_depend>robot_state_publisher</exec_depend>
-  <exec_depend>joint_state_publisher</exec_depend>
-  <exec_depend>joint_state_publisher_gui</exec_depend>
-  <exec_depend>urdf</exec_depend>
+  <build_depend>robot_state_publisher</build_depend>
+  <build_depend>urdf</build_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>joint_state_publisher_gui</run_depend>
+  <run_depend>urdf</run_depend>
   <export/>
 </package>
