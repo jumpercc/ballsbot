@@ -14,5 +14,5 @@
     </group>
     <node pkg="ballsbot_ups" type="publisher_ups.py" name="publisher_ups" />
     <node pkg="ballsbot_camera" type="camera_publisher" name="camera_publisher" args="2" />
-    <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" />
+    <!-- <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" /> -->
 </launch>
