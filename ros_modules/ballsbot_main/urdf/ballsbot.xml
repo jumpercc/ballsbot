@@ -41,7 +41,7 @@
   <link name="m0" />
 
   <joint name="m0-joint" type="revolute">
-    <parent link="body"/>
+    <parent link="base_link"/>
     <child link="m0"/>
     <origin xyz="0.035 0.0 0.045" />
     <axis xyz="0 0 1"/>
