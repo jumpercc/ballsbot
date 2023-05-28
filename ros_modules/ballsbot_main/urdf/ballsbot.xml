@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="ballsbot">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ballsbot">
   <material name="blue">
     <color rgba="0 0 0.8 1"/>
   </material>
@@ -69,23 +69,17 @@
     <limit effort="1000.0" lower="-0.859" upper="1.57" velocity="0.5"/>
   </joint>
 
-  <link name="m-claw-left" />
+  <xacro:macro name="claw" params="prefix reflect">
+    <link name="m-claw-${prefix}" />
 
-  <joint name="m-claw-left-joint" type="revolute">
-    <parent link="m2"/>
-    <child link="m-claw-left"/>
-    <origin xyz="0.240 0.02 -0.005" />
-    <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="0.0" upper="1.1781" velocity="0.5"/>
-  </joint>
-
-  <link name="m-claw-right" />
-
-  <joint name="m-claw-right-joint" type="revolute">  <!-- TODO use xacro-->
-    <parent link="m2"/>
-    <child link="m-claw-right"/>
-    <origin xyz="0.240 -0.02 -0.005" />
-    <axis xyz="0 0 1"/>
-    <limit effort="1000.0" lower="0.0" upper="-1.1781" velocity="0.5"/>
-  </joint>
+    <joint name="m-claw-${prefix}-joint" type="revolute">
+      <parent link="m2"/>
+      <child link="m-claw-${prefix}"/>
+      <origin xyz="0.240 ${reflect*(0.02)} -0.005" />
+      <axis xyz="0 0 1"/>
+      <limit effort="1000.0" lower="0.0" upper="${reflect*(1.1781)" velocity="0.5"/>
+    </joint>
+  </xacro:macro>
+  <xacro:claw prefix="left" reflect="1" />
+  <xacro:claw prefix="right" reflect="-1" />
 </robot>
