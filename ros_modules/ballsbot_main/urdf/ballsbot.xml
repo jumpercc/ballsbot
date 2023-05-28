@@ -28,14 +28,13 @@
         <cylinder length="0.03" radius="0.03"/>
       </geometry>
       <material name="blue"/>
-      <origin xyz="0.195 0.0 -0.105"/>
     </visual>
   </link>
 
   <joint name="body_to_lidar" type="fixed">
     <parent link="base_link"/>
     <child link="lidar"/>
-    <origin xyz="0.195 0.0 -0.105"/>
+    <origin xyz="-0.195 0.0 +0.105"/>
   </joint>
 
   <link name="m0" />
