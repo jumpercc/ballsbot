@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
             geometry_msgs::TransformStamped odom_trans;
             odom_trans.header.stamp = current_time;
             odom_trans.header.frame_id = "odom";
-            odom_trans.child_frame_id = "base_link";
+            odom_trans.child_frame_id = "body";
 
             odom_trans.transform.translation.x = pose.x;
             odom_trans.transform.translation.y = pose.y;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
             if (!prev_pose.first_time) {
                 auto dt = (current_time - last_time).toSec();
                 if (dt) {
-                    odom.child_frame_id = "base_link";
+                    odom.child_frame_id = "body";
                     odom.twist.twist.linear.x = (pose.x - prev_pose.x) / dt;
                     odom.twist.twist.linear.y = (pose.y - prev_pose.y) / dt;
                     odom.twist.twist.angular.z = (pose.teta - prev_pose.teta) / dt;
