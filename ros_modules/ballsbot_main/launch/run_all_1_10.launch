@@ -1,10 +1,4 @@
 <launch>
-    <!-- <arg name="gui" default="True" />
-    <param name="use_gui" value="$(arg gui)"/> -->
-    <param name="robot_description" command="cat /home/ballsbot/catkin_ws/src/ballsbot_main/urdf/ballsbot.xml" />
-    <!-- <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" /> -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-
     <include file="/home/ballsbot/catkin_ws/src/ydlidar_ros/launch/X2L.launch" />
     <node pkg="ballsbot_tca9548" type="publisher_tca9548" name="publisher_tca9548" args="0 119" />
     <group>
@@ -14,5 +8,5 @@
     </group>
     <node pkg="ballsbot_ups" type="publisher_ups.py" name="publisher_ups" />
     <node pkg="ballsbot_camera" type="camera_publisher" name="camera_publisher" args="2" />
-    <!-- FIXME <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" /> -->
+    <node pkg="ballsbot_detection" type="publisher" name="publisher_detection" />
 </launch>
