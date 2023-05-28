@@ -8,7 +8,7 @@
     <color rgba="1 1 1 1"/>
   </material>
 
-  <link name="body">
+  <link name="base_link">
     <visual>
       <geometry>
         <box size="0.38 0.30 0.17"/>
@@ -33,7 +33,7 @@
   </link>
 
   <joint name="body_to_lidar" type="fixed">
-    <parent link="body"/>
+    <parent link="base_link"/>
     <child link="lidar"/>
     <origin xyz="0.195 0.0 -0.105"/>
   </joint>
