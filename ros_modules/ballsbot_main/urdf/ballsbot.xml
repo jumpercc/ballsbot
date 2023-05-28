@@ -20,6 +20,7 @@
       <geometry>
         <box size="0.38 0.30 0.17"/>
       </geometry>
+      <origin xyz="0 0 0.085"/>
     </collision>
   </link>
 
@@ -35,7 +36,7 @@
   <joint name="body_to_lidar" type="fixed">
     <parent link="base_link"/>
     <child link="lidar"/>
-    <origin xyz="-0.195 0.0 +0.105"/>
+    <origin xyz="-0.108 0.0 0.250"/>
   </joint>
 
   <link name="m0" />
@@ -43,7 +44,7 @@
   <joint name="m0-joint" type="revolute">
     <parent link="base_link"/>
     <child link="m0"/>
-    <origin xyz="0.035 0.0 0.045" />
+    <origin xyz="0.087 0.0 0.145"/>
     <axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="1.0554" upper="-1.0554" velocity="0.5"/>
   </joint>
@@ -53,7 +54,7 @@
   <joint name="m1-joint" type="revolute">
     <parent link="m0"/>
     <child link="m1"/>
-    <origin xyz="0.005 0.0 0.165" />
+    <origin xyz="0.035 0.0 0.045" />
     <axis xyz="0 1 0"/>
     <limit effort="1000.0" lower="-1.57" upper="1.4972" velocity="0.5"/>
   </joint>
@@ -63,7 +64,7 @@
   <joint name="m2-joint" type="revolute">
     <parent link="m1"/>
     <child link="m2"/>
-    <origin xyz="0.240 0.0 -0.005" />
+    <origin xyz="0.005 0.0 0.165" />
     <axis xyz="0 1 0"/>
     <limit effort="1000.0" lower="-0.859" upper="1.57" velocity="0.5"/>
   </joint>
@@ -73,7 +74,7 @@
   <joint name="m-claw-left-joint" type="revolute">
     <parent link="m2"/>
     <child link="m-claw-left"/>
-    <origin xyz="0.055 0.02 0.0" />
+    <origin xyz="0.240 0.02 -0.005" />
     <axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="0.0" upper="1.1781" velocity="0.5"/>
   </joint>
@@ -83,7 +84,7 @@
   <joint name="m-claw-right-joint" type="revolute">  <!-- TODO use xacro-->
     <parent link="m2"/>
     <child link="m-claw-right"/>
-    <origin xyz="0.055 -0.02 0.0" />
+    <origin xyz="0.240 -0.02 -0.005" />
     <axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="0.0" upper="-1.1781" velocity="0.5"/>
   </joint>
