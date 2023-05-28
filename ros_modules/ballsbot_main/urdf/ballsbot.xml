@@ -13,6 +13,7 @@
       <geometry>
         <box size="0.38 0.30 0.17"/>
       </geometry>
+      <origin xyz="0 0 0.085"/>
       <material name="white"/>
     </visual>
     <collision>
