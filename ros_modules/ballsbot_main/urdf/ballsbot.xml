@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot name="ballsbot">
+  <link name="body">
+    <visual>
+      <geometry>
+        <box size="0.38 0.30 0.17"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.38 0.30 0.17"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="lidar">
+    <visual>
+      <geometry>
+        <cylinder length="0.03" radius="0.03"/>
+      </geometry>
+      <origin xyz="0.195 0.0 -0.105"/>
+    </visual>
+  </link>
+
+  <joint name="body_to_lidar" type="fixed">
+    <parent link="body"/>
+    <child link="lidar"/>
+    <origin xyz="0.195 0.0 -0.105"/>
+  </joint>
+
+  <link name="m0" />
+
+  <joint name="m0-joint" type="revolute">
+    <parent link="body"/>
+    <child link="m0"/>
+    <origin xyz="0.035 0.0 0.045" />
+    <axis xyz="0 0 1"/>
+    <limit effort="1000.0" lower="1.0554" upper="-1.0554" velocity="0.5"/>
+  </joint>
+
+  <link name="m1" />
+
+  <joint name="m1-joint" type="revolute">
+    <parent link="m0"/>
+    <child link="m1"/>
+    <origin xyz="0.005 0.0 0.165" />
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-1.57" upper="1.4972" velocity="0.5"/>
+  </joint>
+
+  <link name="m2" />
+
+  <joint name="m2-joint" type="revolute">
+    <parent link="m1"/>
+    <child link="m2"/>
+    <origin xyz="0.240 0.0 -0.005" />
+    <axis xyz="0 1 0"/>
+    <limit effort="1000.0" lower="-0.859" upper="1.57" velocity="0.5"/>
+  </joint>
+
+  <link name="m-claw-left" />
+
+  <joint name="m-claw-left-joint" type="revolute">
+    <parent link="m2"/>
+    <child link="m-claw-left"/>
+    <origin xyz="0.055 0.02 0.0" />
+    <axis xyz="0 0 1"/>
+    <limit effort="1000.0" lower="0.0" upper="1.1781" velocity="0.5"/>
+  </joint>
+
+  <link name="m-claw-right" />
+
+  <joint name="m-claw-right-joint" type="revolute">  <!-- TODO use xacro-->
+    <parent link="m2"/>
+    <child link="m-claw-right"/>
+    <origin xyz="0.055 -0.02 0.0" />
+    <axis xyz="0 0 1"/>
+    <limit effort="1000.0" lower="0.0" upper="-1.1781" velocity="0.5"/>
+  </joint>
+</robot>
