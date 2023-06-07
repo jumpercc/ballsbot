@@ -7,16 +7,16 @@ import sys
 sys.path.append('/opt/ros/melodic/lib/python2.7/dist-packages')
 sys.path.append('/usr/lib/python2.7/dist-packages')
 sys.path.append('/home/ballsbot/catkin_ws/devel/lib/python2.7/dist-packages')
-import rospy
-from ballsbot_pose.msg import Pose
-from ballsbot_detection.msg import DetectionsList
-from ballsbot_imu.msg import ImuState
-from sensor_msgs.msg import LaserScan
-from ballsbot_wheel_odometry.msg import OdometryState
-from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight
-from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch, EncoderAngle
-from ballsbot_ups.msg import UpsState
-from ballsbot_camera.msg import Image
+import rospy  # noqa
+from ballsbot_pose.msg import Pose  # noqa
+from ballsbot_detection.msg import DetectionsList  # noqa
+from ballsbot_imu.msg import ImuState  # noqa
+from sensor_msgs.msg import LaserScan  # noqa
+from ballsbot_wheel_odometry.msg import OdometryState  # noqa
+from ballsbot_laser_ranging_sensor.msg import LaserDistance as LaserDistanceStraight  # noqa
+from ballsbot_tca9548.msg import LaserDistance as LaserDistanceSwitch, EncoderAngle  # noqa
+from ballsbot_ups.msg import UpsState  # noqa
+from ballsbot_camera.msg import Image  # noqa
 
 CONFIG_BY_TYPE = {
     "ballsbot_laser_ranging_sensor": {

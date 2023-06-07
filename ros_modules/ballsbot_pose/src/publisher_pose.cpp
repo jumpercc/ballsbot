@@ -116,8 +116,8 @@ int main(int argc, char *argv[]) {
     ros::Subscriber odometry_subscriber = n.subscribe("wheel_odometry", 1, OdometryCallback);
 
     ballsbot_pose::Pose output_msg;
-    auto publisher = n.advertise<ballsbot_pose::Pose>("pose", 1);
-    ros::Publisher odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
+    auto pose_pub = n.advertise<ballsbot_pose::Pose>("pose", 1);
+    auto odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
     tf::TransformBroadcaster odom_broadcaster;
 
     ros::Time current_time, last_time;
@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
             output_msg.x = pose.x;
             output_msg.y = pose.y;
             output_msg.teta = pose.teta;
-            publisher.publish(output_msg);
+            pose_pub.publish(output_msg);
 
             //since all odometry is 6DOF we'll need a quaternion created from yaw
             geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(pose.teta);
