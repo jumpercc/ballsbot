@@ -69,7 +69,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
     && source /opt/ros/melodic/setup.bash \
     && mkdir -p /home/ballsbot/catkin_ws/src \
     && cd /home/ballsbot/catkin_ws/ \
-    && catkin_make
+    && catkin_make \
     && rosdep init && rosdep update
 
 # lidar

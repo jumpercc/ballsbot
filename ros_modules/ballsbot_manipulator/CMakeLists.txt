@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(ballsbot_tca9548)
+project(ballsbot_manipulator)
 
 add_compile_options(-std=c++17)
 

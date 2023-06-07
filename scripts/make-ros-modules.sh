@@ -33,6 +33,7 @@ ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_main && \
 ln -s /home/ballsbot/projects/ballsbot/docker/ydlidar_ros && \
 cd .. && \
 rosdep install --from-paths src --ignore-src -r -y && \
+catkin_make -DCATKIN_WHITELIST_PACKAGES=ballsbot_tca9548 && \
 catkin_make
 
 roscd ydlidar_ros/startup
