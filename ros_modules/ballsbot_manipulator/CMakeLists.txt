@@ -24,6 +24,7 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   src
+  ../../devel/include
 )
 
 add_executable(publisher_manipulator src/publisher_manipulator.cpp)
