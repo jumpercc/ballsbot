@@ -32,9 +32,8 @@ ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_manipulator && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_main && \
 ln -s /home/ballsbot/projects/ballsbot/docker/ydlidar_ros && \
 cd .. && \
-rosdep install --from-paths src --ignore-src -r -y
-catkin_make ballsbot_tca9548
-catkin_make -DCATKIN_WHITELIST_PACKAGES="ballsbot_camera;ballsbot_detection;ballsbot_ups;ballsbot_laser_ranging_sensor;ballsbot_manipulator;ballsbot_wheel_odometry;ballsbot_magnetic_encoder;ballsbot_main;ballsbot_imu;ballsbot_pose"
+rosdep install --from-paths src --ignore-src -r -y && \
+ROS_PARALLEL_JOBS=-j1 catkin_make
 
 roscd ydlidar_ros/startup
 chmod 777 ./*
