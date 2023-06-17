@@ -11,12 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-)
-
 catkin_package(
   CATKIN_DEPENDS message_runtime
 )
@@ -24,7 +18,7 @@ catkin_package(
 include_directories(
   ${catkin_INCLUDE_DIRS}
   src
-  ../../devel/include
+  /home/ballsbot/catkin_ws/devel/include
 )
 
 add_executable(publisher_manipulator src/publisher_manipulator.cpp)

@@ -33,7 +33,7 @@ ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_main && \
 ln -s /home/ballsbot/projects/ballsbot/docker/ydlidar_ros && \
 cd .. && \
 rosdep install --from-paths src --ignore-src -r -y && \
-ROS_PARALLEL_JOBS=-j1 catkin_make VERBOSE=1
+catkin_make
 
 roscd ydlidar_ros/startup
 chmod 777 ./*

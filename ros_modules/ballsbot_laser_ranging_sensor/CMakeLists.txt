@@ -24,7 +24,7 @@ generate_messages(
 find_library(I2C i2c REQUIRED HINTS "lib")
 
 catkin_package(
-  LIBRARIES I2C
+  LIBRARIES ${I2C}
   CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
