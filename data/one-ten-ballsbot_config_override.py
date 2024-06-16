@@ -170,7 +170,7 @@ MANIPULATOR = {
             "default_position": (240., 0., -5.),
         },
         {
-            "default_position": (55., 0., 0.),
+            "default_position": (73.5, 0., 0.),
             "rotation": "z",
             "direction": 1.,
             "claw": True,
