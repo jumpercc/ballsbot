@@ -97,10 +97,10 @@ MANIPULATOR = {
     "has_camera": True,
     "encoders_enabled": True,
     "encoders_calibration": [
-        0.1473,
+        0.1718,
         3.4607,
-        0.3191,
-        2.3562
+        0.2945,
+        4.6633
     ],
     "servos": [
         {
@@ -109,8 +109,8 @@ MANIPULATOR = {
             "max_pulse": 477,
             "default_position": 0.,
             "unfold_position": 0.,
-            "min_angle": -1.0308,
-            "max_angle": 1.129,
+            "min_angle": -1.0063,
+            "max_angle": 1.1045,
             "control": {"axis": 2, "invert": True},
             "encoder_name": "m-0",
         },
@@ -131,7 +131,7 @@ MANIPULATOR = {
             "max_pulse": 530,
             "default_position": 1.,
             "unfold_position": -0.7,
-            "min_angle": -0.859,
+            "min_angle": -0.8345,
             "max_angle": math.radians(90),
             "control": {"axis": 3},
             "encoder_name": "m-2",
@@ -144,7 +144,7 @@ MANIPULATOR = {
             "default_position": -0.9,
             "unfold_position": 0.,
             "min_angle": 0.,
-            "max_angle": 1.2272,
+            "max_angle": 1.1781,
             "control": {"buttons": (4, 6)},
             "encoder_name": "m-claw",
         },
