@@ -31,7 +31,11 @@ Tile::Tile() : voxels_(kVoxelsPerTile) {
 void Tile::SetVoxelOccupied(int voxel_x, int voxel_y, double ts) {
     Voxel& voxel = voxels_[voxel_x][voxel_y];
     voxel.occupied = true;
+    if (voxel.last_seen_occupied_ts != ts) {
+        voxel.points_count = 0;
+    }
     voxel.last_seen_occupied_ts = ts;
+    voxel.points_count += 1;
 }
 
 void Tile::SetVisited(double ts) {
@@ -108,7 +112,7 @@ PointCloud Grid::GetSparsePointCloud(double current_ts, double range_limit,
         for (size_t x = 0; x < voxels.size(); ++x) {
             for (size_t y = 0; y < voxels.size(); ++y) {
                 Voxel& voxel = voxels[x][y];
-                if (voxel.occupied && voxel.last_seen_occupied_ts >= min_ts) {
+                if (voxel.get_filtered_occupation() && voxel.last_seen_occupied_ts >= min_ts) {
                     result.emplace_back(tile_key.x * kTileSize + x * kVoxelSize + kHalfVoxelSize,
                                         tile_key.y * kTileSize + y * kVoxelSize + kHalfVoxelSize);
                 }
@@ -591,7 +595,7 @@ void Grid::CleanUpGrid(double current_ts) {
         for (size_t x = 0; x < voxels.size(); ++x) {
             for (size_t y = 0; y < voxels.size(); ++y) {
                 Voxel& voxel = voxels[x][y];
-                if (voxel.occupied && voxel.last_seen_occupied_ts >= min_ts) {
+                if (voxel.get_filtered_occupation() && voxel.last_seen_occupied_ts >= min_ts) {
                     has_active_voxels = true;  // FIXME for big empty space
                     break;
                 }

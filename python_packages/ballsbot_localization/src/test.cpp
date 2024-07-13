@@ -18,8 +18,8 @@ void TestBasics() {
         for (int x = 0; x < voxels.size(); ++x) {
             for (int y = 0; y < voxels.size(); ++y) {
                 auto voxel = voxels[x][y];
-                if (voxel.occupied) {
-                    std::cout << "voxel(" << x << ", " << y << "): occupied=" << voxel.occupied
+                if (voxel.get_filtered_occupation()) {
+                    std::cout << "voxel(" << x << ", " << y << "): occupied=" << voxel.get_filtered_occupation()
                               << ", last_seen_occupied: " << voxel.last_seen_occupied_ts
                               << std::endl;
                 }

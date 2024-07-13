@@ -50,7 +50,7 @@ cdef class Grid:
             cpp_voxels = it.second.DebugGetVoxels()
             voxels = [
                 [{
-                    'occupied': y.occupied,
+                    'occupied': y.get_filtered_occupation(),
                     'last_seen_occupied': y.last_seen_occupied_ts,
                 } for y in x] for x in cpp_voxels
             ]
@@ -77,7 +77,7 @@ cdef class Grid:
             cpp_absolute_coords)
         result = []
         for cpp_point in cpp_result:
-            result.append((cpp_point.x, cpp_point.y))
+            result.append([cpp_point.x, cpp_point.y])
         return result
     
     def debug_get_target_point(self, absolute_coords):

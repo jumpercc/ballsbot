@@ -50,20 +50,39 @@ class Explorer:
     BACKWARD_THROTTLE = -1.
     STOP = 0.
 
-    def __init__(self, augmented_lidar=None, detector=None, joystick=None, already_running=False):
+    def __init__(
+        self,
+        lidar_with_memory=None,
+        tracker=None,
+        augmented_lidar=None,
+        detector=None,
+        joystick=None,
+        already_running=False,
+    ):
         if ENGINE_NEED_MANUAL_BREAKING:
             self.direction_translator = ExplorerDriverWithManualBreaking()
         else:
             self.direction_translator = ExplorerDriverWithAutoBreaking()
 
-        self.lidar = LidarWithMemory(augmented_lidar=augmented_lidar, already_running=already_running)
+        if lidar_with_memory:
+            self.lidar = lidar_with_memory
+        else:
+            self.lidar = LidarWithMemory(augmented_lidar=augmented_lidar, already_running=already_running)
+
         if joystick:
             self.joystick = joystick
             self.car_controls = None
         else:
             self.car_controls = get_controls()
             self.joystick = None
-        self.tracker = Tracker(self.lidar)
+
+        if tracker:
+            self.external_tracker = True
+            self.tracker = tracker
+        else:
+            self.external_tracker = False
+            self.tracker = Tracker(self.lidar)
+
         self.detector_wrapper = DetectorWrapper(detector=detector, already_running=already_running)
 
         self.cached_weights = None
@@ -74,7 +93,8 @@ class Explorer:
 
     def stop(self):
         self.running = False
-        self.tracker.stop()
+        if not self.external_tracker:
+            self.tracker.stop()
 
     def run(self, save_track_to=None):
         if save_track_to:
@@ -82,7 +102,8 @@ class Explorer:
         else:
             track_fh = None
 
-        self.tracker.start()
+        if not self.external_tracker:
+            self.tracker.start()
 
         self.running = True
         self.cached_direction = {'steering': 0., 'throttle': 0.}

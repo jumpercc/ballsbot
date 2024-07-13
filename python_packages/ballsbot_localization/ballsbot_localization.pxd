@@ -39,6 +39,7 @@ cdef extern from "src/grid.h":
         Voxel(bool, double)
         bool occupied
         double last_seen_occupied_ts
+        bool get_filtered_occupation()
 
     cdef struct TileKey:
         TileKey(int, int)

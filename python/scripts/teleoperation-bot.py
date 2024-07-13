@@ -25,7 +25,7 @@ sys.path.append('/home/ballsbot/projects/ballsbot/python/lib')
 from ballsbot.utils import run_as_thread, join_all_threads, keep_rps, bgr8_to_jpeg
 from ballsbot.config import MANIPULATOR, T208_UPS, DISTANCE_SENSORS
 from ballsbot.controller import link_controller, stop_controller
-from ballsbot.augmented_lidar import get_augmented_lidar
+from ballsbot.lidar_with_memory import LidarWithMemory
 from ballsbot.ros_messages import get_ros_messages
 from ballsbot.manipulator import Manipulator
 from ballsbot.joystick import JoystickWrapperBaseWithUpdates, JoystickMock
@@ -37,6 +37,7 @@ from ballsbot.detection import Detector
 from ballsbot.ai.explorer import Explorer
 from ballsbot.manipulator_runner import ManipulatorRunner
 from ballsbot.poses_generators import DetectorPoses
+from ballsbot.tracking import Tracker
 
 server_config_dir = '/home/ballsbot/web_server_config'
 expected_password = None
@@ -54,6 +55,7 @@ class TeleoperationBot:
             self.manipulator = Manipulator(self.joystick)
         else:
             self.manipulator = None
+        self.tracker = None
         self.running = False
         self.cameras = None
         self.pose = None
@@ -73,8 +75,11 @@ class TeleoperationBot:
 
     def run(self):
         self.running = True
-        self.lidar = get_augmented_lidar()
+        self.lidar = LidarWithMemory()
         self.lidar.start()
+
+        self.tracker = Tracker(self.lidar)
+        self.tracker.start()
 
         self.pose = Pose()
 
@@ -110,6 +115,8 @@ class TeleoperationBot:
         if self.manipulator:
             self.manipulator.stop()
 
+        self.tracker.stop()
+
     def update_joystick_state(self, axes, buttons, mode):
         if self.bot_mode != mode:
             self.joystick_mock.stop()
@@ -137,11 +144,12 @@ class TeleoperationBot:
         self.joystick_state_updated_at = time()
 
     def get_state(self):
+        tracker_state = self.tracker.get_track_frame()
         return {
-            'lidar': self.lidar.get_lidar_points(cached=False),
-            'distance_sensors': self.lidar.cached_distances,  # must be after get_lidar_points
+            'lidar': self.lidar.lidar.get_lidar_points(cached=False),
+            'distance_sensors': self.lidar.lidar.cached_distances,  # must be after get_lidar_points
             'pose': self.pose.get_pose(),
-            'bot_size': calibration_to_xywh(self.lidar.get_calibration()),
+            'bot_size': calibration_to_xywh(self.lidar.lidar.get_calibration()),
             'ups': (self.ups.get_capacity() if self.ups else None),
             'manipulator': (self.manipulator.get_track_frame() if self.manipulator else None),
             'detections': self.detector.get_detections(),
@@ -152,6 +160,8 @@ class TeleoperationBot:
                                ] + (
                                    ['claw-detector'] if self.manipulator else []
                                ),
+            'free_tile_centers': tracker_state['free_tile_centers'],
+            'target_point': tracker_state['target_point'],
         }
 
     def get_image(self, index):
@@ -175,7 +185,10 @@ class TeleoperationBot:
                     cv2.INTER_AREA
                 )
         else:
-            raw_value = np.empty((self.camera_dimensions[index]['height'], self.camera_dimensions[index]['width'], 3), dtype=np.uint8)
+            raw_value = np.empty(
+                (self.camera_dimensions[index]['height'], self.camera_dimensions[index]['width'], 3),
+                dtype=np.uint8
+            )
 
         return bgr8_to_jpeg(raw_value)
 
@@ -212,7 +225,8 @@ class TeleoperationBot:
             )
         elif mode == 'explorer':
             return Explorer(
-                augmented_lidar=self.lidar,
+                lidar_with_memory=self.lidar,
+                tracker=self.tracker,
                 detector=self.detector,
                 joystick=self.joystick,
                 already_running=True,
@@ -379,7 +393,8 @@ class WebServer:
         self.httpd.server_activate()
 
         if self.https:
-            # openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout certificate_key -out certificate -config cert.config
+            # openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout \
+            # certificate_key -out certificate -config cert.config
             self.httpd.socket = ssl.wrap_socket(
                 self.httpd.socket,
                 server_side=True,

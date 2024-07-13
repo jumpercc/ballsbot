@@ -4,6 +4,7 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
+#include <cstddef>
 #include "common.h"
 #include "point_cloud.h"
 
@@ -17,6 +18,17 @@ struct Pose {
 struct Voxel {
     bool occupied = false;
     double last_seen_occupied_ts = 0.;
+    unsigned short points_count = 0;
+
+    bool get_filtered_occupation() {
+        if (this->occupied && this->points_count > max_points_to_ignore) {
+            return true;
+        }
+        return false;
+    }
+
+private:
+    const static unsigned char max_points_to_ignore = 1;
 };
 
 class Tile {
