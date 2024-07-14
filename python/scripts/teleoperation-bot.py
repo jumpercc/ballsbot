@@ -76,11 +76,10 @@ class TeleoperationBot:
 
     def run(self):
         self.running = True
-        self.lidar = LidarWithMemory()
-        self.tracker = Tracker(self.lidar)
-        self.tracker.start()
-
         self.pose = Pose()
+        self.lidar = LidarWithMemory()
+        self.tracker = Tracker(self.lidar, self.pose)
+        self.tracker.start()
 
         if T208_UPS:
             self.ups = UPS()

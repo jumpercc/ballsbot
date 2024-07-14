@@ -21,10 +21,11 @@ struct Voxel {
     unsigned short points_count = 0;
 
     bool get_filtered_occupation() {
-        if (this->occupied && this->points_count > max_points_to_ignore) {
-            return true;
-        }
-        return false;
+        // if (this->occupied && this->points_count > max_points_to_ignore) {
+        //     return true;
+        // }
+        // return false;
+        return this->occupied;  // FIXME
     }
 
 private:

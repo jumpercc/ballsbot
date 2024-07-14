@@ -7,7 +7,7 @@ from ballsbot.pose import Pose
 
 
 class Tracker:
-    def __init__(self, lidar):
+    def __init__(self, lidar, pose=None):
         self.fps = 4
         self.current_pose = None
         self.lidar = lidar
@@ -21,7 +21,10 @@ class Tracker:
         self.running = False
         self.free_tile_centers = None
         self.target_point = None
-        self.pose = Pose()
+        if pose is None:
+            self.pose = Pose()
+        else:
+            self.pose = pose
 
     def stop(self):
         self.running = False
