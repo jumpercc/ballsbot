@@ -143,8 +143,8 @@ class TeleoperationBot:
 
     def get_state(self):
         pose = self.pose.get_pose()
-        tracker_state = self.tracker.get_track_frame()
-        cells = [tracker_state['target_point']] + tracker_state['free_tile_centers']
+        _, _, _, free_cells, target_point, _ = self.tracker.get_picture_params(with_free_tiles=True)
+        cells = [target_point] + free_cells
         transformation = (pose['x'], pose['y'], pose['teta'])
         transformed_cells = revert_transformation_to_cloud(cells, transformation)
         free_cells = transformed_cells[1:]
