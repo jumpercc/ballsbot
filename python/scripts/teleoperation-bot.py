@@ -77,8 +77,6 @@ class TeleoperationBot:
     def run(self):
         self.running = True
         self.lidar = LidarWithMemory()
-        self.lidar.start()
-
         self.tracker = Tracker(self.lidar)
         self.tracker.start()
 
