@@ -25,6 +25,7 @@ sys.path.append('/home/ballsbot/projects/ballsbot/python/lib')
 from ballsbot.utils import run_as_thread, join_all_threads, keep_rps, bgr8_to_jpeg
 from ballsbot.config import MANIPULATOR, T208_UPS, DISTANCE_SENSORS
 from ballsbot.controller import link_controller, stop_controller
+from ballsbot.lidar import revert_transformation_to_cloud
 from ballsbot.lidar_with_memory import LidarWithMemory
 from ballsbot.ros_messages import get_ros_messages
 from ballsbot.manipulator import Manipulator
@@ -144,11 +145,17 @@ class TeleoperationBot:
         self.joystick_state_updated_at = time()
 
     def get_state(self):
+        pose = self.pose.get_pose()
         tracker_state = self.tracker.get_track_frame()
+        cells = [tracker_state['target_point']] + tracker_state['free_tile_centers']
+        transformation = (pose['x'], pose['y'], pose['teta'])
+        transformed_cells = revert_transformation_to_cloud(cells, transformation)
+        free_cells = transformed_cells[1:]
+        target_point = transformed_cells[0]
         return {
             'lidar': self.lidar.lidar.get_lidar_points(cached=False),
             'distance_sensors': self.lidar.lidar.cached_distances,  # must be after get_lidar_points
-            'pose': self.pose.get_pose(),
+            'pose': pose,
             'bot_size': calibration_to_xywh(self.lidar.lidar.get_calibration()),
             'ups': (self.ups.get_capacity() if self.ups else None),
             'manipulator': (self.manipulator.get_track_frame() if self.manipulator else None),
@@ -160,8 +167,8 @@ class TeleoperationBot:
                                ] + (
                                    ['claw-detector'] if self.manipulator else []
                                ),
-            'free_tile_centers': tracker_state['free_tile_centers'],
-            'target_point': tracker_state['target_point'],
+            'free_tile_centers': free_cells,
+            'target_point': target_point,
         }
 
     def get_image(self, index):
