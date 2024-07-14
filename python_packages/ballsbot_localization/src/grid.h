@@ -28,7 +28,7 @@ struct Voxel {
     }
 
 private:
-    const static unsigned char max_points_to_ignore = 1;
+    const static unsigned char max_points_to_ignore = 0;
 };
 
 class Tile {

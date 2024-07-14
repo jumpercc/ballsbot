@@ -143,12 +143,17 @@ class TeleoperationBot:
 
     def get_state(self):
         pose = self.pose.get_pose()
-        _, _, _, free_cells, target_point, _ = self.tracker.get_picture_params(with_free_tiles=True)
-        cells = [target_point] + free_cells
-        transformation = (pose['x'], pose['y'], pose['teta'])
-        transformed_cells = revert_transformation_to_cloud(cells, transformation)
-        free_cells = transformed_cells[1:]
-        target_point = transformed_cells[0]
+        tracker_params = self.tracker.get_picture_params(with_free_tiles=True)
+        if tracker_params:
+            _, _, _, free_cells, target_point, _ = tracker_params
+            cells = [target_point] + free_cells
+            transformation = (pose['x'], pose['y'], pose['teta'])
+            transformed_cells = revert_transformation_to_cloud(cells, transformation)
+            free_cells = transformed_cells[1:]
+            target_point = transformed_cells[0]
+        else:
+            free_cells = []
+            target_point = [0., 0.]
         return {
             'lidar': self.lidar.lidar.get_lidar_points(cached=False),
             'distance_sensors': self.lidar.lidar.cached_distances,  # must be after get_lidar_points
