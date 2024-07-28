@@ -4,6 +4,7 @@ test.py
 tmp*
 *.json
 *.log
+*.FCBak
 **/*.swp
 **/build
 **/cmake-build-debug

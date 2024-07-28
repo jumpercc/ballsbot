@@ -20,15 +20,12 @@ struct Voxel {
     double last_seen_occupied_ts = 0.;
     unsigned short points_count = 0;
 
-    bool get_filtered_occupation() {
+    bool get_filtered_occupation(unsigned char max_points_to_ignore=0) {
         if (this->occupied && this->points_count > max_points_to_ignore) {
             return true;
         }
         return false;
     }
-
-private:
-    const static unsigned char max_points_to_ignore = 0;
 };
 
 class Tile {
