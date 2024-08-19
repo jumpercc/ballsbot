@@ -27,7 +27,7 @@ else
 fi
 
 if [ -z ${TELEOPERATION+x} ]; then
-  $DIR/run-jupyter.sh $MY_IP
+  $DIR/run-jupyter.sh --ip=$MY_IP
 else
   $DIR/run-teleoperation.sh $MY_IP
 fi
