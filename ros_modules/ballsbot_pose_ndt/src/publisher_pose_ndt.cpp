@@ -67,7 +67,7 @@ double fix_angle(double my_angle, double angle_min, double angle_max) {
 }
 
 CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
-    auto result = CloudPtr(new Cloud(0, 1));
+    auto result = CloudPtr(new Cloud());
     double angle = lidar_msg->angle_min;
     size_t i = 0;
     for (auto value: lidar_msg->intensities) {
