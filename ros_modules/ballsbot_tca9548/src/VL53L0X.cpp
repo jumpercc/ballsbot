@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <errno.h>
+#include <stdexcept>
 extern "C" {
 #include <i2c/smbus.h>
 }
@@ -907,12 +908,23 @@ uint16_t VL53L0X::readRangeSingleMillimeters(void)
 
   // "Wait until start bit has been cleared"
   startTimeout();
-  while (readReg(SYSRANGE_START) & 0x01)
-  {
-    if (checkTimeoutExpired())
+  try {
+    while (readReg(SYSRANGE_START) & 0x01)
     {
-      did_timeout = true;
-      return 65535;
+        if (checkTimeoutExpired())
+        {
+        did_timeout = true;
+        return 65535;
+        }
+    }
+  }
+  catch (const std::runtime_error& e) {
+    if (e.what() == "timeouts limit exceeded") {
+        did_timeout = true;
+        return 65535;
+    }
+    else {
+        throw;
     }
   }
 
