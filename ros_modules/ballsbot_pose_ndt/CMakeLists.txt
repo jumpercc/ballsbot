@@ -41,7 +41,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   src
   "/usr/local/include/pcl-1.10"
-  "/usr/include/pcl-1.10"
+  "/usr/include/pcl-1.8"
   "/usr/include/eigen3"
 )
 

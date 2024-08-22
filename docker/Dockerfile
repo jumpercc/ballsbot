@@ -64,11 +64,11 @@ RUN cd /home/ballsbot/projects \
     && make install
 
 # pcl 1.10
-RUN cd /home/ballsbot/projects \
-    && wget https://github.com/PointCloudLibrary/pcl/archive/refs/tags/pcl-1.10.1.tar.gz \
-    && tar xzf pcl-1.10.1.tar.gz \
-    && cd pcl-pcl-1.10.1 && mkdir build && cd build \
-    && cmake .. && make -j4 && make install
+# RUN cd /home/ballsbot/projects \
+#     && wget https://github.com/PointCloudLibrary/pcl/archive/refs/tags/pcl-1.10.1.tar.gz \
+#     && tar xzf pcl-1.10.1.tar.gz \
+#     && cd pcl-pcl-1.10.1 && mkdir build && cd build \
+#     && cmake .. && make -j4 && make install
 
 # ros
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \
