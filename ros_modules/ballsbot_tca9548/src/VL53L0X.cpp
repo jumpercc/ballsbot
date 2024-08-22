@@ -919,13 +919,8 @@ uint16_t VL53L0X::readRangeSingleMillimeters(void)
     }
   }
   catch (const std::runtime_error& e) {
-    if (e.what() == "timeouts limit exceeded") {
-        did_timeout = true;
-        return 65535;
-    }
-    else {
-        throw;
-    }
+    did_timeout = true;
+    return 65535;
   }
 
   return readRangeContinuousMillimeters();
