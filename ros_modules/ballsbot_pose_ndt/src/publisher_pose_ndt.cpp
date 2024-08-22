@@ -67,15 +67,15 @@ double fix_angle(double my_angle, double angle_min, double angle_max) {
 }
 
 CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
-    auto result = CloudPtr(new Cloud(1, lidar_msg->intensities.size()));
+    auto result = CloudPtr(new Cloud(0, 1));
     double angle = lidar_msg->angle_min;
     size_t i = 0;
     for (auto value: lidar_msg->intensities) {
         if (value > 0) {
-            result->at(i) = radial_to_cartesian(
+            result->push_back(radial_to_cartesian(
                 lidar_msg->ranges[i],
                 fix_angle(angle, lidar_msg->angle_min, lidar_msg->angle_max)
-            );
+            ));
         }
         angle += lidar_msg->angle_increment;
         i++;
