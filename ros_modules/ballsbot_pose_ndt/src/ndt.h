@@ -86,20 +86,4 @@ transformation_matrix_to_xytheta(const Eigen::Matrix4f& transformation)
     return xytheta_transformation;
 }
 
-std::vector<double>
-get_transformation_vector (const CloudPtr& target_cloud, const CloudPtr& input_cloud, const NDTSettings& settings)
-{
-    TransformationAndCloud tnc = get_transformation(target_cloud, input_cloud, settings);
-    auto xytheta_transformation = transformation_matrix_to_xytheta(tnc.transformation);
-    tnc.cloud.reset();
-    std::vector<double> result{
-            xytheta_transformation.x(),
-            xytheta_transformation.y(),
-            xytheta_transformation.z(),
-            tnc.converged ? 1. : 0.,
-            tnc.score
-    };
-    return result;
-}
-
 #endif //NORMAL_DISTRIBUTIONS_TRANSFORM_NDT_H
