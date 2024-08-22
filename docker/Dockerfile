@@ -36,6 +36,7 @@ RUN apt-get update -y \
     libdc1394-22-dev \
     lsb-release \
     sudo \
+    wget \
     && apt-get clean
 
 RUN mkdir -p /home/ballsbot/projects
@@ -61,6 +62,13 @@ RUN cd /home/ballsbot/projects \
         -D CMAKE_INSTALL_PREFIX=/usr/local .. \
     && make -j4 \
     && make install
+
+# pcl 1.10
+RUN cd /home/ballsbot/projects \
+    && wget https://github.com/PointCloudLibrary/pcl/archive/refs/tags/pcl-1.10.1.tar.gz \
+    && tar xzf pcl-1.10.1.tar.gz \
+    && cd pcl-pcl-1.10.1 && mkdir build && cd build \
+    && cmake .. && make -j4 && make install
 
 # ros
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' \

@@ -14,6 +14,7 @@ rm -rf src/ballsbot_magnetic_encoder && \
 rm -rf src/ballsbot_imu && \
 rm -rf src/ballsbot_wheel_odometry && \
 rm -rf src/ballsbot_pose && \
+rm -rf src/ballsbot_pose_ndt && \
 rm -rf src/ballsbot_ups && \
 rm -rf src/ballsbot_manipulator && \
 rm -rf src/ballsbot_main && \
@@ -27,6 +28,7 @@ ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_magnetic_encoder && 
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_imu && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_wheel_odometry && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_pose && \
+ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_pose_ndt && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_ups && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_manipulator && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_main && \
