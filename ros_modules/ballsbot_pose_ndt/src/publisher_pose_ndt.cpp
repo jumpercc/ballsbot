@@ -170,6 +170,9 @@ public:
                 y_ = fixed_pose[1];
                 teta_ = fixed_pose[2];
             }
+            else {
+                ROS_INFO("failed to fix a pose");
+            }
         }
         prev_cloud_ = current_cloud;
     }
