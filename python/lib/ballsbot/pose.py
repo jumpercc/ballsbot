@@ -9,18 +9,16 @@ class Pose:
         data = self.messenger.get_message_data('pose')
         if data:
             current_pose = {
-                'imu_ts': data.imu_ts.to_sec(),
-                'odometry_ts': data.odometry_ts.to_sec(),
+                'raw_pose_ts': data.pose_ts.to_sec(),
                 'self_ts': data.header.stamp.to_sec(),
                 'x': data.x,
                 'y': data.y,
                 'teta': data.teta,
             }
-            current_pose['ts'] = current_pose['imu_ts']
+            current_pose['ts'] = current_pose['raw_pose_ts']
         else:
             current_pose = {
-                'imu_ts': None,
-                'odometry_ts': None,
+                'raw_pose_ts': None,
                 'self_ts': None,
                 'x': None,
                 'y': None,
