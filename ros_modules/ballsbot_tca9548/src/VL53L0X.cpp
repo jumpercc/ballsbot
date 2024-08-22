@@ -870,25 +870,31 @@ void VL53L0X::stopContinuous(void)
 uint16_t VL53L0X::readRangeContinuousMillimeters(void)
 {
     startTimeout();
-    while ((readReg(RESULT_INTERRUPT_STATUS) & 0x07) == 0)
-    {
-        if (checkTimeoutExpired())
+    try {
+        while ((readReg(RESULT_INTERRUPT_STATUS) & 0x07) == 0)
         {
-            did_timeout = true;
-            return 65535;
+            if (checkTimeoutExpired())
+            {
+                did_timeout = true;
+                return 65535;
+            }
         }
+
+        // assumptions: Linearity Corrective Gain is 1000 (default);
+        // fractional ranging is not enabled
+        // Originally:
+        // uint16_t range = readReg16Bit(RESULT_RANGE_STATUS + 10) ;
+        uint16_t range = readReg16Bit(RESULT_RANGE_STATUS + 10) << 8 ;
+        range |= readReg(RESULT_RANGE_STATUS + 11);
+
+        writeReg(SYSTEM_INTERRUPT_CLEAR, 0x01);
+
+        return range;
     }
-
-    // assumptions: Linearity Corrective Gain is 1000 (default);
-    // fractional ranging is not enabled
-    // Originally:
-    // uint16_t range = readReg16Bit(RESULT_RANGE_STATUS + 10) ;
-    uint16_t range = readReg16Bit(RESULT_RANGE_STATUS + 10) << 8 ;
-    range |= readReg(RESULT_RANGE_STATUS + 11);
-
-    writeReg(SYSTEM_INTERRUPT_CLEAR, 0x01);
-
-    return range;
+    catch (const std::runtime_error& e) {
+        did_timeout = true;
+        return 65535;
+    }
 }
 
 // Performs a single-shot range measurement and returns the reading in
