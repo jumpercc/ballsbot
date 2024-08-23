@@ -86,13 +86,22 @@ CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
 class Tracker {
 public:
     void set_input(const PosePtr &pose_msg, const LidarPtr &lidar_msg) {
+        raw_x_ = pose_msg->x;
+        raw_y_ = pose_msg->y;
+        raw_teta_ = pose_msg->teta;
+
+        ticks_count = (ticks_count + 1) % 4;
+        if (ticks_count != 0) {
+            return;
+        }
+
         prev_x_ = x_;
         prev_y_ = y_;
         prev_teta_ = teta_;
 
-        x_ = pose_msg->x;
-        y_ = pose_msg->y;
-        teta_ = pose_msg->teta;
+        x_ = raw_x_;
+        y_ = raw_y_;
+        teta_ = raw_teta_;
 
         auto current_cloud = get_cloud_from_message(lidar_msg);
         if (prev_cloud_) {
@@ -178,17 +187,21 @@ public:
     }
 
     double get_x() {
-        return x_;
+        return ticks_count == 0 ? x_ : raw_x_;
     }
 
     double get_y() {
-        return y_;
+        return ticks_count == 0 ? y_ : raw_y_;
     }
 
     double get_teta() {
-        return teta_;
+        return ticks_count == 0 ? teta_ : raw_teta_;
     }
 private:
+    double raw_x_ = 0.0;
+    double raw_y_ = 0.0;
+    double raw_teta_ = 0.0;
+
     double x_ = 0.0;
     double y_ = 0.0;
     double teta_ = 0.0;
@@ -197,6 +210,7 @@ private:
     double prev_y_ = 0.0;
     double prev_teta_ = 0.0;
 
+    size_t ticks_count = 0;
     CloudPtr prev_cloud_;
 };
 
