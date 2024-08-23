@@ -83,6 +83,15 @@ CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
     return result;
 }
 
+double angle_to_a_range(double angle) {
+    if (angle > M_PI) {
+        angle -= 2 * M_PI;
+    } else if (angle < -M_PI) {
+        angle += 2 * M_PI;
+    }
+    return angle;
+}
+
 class Tracker {
 public:
     void set_input(const PosePtr &pose_msg, const LidarPtr &lidar_msg) {
@@ -95,14 +104,6 @@ public:
             return;
         }
 
-        prev_x_ = x_;
-        prev_y_ = y_;
-        prev_teta_ = teta_;
-
-        x_ = raw_x_;
-        y_ = raw_y_;
-        teta_ = raw_teta_;
-
         auto current_cloud = get_cloud_from_message(lidar_msg);
         if (prev_cloud_) {
             bool done = false;
@@ -111,7 +112,7 @@ public:
 
             NDTSettings current_settings = DEFAULT_SETTINGS;
             std::vector<std::vector<double>> gueses{
-                {x_ - prev_x_, y_ - prev_y_, teta_ - prev_teta_},
+                {raw_x_ - prev_x_, raw_y_ - prev_y_, raw_teta_ - prev_teta_},
                 {0., 0., 0.},
             };
             for(auto guess: gueses) {
@@ -136,7 +137,7 @@ public:
                     current_settings = DEFAULT_SETTINGS;
                     current_settings.grid_step = grid_step;
                     gueses = {
-                        {x_ - prev_x_, y_ - prev_y_, teta_ - prev_teta_},
+                        {raw_x_ - prev_x_, raw_y_ - prev_y_, raw_teta_ - prev_teta_},
                         {0., 0., 0.},
                     };
                     for(auto optim_step: optim_steps) {
@@ -157,10 +158,10 @@ public:
                             }
                             else {
                                 done = false;
-                                auto better_pose = transformation_matrix_to_xytheta(transformation_quat);
-                                gueses[0][0] = better_pose[0];
-                                gueses[0][1] = better_pose[1];
-                                gueses[0][2] = better_pose[2];
+                                auto better_diff = transformation_matrix_to_xytheta(transformation_quat);
+                                gueses[0][0] = better_diff[0];
+                                gueses[0][1] = better_diff[1];
+                                gueses[0][2] = better_diff[2];
                             }
                         }
                     }
@@ -174,42 +175,33 @@ public:
             }
             */
             if (done) {
-                auto fixed_pose = transformation_matrix_to_xytheta(transformation_quat);
-                x_ = fixed_pose[0] + x_error_;
-                y_ = fixed_pose[1] + y_error_;
-                teta_ = fixed_pose[2] + teta_error_;
-                if (teta_ > M_PI) {
-                    teta_ -= 2 * M_PI;
-                } else if (teta_ < -M_PI) {
-                    teta_ += 2 * M_PI;
-                }
-
-                x_error_ += fixed_pose[0] - raw_x_;
-                y_error_ += fixed_pose[1] - raw_y_;
-                teta_error_ += fixed_pose[2] - raw_teta_;
-                if (teta_error_ > M_PI) {
-                    teta_error_ -= 2 * M_PI;
-                } else if (teta_error_ < -M_PI) {
-                    teta_error_ += 2 * M_PI;
-                }
+                auto fixed_diff = transformation_matrix_to_xytheta(transformation_quat);
+                x_error_ += fixed_diff[0] - (raw_x_ - prev_x_);
+                y_error_ += fixed_diff[1] - (raw_y_ - prev_y_);
+                teta_error_ += fixed_diff[2] - (raw_teta_ - prev_teta_);
+                teta_error_ = angle_to_a_range(teta_error_);
             }
             else {
                 ROS_INFO("failed to fix a pose");
             }
         }
+
         prev_cloud_ = current_cloud;
+        prev_x_ = raw_x_;
+        prev_y_ = raw_y_;
+        prev_teta_ = raw_teta_;
     }
 
     double get_x() {
-        return ticks_count == 0 ? x_ : raw_x_;
+        return raw_x_ + x_error_;
     }
 
     double get_y() {
-        return ticks_count == 0 ? y_ : raw_y_;
+        return raw_y_ + y_error_;
     }
 
     double get_teta() {
-        return ticks_count == 0 ? teta_ : raw_teta_;
+        return angle_to_a_range(raw_teta_ + teta_error_);
     }
 
     double get_x_error() {
@@ -227,10 +219,6 @@ private:
     double raw_x_ = 0.0;
     double raw_y_ = 0.0;
     double raw_teta_ = 0.0;
-
-    double x_ = 0.0;
-    double y_ = 0.0;
-    double teta_ = 0.0;
 
     double x_error_ = 0.0;
     double y_error_ = 0.0;
