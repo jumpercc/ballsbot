@@ -61,7 +61,7 @@ def publisher():
 
     pub = rospy.Publisher('imu', ImuState, queue_size=1)
     rospy.init_node('ballsbot_imu')
-    rate = rospy.Rate(5)
+    rate = rospy.Rate(4)
     zero_duration = rospy.rostime.Duration(0, 0)
     while not rospy.is_shutdown():
         if imu.imu.IMURead():

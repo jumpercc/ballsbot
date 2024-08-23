@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
     current_time = ros::Time::now();
     last_time = ros::Time::now();
 
-    ros::Rate rate(5);
+    ros::Rate rate(4);
     while (ros::ok()) {
         ros::spinOnce();
         current_time = ros::Time::now();
