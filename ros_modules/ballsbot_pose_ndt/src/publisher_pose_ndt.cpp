@@ -175,9 +175,23 @@ public:
             */
             if (done) {
                 auto fixed_pose = transformation_matrix_to_xytheta(transformation_quat);
-                x_ = fixed_pose[0];
-                y_ = fixed_pose[1];
-                teta_ = fixed_pose[2];
+                x_ = fixed_pose[0] + x_error_;
+                y_ = fixed_pose[1] + y_error_;
+                teta_ = fixed_pose[2] + teta_error_;
+                if (teta_ > M_PI) {
+                    teta_ -= 2 * M_PI;
+                } else if (teta_ < -M_PI) {
+                    teta_ += 2 * M_PI;
+                }
+
+                x_error_ += fixed_pose[0] - raw_x_;
+                y_error_ += fixed_pose[1] - raw_y_;
+                teta_error_ += fixed_pose[2] - raw_teta_;
+                if (teta_error_ > M_PI) {
+                    teta_error_ -= 2 * M_PI;
+                } else if (teta_error_ < -M_PI) {
+                    teta_error_ += 2 * M_PI;
+                }
             }
             else {
                 ROS_INFO("failed to fix a pose");
@@ -197,6 +211,18 @@ public:
     double get_teta() {
         return ticks_count == 0 ? teta_ : raw_teta_;
     }
+
+    double get_x_error() {
+        return x_error_;
+    }
+
+    double get_y_error() {
+        return y_error_;
+    }
+
+    double get_teta_error() {
+        return teta_error_;
+    }
 private:
     double raw_x_ = 0.0;
     double raw_y_ = 0.0;
@@ -205,6 +231,10 @@ private:
     double x_ = 0.0;
     double y_ = 0.0;
     double teta_ = 0.0;
+
+    double x_error_ = 0.0;
+    double y_error_ = 0.0;
+    double teta_error_ = 0.0;
 
     double prev_x_ = 0.0;
     double prev_y_ = 0.0;
@@ -244,9 +274,9 @@ int main(int argc, char *argv[]) {
             output_msg.x = tracker.get_x();
             output_msg.y = tracker.get_y();
             output_msg.teta = tracker.get_teta();
-            output_msg.x_raw = current_pose_msg->x;
-            output_msg.y_raw = current_pose_msg->y;
-            output_msg.teta_raw = current_pose_msg->teta;
+            output_msg.x_error = tracker.get_x_error();
+            output_msg.y_error = tracker.get_y_error();
+            output_msg.teta_error = tracker.get_teta_error();
             pose_pub.publish(output_msg);
 
             last_time = current_time;

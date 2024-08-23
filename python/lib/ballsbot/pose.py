@@ -7,6 +7,7 @@ class Pose:
 
     def _get_data(self):
         data = self.messenger.get_message_data('pose')
+        data_fixed = self.messenger.get_message_data('pose_ndt')
         if data:
             current_pose = {
                 'imu_ts': data.imu_ts.to_sec(),
@@ -17,6 +18,10 @@ class Pose:
                 'teta': data.teta,
             }
             current_pose['ts'] = current_pose['imu_ts']
+            if data_fixed:
+                current_pose['x'] += data_fixed.x_error
+                current_pose['y'] += data_fixed.y_error
+                current_pose['teta'] += data_fixed.teta_error
         else:
             current_pose = {
                 'imu_ts': None,
