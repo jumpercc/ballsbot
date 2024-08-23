@@ -45,7 +45,7 @@ def publisher():
 
     pub = rospy.Publisher('wheel_odometry', OdometryState, queue_size=1)
     rospy.init_node('ballsbot_wheel_odometry')
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
 
     GPIO.setmode(GPIO.BCM)  # BCM pin-numbering scheme from Raspberry Pi
     GPIO.setup(ODOMETRY_PRIMARY_PIN, GPIO.IN)

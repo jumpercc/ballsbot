@@ -28,19 +28,19 @@ void LidarCallback(const LidarPtr &msg) {
 
 const NDTSettings DEFAULT_SETTINGS{
     // int iter;
-    1000,
+    25,  // simplified from 1000
     // double grid_step;
     1.5,
     // double grid_extent;
-    20.,
+    4.,  // simplified from 20
     // double optim_step_x;
     0.1,
     // double optim_step_y;
     0.1,
     // double optim_step_theta;
-    0.01,
+    0.1,  // simplified from 0.01
     // double epsilon;
-    0.0001,
+    0.01,  // simplified from 0.0001
     // double guess_x;
     0.,
     // double guess_y;
@@ -71,7 +71,7 @@ CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
     double angle = lidar_msg->angle_min;
     size_t i = 0;
     for (auto value: lidar_msg->intensities) {
-        if (value > 0) {
+        if (value > 0 && lidar_msg->ranges[i] < 5.) {
             result->push_back(radial_to_cartesian(
                 lidar_msg->ranges[i],
                 fix_angle(angle, lidar_msg->angle_min, lidar_msg->angle_max)
@@ -90,7 +90,7 @@ public:
         raw_y_ = pose_msg->y;
         raw_teta_ = pose_msg->teta;
 
-        ticks_count = (ticks_count + 1) % 4;
+        ticks_count = (ticks_count + 1) % 15;
         if (ticks_count != 0) {
             return;
         }
@@ -119,13 +119,13 @@ public:
                 current_settings.guess_y = guess[1];
                 current_settings.guess_theta = guess[2];
                 transformation = get_transformation(current_cloud, prev_cloud_, current_settings);
-                if (transformation.converged && transformation.score < 0.02) {
+                if (transformation.converged && transformation.score < 0.2) {  // simplified from 0.02
                     transformation_quat = transformation.transformation;
                     done = true;
                     break;
                 }
             }
-
+            /* simplified for cpu optimization
             if (!done) {
                 std::vector<double> grid_steps{1.5, 1.0};
                 std::vector<std::vector<double>> optim_steps{
@@ -172,7 +172,7 @@ public:
                     done = false; // keep raw pose value
                 }
             }
-
+            */
             if (done) {
                 auto fixed_pose = transformation_matrix_to_xytheta(transformation_quat);
                 x_ = fixed_pose[0];
@@ -229,7 +229,7 @@ int main(int argc, char *argv[]) {
     current_time = ros::Time::now();
     last_time = ros::Time::now();
 
-    ros::Rate rate(4);
+    ros::Rate rate(5);
     while (ros::ok()) {
         ros::spinOnce();
         current_time = ros::Time::now();

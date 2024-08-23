@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
     last_time = ros::Time::now();
     Pose prev_pose;
 
-    ros::Rate rate(4);
+    ros::Rate rate(5);
     while (ros::ok()) {
         ros::spinOnce();
         current_time = ros::Time::now();
