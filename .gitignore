@@ -12,6 +12,9 @@ tmp*
 **/dist
 **/ballsbot_*.egg-info
 **/ballsbot_*.cpp
+python_packages/python-pcl-ndt/python_pcl_ndt.egg-info
+python_packages/python-pcl-ndt/python_pcl_ndt.cpp
+python_packages/python-pcl-ndt/ros_modules/*
 ros_modules/*/CMakeCache.txt
 ros_modules/*/CMakeFiles/
 ros_modules/*/CTestConfiguration.ini

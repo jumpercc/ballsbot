@@ -9,6 +9,7 @@ sys.path.append('/usr/lib/python2.7/dist-packages')
 sys.path.append('/home/ballsbot/catkin_ws/devel/lib/python2.7/dist-packages')
 import rospy  # noqa
 from ballsbot_pose.msg import Pose  # noqa
+from ballsbot_pose_ndt.msg import FixedPose  # noqa
 from ballsbot_detection.msg import DetectionsList  # noqa
 from ballsbot_imu.msg import ImuState  # noqa
 from sensor_msgs.msg import LaserScan  # noqa
@@ -38,6 +39,11 @@ class RosMessages:
                 'name': 'pose',
                 'topic': '/pose',
                 'msg_type': Pose,
+            },
+            {
+                'name': 'pose_ndt',
+                'topic': '/pose_ndt',
+                'msg_type': FixedPose,
             },
             {
                 'name': 'imu',

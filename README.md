@@ -99,11 +99,14 @@ You need to connect to your wi-fi and make this connection "avaliable for all us
 
 ```
 docker build -t ballsbot -f docker/Dockerfile .
-docker run -d -v `pwd`:/home/ballsbot/projects/ballsbot -p127.0.0.1:8080:8080 ballsbot
+docker run -d -v `pwd`:/home/ballsbot/projects/ballsbot -p 127.0.0.1:8080:8080 ballsbot
 docker exec -it HASH-HERE bash
 
 rm /home/ballsbot/catkin_ws/src/ballsbot_detection
 source /opt/ros/melodic/setup.bash && cd /home/ballsbot/catkin_ws/ && catkin_make && source devel/setup.bash
+
+apt-get update
+/home/ballsbot/projects/ballsbot/scripts/make-ros-modules.sh  # ok if fails due to invalid arch
 
 /home/ballsbot/projects/ballsbot/scripts/run-jupyter.sh --allow-root --port=8080
 ```

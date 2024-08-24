@@ -109,14 +109,14 @@ uint16_t GetDistanceFromLaserSensorWithTimeout(uint8_t bus_number, uint8_t senso
     std::packaged_task<uint16_t(uint8_t, uint8_t)> task(GetDistanceFromLaserSensor);
     auto future = task.get_future();
     std::thread thr(std::move(task), bus_number, sensor_key);
-    if (future.wait_for(2s) != std::future_status::timeout) {
+    if (future.wait_for(1s) != std::future_status::timeout) {
         thr.join();
         return future.get();
     } else {
         thr.detach();
         ROS_INFO("Sensor timeout, thread still running!");
-        if (++timeouts_count > 15) {
-            throw std::runtime_error("timeouts limit exceeded");
+        if (++timeouts_count > 5) {
+            throw std::runtime_error("timeouts limit exceeded for " + std::to_string(sensor_key));
         }
         auto laser_sensor = laser_sensors_cache[sensor_key];
         if (laser_sensor) {
@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
     auto magnetic_encoder_publisher = n.advertise<ballsbot_tca9548::EncoderAngle>(
         "magnetic_encoder", CountDevices(config, kMagneticEncoderAS5600) || 1);
 
-    ros::Rate loop_rate(8);
+    ros::Rate loop_rate(4);
     while (ros::ok()) {
         for (auto config_item : config) {
             controller.SetState(config_item.state_bits);

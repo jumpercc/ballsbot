@@ -16,5 +16,6 @@
         <node pkg="ballsbot_imu" type="publisher_imu.py" name="publisher_imu" />
         <node pkg="ballsbot_wheel_odometry" type="publisher_wheel_odometry.py" name="publisher_wheel_odometry" />
         <node pkg="ballsbot_pose" type="publisher_pose" name="publisher_pose" />
+        <node pkg="ballsbot_pose_ndt" type="publisher_pose_ndt" name="publisher_pose_ndt" />
     </group>
 </launch>

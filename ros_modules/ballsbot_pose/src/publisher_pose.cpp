@@ -95,9 +95,9 @@ private:
                     result.y = speed * std::sin(teta) * dt;
                 } else if (current.w_z != 0.) {
                     result.x = speed / current.w_z *
-                               (-std::sin(this->prev_dx_dy.teta) + sin(this->prev_dx_dy.teta + current.w_z * dt));
+                               (-std::sin(this->prev_dx_dy.teta) + std::sin(this->prev_dx_dy.teta + current.w_z * dt));
                     result.y = speed / current.w_z *
-                               (std::cos(this->prev_dx_dy.teta) - cos(this->prev_dx_dy.teta + current.w_z * dt));
+                               (std::cos(this->prev_dx_dy.teta) - std::cos(this->prev_dx_dy.teta + current.w_z * dt));
                 }
             }
         }
