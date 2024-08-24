@@ -15,15 +15,17 @@ class BotPoseAbsCoordsDrawing:
 
     def update_image(self, poses, lidar_points, self_position, free_cells=None, target_point=None,
                      # pylint: disable=R0913
-                     image_text=None, only_nearby_meters=6.):
+                     image_text=None, only_nearby_meters=6., additional_points=None):
         params = [
-            poses, lidar_points, self_position, only_nearby_meters, free_cells, target_point, image_text]
+            poses, lidar_points, self_position, only_nearby_meters, free_cells, target_point, image_text,
+            additional_points
+        ]
         self.dashboard.set_subplot_data(self.plot_name, params)
 
 
 def draw_image_bot_pose_abs_coords(
         ax, poses, lidar_points, self_position, only_nearby_meters,
-        free_cells=None, target_point=None, image_text=None
+        free_cells=None, target_point=None, image_text=None, additional_points=None,
 ):  # pylint: disable=R0913, R0914, C0103
     poses_x_points = [x['x'] for x in poses]
     poses_y_points = [x['y'] for x in poses]
@@ -31,6 +33,11 @@ def draw_image_bot_pose_abs_coords(
         pose = {'x': 0., 'y': 0., 'teta': 0.}
     else:
         pose = poses[-1]
+
+    if additional_points is not None:
+        additional_x_points = [x[0] for x in additional_points]
+        additional_y_points = [x[1] for x in additional_points]
+        ax.scatter(additional_x_points, additional_y_points, marker='o', s=5, c='lightblue')
 
     ax.set_xlim(-only_nearby_meters, only_nearby_meters)
     ax.set_ylim(-only_nearby_meters, only_nearby_meters)

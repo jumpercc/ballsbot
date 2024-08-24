@@ -122,6 +122,9 @@ RUN cd /home/ballsbot/projects/ballsbot/python_packages/ballsbot_localization/ \
 RUN cd /home/ballsbot/projects/ballsbot/python_packages/ballsbot_manipulator_geometry/ \
     && rm -rf ballsbot_manipulator_geometry.cpp build && python3 setup.py build_ext \
     && python3 setup.py install -f
+RUN cd /home/ballsbot/projects/ballsbot/python_packages/python-pcl-ndt/ \
+    && rm -rf python_pcl_ndt.cpp build && python3 setup.py build_ext \
+    && python3 setup.py install -f
 
 # jupyter
 RUN mkdir /home/ballsbot/notebooks \

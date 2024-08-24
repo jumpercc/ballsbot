@@ -5,8 +5,7 @@
 #include "ballsbot_pose_ndt/FixedPose.h"
 #include "sensor_msgs/LaserScan.h"
 #include "ndt.h"
-
-double ANGLE_FIX = 3.0660432755299887;  // FIXME use config
+#include "ndt_tracker.h"
 
 using PosePtr = ballsbot_pose::Pose::ConstPtr;
 using LidarPtr = sensor_msgs::LaserScan::ConstPtr;
@@ -26,46 +25,6 @@ void LidarCallback(const LidarPtr &msg) {
     lidar_used = false;
 }
 
-const NDTSettings DEFAULT_SETTINGS{
-    // int iter;
-    25,  // simplified from 1000
-    // double grid_step;
-    1.5,
-    // double grid_extent;
-    4.,  // simplified from 20
-    // double optim_step_x;
-    0.1,
-    // double optim_step_y;
-    0.1,
-    // double optim_step_theta;
-    0.1,  // simplified from 0.01
-    // double epsilon;
-    0.01,  // simplified from 0.0001
-    // double guess_x;
-    0.,
-    // double guess_y;
-    0.,
-    // double guess_theta;
-    0.,
-};
-
-PointType radial_to_cartesian(double distance, double angle) {
-    float x = distance * std::cos(angle);
-    float y = distance * std::sin(angle);
-    return {x, y, 0.0f};
-}
-
-double fix_angle(double my_angle, double angle_min, double angle_max) {
-    my_angle -= ANGLE_FIX;
-    if (my_angle < angle_min) {
-        my_angle = angle_max + my_angle - angle_min;
-    }
-    else if (my_angle > angle_max) {
-        my_angle = angle_min + my_angle - angle_max;
-    }
-    return my_angle;
-}
-
 CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
     auto result = CloudPtr(new Cloud());
     double angle = lidar_msg->angle_min;
@@ -83,157 +42,9 @@ CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
     return result;
 }
 
-double angle_to_a_range(double angle) {
-    if (angle > M_PI) {
-        angle -= 2 * M_PI;
-    } else if (angle < -M_PI) {
-        angle += 2 * M_PI;
-    }
-    return angle;
-}
-
-class Tracker {
-public:
-    void set_input(const PosePtr &pose_msg, const LidarPtr &lidar_msg) {
-        raw_x_ = pose_msg->x;
-        raw_y_ = pose_msg->y;
-        raw_teta_ = pose_msg->teta;
-
-        ticks_count = (ticks_count + 1) % 15;
-        if (ticks_count != 0) {
-            return;
-        }
-
-        auto current_cloud = get_cloud_from_message(lidar_msg);
-        if (prev_cloud_) {
-            bool done = false;
-            TransformationAndCloud transformation;
-            Eigen::Matrix4f transformation_quat;
-
-            NDTSettings current_settings = DEFAULT_SETTINGS;
-            std::vector<std::vector<double>> gueses{
-                {raw_x_ - prev_x_, raw_y_ - prev_y_, raw_teta_ - prev_teta_},
-                {0., 0., 0.},
-            };
-            for(auto guess: gueses) {
-                current_settings.guess_x = guess[0];
-                current_settings.guess_y = guess[1];
-                current_settings.guess_theta = guess[2];
-                transformation = get_transformation(current_cloud, prev_cloud_, current_settings);
-                if (transformation.converged && transformation.score < 0.2) {  // simplified from 0.02
-                    transformation_quat = transformation.transformation;
-                    done = true;
-                    break;
-                }
-            }
-            /* simplified for cpu optimization
-            if (!done) {
-                std::vector<double> grid_steps{1.5, 1.0};
-                std::vector<std::vector<double>> optim_steps{
-                    {0.1, 0.1, 0.02},
-                    {0.1, 0.1, 0.01},
-                };
-                for(auto grid_step: grid_steps) {
-                    current_settings = DEFAULT_SETTINGS;
-                    current_settings.grid_step = grid_step;
-                    gueses = {
-                        {raw_x_ - prev_x_, raw_y_ - prev_y_, raw_teta_ - prev_teta_},
-                        {0., 0., 0.},
-                    };
-                    for(auto optim_step: optim_steps) {
-                        for(auto guess: gueses) {
-                            current_settings.guess_x = guess[0];
-                            current_settings.guess_y = guess[1];
-                            current_settings.guess_theta = guess[2];
-                            transformation = get_transformation(current_cloud, prev_cloud_, current_settings);
-                            if (transformation.converged && transformation.score < 0.5) {
-                                transformation_quat = transformation.transformation;
-                                done = true;
-                                break;
-                            }
-                        }
-                        if (done) {
-                            if (transformation.score < 0.06) {
-                                break;
-                            }
-                            else {
-                                done = false;
-                                auto better_diff = transformation_matrix_to_xytheta(transformation_quat);
-                                gueses[0][0] = better_diff[0];
-                                gueses[0][1] = better_diff[1];
-                                gueses[0][2] = better_diff[2];
-                            }
-                        }
-                    }
-                    if (done && transformation.score < 0.06) {
-                        break;
-                    }
-                }
-                if (!done || transformation.score > 0.39) {
-                    done = false; // keep raw pose value
-                }
-            }
-            */
-            if (done) {
-                auto fixed_diff = transformation_matrix_to_xytheta(transformation_quat);
-                x_error_ += fixed_diff[0] - (raw_x_ - prev_x_);
-                y_error_ += fixed_diff[1] - (raw_y_ - prev_y_);
-                teta_error_ += fixed_diff[2] - (raw_teta_ - prev_teta_);
-                teta_error_ = angle_to_a_range(teta_error_);
-            }
-            else {
-                ROS_INFO("failed to fix a pose");
-            }
-        }
-
-        prev_cloud_ = current_cloud;
-        prev_x_ = raw_x_;
-        prev_y_ = raw_y_;
-        prev_teta_ = raw_teta_;
-    }
-
-    double get_x() {
-        return raw_x_ + x_error_;
-    }
-
-    double get_y() {
-        return raw_y_ + y_error_;
-    }
-
-    double get_teta() {
-        return angle_to_a_range(raw_teta_ + teta_error_);
-    }
-
-    double get_x_error() {
-        return x_error_;
-    }
-
-    double get_y_error() {
-        return y_error_;
-    }
-
-    double get_teta_error() {
-        return teta_error_;
-    }
-private:
-    double raw_x_ = 0.0;
-    double raw_y_ = 0.0;
-    double raw_teta_ = 0.0;
-
-    double x_error_ = 0.0;
-    double y_error_ = 0.0;
-    double teta_error_ = 0.0;
-
-    double prev_x_ = 0.0;
-    double prev_y_ = 0.0;
-    double prev_teta_ = 0.0;
-
-    size_t ticks_count = 0;
-    CloudPtr prev_cloud_;
-};
-
 int main(int argc, char *argv[]) {
     Tracker tracker;
+    size_t ticks_count = 0;
     ros::init(argc, argv, "ballsbot_pose_ndt");
     ros::NodeHandle n;
 
@@ -255,7 +66,12 @@ int main(int argc, char *argv[]) {
         if (current_pose_msg.get() != nullptr && current_lidar_msg.get() != nullptr && !pose_used && !lidar_used) {
             pose_used = true;
             lidar_used = true;
-            tracker.set_input(current_pose_msg, current_lidar_msg);
+            ticks_count = (ticks_count + 1) % 15;
+            if (ticks_count == 0) {
+                std::vector<double> current_pose {current_pose_msg->x, current_pose_msg->y, current_pose_msg->teta};
+                auto current_cloud = get_cloud_from_message(current_lidar_msg);
+                tracker.set_input(current_pose, current_cloud);
+            }
 
             output_msg.header.stamp = current_time;
             output_msg.pose_ts = current_pose_msg->header.stamp;

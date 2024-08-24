@@ -45,6 +45,6 @@ include_directories(
   "/usr/include/eigen3"
 )
 
-add_executable(publisher_pose_ndt src/publisher_pose_ndt.cpp)
+add_executable(publisher_pose_ndt src/publisher_pose_ndt.cpp src/ndt.cpp src/ndt_tracker.cpp)
 target_link_libraries(publisher_pose_ndt ${catkin_LIBRARIES} ${PCL_IO} ${PCL_REGISTRATION} ${PCL_FILTERS} ${PCL_COMMON} ${PCL_SEARCH} ${PCL_KDTREE})
 add_dependencies(publisher_pose_ndt ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
