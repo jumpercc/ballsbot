@@ -21,9 +21,7 @@ struct NDTSettings {
     double optim_step_y;
     double optim_step_theta;
     double epsilon;
-    double guess_x;
-    double guess_y;
-    double guess_theta;
+    Eigen::Matrix4f guess;
 };
 
 struct NDTResult {

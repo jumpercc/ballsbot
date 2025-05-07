@@ -50,7 +50,7 @@ source /opt/ros/melodic/setup.bash
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/
 catkin_make
-sudo rosdep init && rosdep update
+sudo rosdep init && rosdep update --include-eol-distros
 
 # jupyter
 sudo ifconfig docker0 down

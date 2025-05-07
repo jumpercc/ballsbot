@@ -7,6 +7,8 @@
 #include "ndt.h"
 #include "ndt_tracker.h"
 
+double ANGLE_FIX = 3.0660432755299887;  // FIXME use config
+
 using PosePtr = ballsbot_pose::Pose::ConstPtr;
 using LidarPtr = sensor_msgs::LaserScan::ConstPtr;
 
@@ -23,6 +25,17 @@ void PoseCallback(const PosePtr &msg) {
 void LidarCallback(const LidarPtr &msg) {
     current_lidar_msg = msg;
     lidar_used = false;
+}
+
+double fix_angle(double my_angle, double angle_min, double angle_max) {
+    my_angle -= ANGLE_FIX;
+    if (my_angle < angle_min) {
+        my_angle = angle_max + my_angle - angle_min;
+    }
+    else if (my_angle > angle_max) {
+        my_angle = angle_min + my_angle - angle_max;
+    }
+    return my_angle;
 }
 
 CloudPtr get_cloud_from_message(const LidarPtr &lidar_msg) {
@@ -75,12 +88,14 @@ int main(int argc, char *argv[]) {
 
             output_msg.header.stamp = current_time;
             output_msg.pose_ts = current_pose_msg->header.stamp;
-            output_msg.x = tracker.get_x();
-            output_msg.y = tracker.get_y();
-            output_msg.teta = tracker.get_teta();
-            output_msg.x_error = tracker.get_x_error();
-            output_msg.y_error = tracker.get_y_error();
-            output_msg.teta_error = tracker.get_teta_error();
+            auto pose = tracker.get_pose();
+            output_msg.x = pose[0];
+            output_msg.y = pose[1];
+            output_msg.teta = pose[2];
+            auto error = tracker.get_error();
+            output_msg.x_error = error[0];
+            output_msg.y_error = error[1];
+            output_msg.teta_error = error[2];
             pose_pub.publish(output_msg);
 
             last_time = current_time;

@@ -19,13 +19,8 @@ NDTResult get_transformation(const CloudPtr& target_cloud, const CloudPtr& input
     ndt.setInputTarget (target_cloud);
     ndt.setInputSource (input_cloud);
 
-    // Set initial alignment estimate found using robot odometry.
-    Eigen::AngleAxisf init_rotation (settings.guess_theta, Eigen::Vector3f::UnitZ ());
-    Eigen::Translation3f init_translation (settings.guess_x, settings.guess_y, 0);
-    Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix ();
-
     CloudPtr output_cloud (new Cloud);
-    ndt.align (*output_cloud, init_guess);
+    ndt.align (*output_cloud, settings.guess);
 
     NDTResult result = {
         ndt.getFinalTransformation(),

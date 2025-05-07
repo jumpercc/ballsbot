@@ -34,13 +34,15 @@ cdef class PyTracker:
             cpp_cloud.at(i).z = 0.
 
         self.thisobj.set_input(cpp_pose, cpp_cloud.makeShared())
+        pose = self.thisobj.get_pose()
+        error = self.thisobj.get_error()
         return {
-            'x_error': self.thisobj.get_x_error(),
-            'y_error': self.thisobj.get_y_error(),
-            'teta_error': self.thisobj.get_teta_error(),
-            'x': self.thisobj.get_x(),
-            'y': self.thisobj.get_y(),
-            'teta': self.thisobj.get_teta(),
+            'x_error': error[0],
+            'y_error': error[1],
+            'teta_error': error[2],
+            'x': pose[0],
+            'y': pose[1],
+            'teta': pose[2],
         }
 
 tracker = None

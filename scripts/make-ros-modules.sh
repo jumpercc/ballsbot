@@ -34,7 +34,7 @@ ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_manipulator && \
 ln -s /home/ballsbot/projects/ballsbot/ros_modules/ballsbot_main && \
 ln -s /home/ballsbot/projects/ballsbot/docker/ydlidar_ros && \
 cd .. && \
-rosdep install --from-paths src --ignore-src -r -y && \
+rosdep install --from-paths src --ignore-src -r -y --include-eol-distros && \
 catkin_make
 
 roscd ydlidar_ros/startup

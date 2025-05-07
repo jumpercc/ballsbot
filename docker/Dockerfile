@@ -37,6 +37,7 @@ RUN apt-get update -y \
     lsb-release \
     sudo \
     wget \
+    net-tools \
     && apt-get clean
 
 RUN mkdir -p /home/ballsbot/projects
@@ -78,7 +79,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main"
     && mkdir -p /home/ballsbot/catkin_ws/src \
     && cd /home/ballsbot/catkin_ws/ \
     && catkin_make \
-    && rosdep init && rosdep update
+    && rosdep init && rosdep update --include-eol-distros
 
 # lidar
 COPY ./docker/ydlidar_ros/ /home/ballsbot/catkin_ws/src/ydlidar_ros/
@@ -103,7 +104,8 @@ RUN pip3 install pip -U \
     smbus \
     Cython \
     flake8 \
-    numpy
+    numpy \
+    tqdm
 RUN pip3 install matplotlib -U
 
 # imu

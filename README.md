@@ -108,5 +108,5 @@ source /opt/ros/melodic/setup.bash && cd /home/ballsbot/catkin_ws/ && catkin_mak
 apt-get update
 /home/ballsbot/projects/ballsbot/scripts/make-ros-modules.sh  # ok if fails due to invalid arch
 
-/home/ballsbot/projects/ballsbot/scripts/run-jupyter.sh --allow-root --port=8080
+/home/ballsbot/projects/ballsbot/scripts/run-jupyter.sh --allow-root --port=8080 --ip=`ifconfig | grep -F 'inet ' | grep -vF 127.0.0.1 | awk '{print $2}'`
 ```
